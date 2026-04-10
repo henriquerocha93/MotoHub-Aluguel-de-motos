@@ -107,10 +107,10 @@ if(!temHenrique) {
 // ==========================================
 // AUTH GUARD
 // ==========================================
-if (!window.location.href.includes('vitrine.html')) {
+if (window.location.href.includes('crm.html') || window.location.pathname.endsWith('crm.html')) {
     const sessionUrl = localStorage.getItem('crm_session');
     if (!sessionUrl) {
-        window.location.href = 'vitrine.html';
+        window.location.href = 'index.html';
     } else {
         document.addEventListener('DOMContentLoaded', () => {
             const userSpan = document.getElementById('logged-user-name');
@@ -134,7 +134,7 @@ if (!window.location.href.includes('vitrine.html')) {
 
 function fazerLogout() {
     localStorage.removeItem('crm_session');
-    window.location.href = 'vitrine.html';
+    window.location.href = 'index.html';
 }
 
 // ==========================================
