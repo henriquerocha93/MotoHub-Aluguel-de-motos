@@ -19,6 +19,23 @@ window.isFirebaseSyncing = false; // Flag to prevent echo loops
 
 // Start continuous Realtime synchronization
 if(db) {
+    if(!localStorage.getItem('crm_cloud_migrated')) {
+        let hasData = false;
+        const batch = db.batch();
+        ['crm_clientes', 'crm_motos', 'crm_contratos', 'crm_admins'].forEach(col => {
+            const data = JSON.parse(localStorage.getItem(col)) || [];
+            if(data.length > 0) {
+                hasData = true;
+                data.forEach(item => {
+                    if(item && item.id) {
+                        batch.set(db.collection(col).doc(item.id), item);
+                    }
+                });
+            }
+        });
+        if(hasData) batch.commit();
+        localStorage.setItem('crm_cloud_migrated', 'true');
+    }
     ['crm_clientes', 'crm_motos', 'crm_contratos', 'crm_admins'].forEach(colName => {
         db.collection(colName).onSnapshot((snapshot) => {
             const arr = [];
