@@ -1,0 +1,561 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MotoHub CRM - Aluguel de Motos</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar overlay for Mobile -->
+        <div class="sidebar-overlay" onclick="toggleSidebar()"></div>
+
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-header" style="justify-content: center; padding: 25px 0 15px 0;">
+                <img src="logo.png.png" alt="Logo" style="height: 75px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1);">
+            </div>
+            <nav class="sidebar-nav">
+                <a href="#" data-target="dashboard" class="nav-item active"><i class="fa-solid fa-chart-pie"></i> Dashboard</a>
+                <a href="#" data-target="pipeline" class="nav-item"><i class="fa-solid fa-layer-group"></i> Pipeline de Vendas</a>
+                <a href="#" data-target="clientes" class="nav-item"><i class="fa-solid fa-users"></i> Clientes</a>
+                <a href="#" data-target="frota" class="nav-item"><i class="fa-solid fa-moped"></i> Frota</a>
+                <a href="#" data-target="usuarios" class="nav-item"><i class="fa-solid fa-user-shield"></i> Usuários</a>
+                <a href="#" data-target="contratos" class="nav-item"><i class="fa-solid fa-file-contract"></i> Contratos</a>
+            </nav>
+            <div class="sidebar-footer">
+                <button class="btn-whatsapp" title="Integração WhatsApp - Em breve">
+                    <i class="fa-brands fa-whatsapp"></i> Integrar WhatsApp
+                </button>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <header class="topbar">
+                <button class="menu-toggle" onclick="toggleSidebar()"><i class="fa-solid fa-bars"></i></button>
+                <h1 id="page-title">Dashboard</h1>
+                <div class="user-profile" onclick="abrirMeuPerfil()" style="cursor: pointer; padding: 5px; border-radius: var(--radius-md); transition: var(--transition);" onmouseover="this.style.backgroundColor='#f1f5f9'" onmouseout="this.style.backgroundColor='transparent'">
+                    <img src="https://ui-avatars.com/api/?name=Admin&background=6366f1&color=fff" alt="Admin" class="avatar" id="logged-user-avatar">
+                    <span id="logged-user-name" style="font-weight: 600;">Administrador</span>
+                    <i class="fa-solid fa-chevron-down" style="font-size: 0.7rem; color: var(--text-muted); margin-left: 2px;"></i>
+                    <button class="btn btn-secondary btn-sm" onclick="fazerLogout(); event.stopPropagation();" style="margin-left: 10px;" title="Sair do Sistema"><i class="fa-solid fa-arrow-right-from-bracket"></i> Sair</button>
+                </div>
+            </header>
+
+            <div class="views-container">
+                <!-- VIEW: DASHBOARD -->
+                <section id="view-dashboard" class="view active">
+                    <div class="dashboard-cards">
+                        <div class="card stat-card">
+                            <div class="stat-icon"><i class="fa-solid fa-moped"></i></div>
+                            <div class="stat-info">
+                                <h3>Motos Alugadas</h3>
+                                <p id="dash-motos-alugadas">0 <span class="text-sm">/ 0 Total</span></p>
+                            </div>
+                        </div>
+                        <div class="card stat-card">
+                            <div class="stat-icon bg-success"><i class="fa-solid fa-brazilian-real-sign"></i></div>
+                            <div class="stat-info">
+                                <h3>Faturamento Mensal</h3>
+                                <p id="dash-faturamento">R$ 0,00</p>
+                            </div>
+                        </div>
+                        <div class="card stat-card">
+                            <div class="stat-icon bg-warning"><i class="fa-solid fa-users"></i></div>
+                            <div class="stat-info">
+                                <h3>Total de Clientes</h3>
+                                <p id="dash-clientes">0</p>
+                            </div>
+                        </div>
+                        <div class="card stat-card">
+                            <div class="stat-icon bg-info"><i class="fa-solid fa-bullseye"></i></div>
+                            <div class="stat-info">
+                                <h3>Leads no Funil</h3>
+                                <p id="dash-leads">0</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="dashboard-charts">
+                        <div class="card" style="border-top: 4px solid var(--danger);">
+                            <h3><i class="fa-solid fa-triangle-exclamation" style="color:var(--danger)"></i> Mensalidades Atrasadas</h3>
+                            <ul class="activity-list" id="dash-atrasados">
+                                <li class="empty-state">Nenhum cliente em atraso.</li>
+                            </ul>
+                        </div>
+                        <div class="card" style="border-top: 4px solid var(--warning);">
+                            <h3><i class="fa-regular fa-clock" style="color:var(--warning)"></i> Vencem Hoje (7 Dias)</h3>
+                            <ul class="activity-list" id="dash-vence-hoje">
+                                <li class="empty-state">Nenhum vencimento para hoje.</li>
+                            </ul>
+                        </div>
+                        <div class="card">
+                            <h3>Atividade Recente (Lembretes)</h3>
+                            <ul class="activity-list" id="today-reminders">
+                                <li class="empty-state">Nenhum lembrete para hoje.</li>
+                            </ul>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- VIEW: PIPELINE (KANBAN) -->
+                <section id="view-pipeline" class="view">
+                    <div class="view-header">
+                        <button class="btn btn-primary" onclick="openModal('modal-cliente')"><i class="fa-solid fa-plus"></i> Novo Lead</button>
+                    </div>
+                    <div class="kanban-board">
+                        <div class="kanban-column" id="k-novo-lead" data-stage="novo">
+                            <div class="kanban-header">
+                                <h3>Novo Lead <span class="badge" id="count-novo">0</span></h3>
+                            </div>
+                            <div class="kanban-cards" ondrop="drop(event)" ondragover="allowDrop(event)">
+                                <!-- Cards injected here -->
+                            </div>
+                        </div>
+                        <div class="kanban-column" id="k-contato" data-stage="contato">
+                            <div class="kanban-header">
+                                <h3>Contato Feito <span class="badge" id="count-contato">0</span></h3>
+                            </div>
+                            <div class="kanban-cards" ondrop="drop(event)" ondragover="allowDrop(event)"></div>
+                        </div>
+                        <div class="kanban-column" id="k-proposta" data-stage="proposta">
+                            <div class="kanban-header">
+                                <h3>Proposta Enviada <span class="badge" id="count-proposta">0</span></h3>
+                            </div>
+                            <div class="kanban-cards" ondrop="drop(event)" ondragover="allowDrop(event)"></div>
+                        </div>
+                        <div class="kanban-column" id="k-fechado" data-stage="fechado">
+                            <div class="kanban-header">
+                                <h3>Fechado <span class="badge" id="count-fechado">0</span></h3>
+                            </div>
+                            <div class="kanban-cards" ondrop="drop(event)" ondragover="allowDrop(event)"></div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- VIEW: CLIENTES -->
+                <section id="view-clientes" class="view">
+                    <div class="view-header">
+                        <div class="search-box">
+                            <i class="fa-solid fa-search"></i>
+                            <input type="text" id="search-cliente" placeholder="Buscar clientes...">
+                        </div>
+                        <button class="btn btn-primary" onclick="openModal('modal-cliente')"><i class="fa-solid fa-plus"></i> Novo Cliente</button>
+                    </div>
+                    <div class="card table-card">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Nome</th>
+                                    <th>Telefone</th>
+                                    <th>Email</th>
+                                    <th>Status (Funil)</th>
+                                    <th>Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody id="table-clientes">
+                                <!-- Clientes dinamicos -->
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+
+                <!-- VIEW: FROTA -->
+                <section id="view-frota" class="view">
+                    <div class="view-header">
+                        <div class="search-box">
+                            <i class="fa-solid fa-search"></i>
+                            <input type="text" id="search-moto" placeholder="Buscar placa, modelo...">
+                        </div>
+                        <button class="btn btn-primary" onclick="openModal('modal-moto')"><i class="fa-solid fa-plus"></i> Nova Moto</button>
+                    </div>
+                    <div class="card table-card">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Cód / Foto</th>
+                                    <th>Placa</th>
+                                    <th>Modelo / Ano</th>
+                                    <th>Valor Diária</th>
+                                    <th>Status</th>
+                                    <th>Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody id="table-motos">
+                                <!-- Motos dinamicas -->
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+
+                <!-- VIEW: USUARIOS -->
+                <section id="view-usuarios" class="view">
+                    <div class="view-header">
+                        <div class="search-box">
+                            <i class="fa-solid fa-search"></i>
+                            <input type="text" id="search-usuario" placeholder="Buscar administrador...">
+                        </div>
+                        <button class="btn btn-primary" onclick="openModal('modal-usuario')"><i class="fa-solid fa-plus"></i> Novo Acesso</button>
+                    </div>
+                    <div class="card table-card">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Cód. / Foto</th>
+                                    <th>Nome</th>
+                                    <th>E-mail (Login)</th>
+                                    <th>Nível</th>
+                                    <th>Senha</th>
+                                    <th>Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody id="table-usuarios">
+                                <!-- Usuarios dinamicos -->
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+
+                <!-- VIEW: CONTRATOS -->
+                <section id="view-contratos" class="view">
+                    <div class="view-header">
+                        <div class="search-box">
+                            <i class="fa-solid fa-search"></i>
+                            <input type="text" id="search-contrato" placeholder="Buscar contratos...">
+                        </div>
+                        <button class="btn btn-primary" onclick="openModal('modal-contrato')"><i class="fa-solid fa-plus"></i> Novo Contrato</button>
+                    </div>
+                    <div class="card table-card">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Cliente</th>
+                                    <th>Moto</th>
+                                    <th>Início</th>
+                                    <th>Próx. Vencimento</th>
+                                    <th>Valor Diária</th>
+                                    <th>Status</th>
+                                    <th>Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody id="table-contratos">
+                                <!-- Contratos dinamicos -->
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+            </div>
+        </main>
+    </div>
+
+    <!-- ===== MODALS ===== -->
+
+    <!-- Modal Cliente -->
+    <div class="modal" id="modal-cliente">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="modal-cliente-title">Novo Cliente</h3>
+                <span class="close-btn" onclick="closeModal('modal-cliente')">&times;</span>
+            </div>
+            <div class="modal-body">
+                <form id="form-cliente">
+                    <input type="hidden" id="cli-id">
+                    <div class="form-group">
+                        <label>Nome Completo*</label>
+                        <input type="text" id="cli-nome" required>
+                    </div>
+                    <div class="form-group row">
+                        <div class="col">
+                            <label>Telefone / WhatsApp*</label>
+                            <input type="text" id="cli-telefone" required>
+                        </div>
+                        <div class="col">
+                            <label>CPF*</label>
+                            <input type="text" id="cli-cpf" placeholder="000.000.000-00">
+                        </div>
+                    </div>
+                    <div class="form-group row">
+                        <div class="col">
+                            <label>CNH</label>
+                            <input type="text" id="cli-cnh">
+                        </div>
+                        <div class="col">
+                            <label>Email</label>
+                            <input type="email" id="cli-email">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Endereço Completo</label>
+                        <input type="text" id="cli-endereco" placeholder="Rua, Número, Bairro, Cidade">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Anexar CNH (Imagem)</label>
+                        <input type="hidden" id="cli-cnh-base64">
+                        <div style="display: flex; gap: 10px; align-items: flex-end;">
+                            <img id="cli-cnh-preview" src="" style="width:100px; height:70px; object-fit:cover; border-radius:4px; display:none;">
+                            <input type="file" id="cli-foto-cnh" accept="image/*" onchange="previewCnhPhoto(event)" style="flex:1;">
+                            <button type="button" class="btn btn-secondary btn-sm" id="btn-remover-foto-cnh" style="display:none;" onclick="removerFotoCnh()">Remover</button>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Status Inicial</label>
+                        <select id="cli-status">
+                            <option value="novo">Novo Lead</option>
+                            <option value="contato">Contato Feito</option>
+                            <option value="proposta">Proposta Enviada</option>
+                            <option value="fechado">Fechado</option>
+                        </select>
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-block">Salvar Cliente</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Editar Cliente (Painel Lateral / Extenso) -->
+    <div class="modal" id="modal-perfil-cliente">
+        <div class="modal-content modal-lg">
+            <div class="modal-header">
+                <h3>Perfil do Cliente</h3>
+                <span class="close-btn" onclick="closeModal('modal-perfil-cliente')">&times;</span>
+            </div>
+            <div class="modal-body split-perfil">
+                <div class="perfil-info">
+                    <h2 id="perf-nome">Nome do Cliente</h2>
+                    <p><i class="fa-solid fa-phone"></i> <span id="perf-telefone"></span></p>
+                    <p><i class="fa-solid fa-envelope"></i> <span id="perf-email"></span></p>
+                    <p><i class="fa-solid fa-id-card"></i> <strong>CPF:</strong> <span id="perf-cpf"></span> &nbsp; <strong>CNH:</strong> <span id="perf-cnh"></span></p>
+                    <p><i class="fa-solid fa-map-marker-alt"></i> <span id="perf-endereco"></span></p>
+                    
+                    <div id="perf-cnh-anexo" style="margin-top:15px; display:none;">
+                        <strong>Anexo CNH:</strong><br>
+                        <img id="perf-foto-cnh" src="" style="max-width: 100%; max-height: 150px; border-radius: 8px; border: 1px solid var(--border); margin-top: 5px;">
+                    </div>
+
+                    <div class="status-badge mt-2" id="perf-status">Novo Lead</div>
+                </div>
+                <div class="perfil-acoes">
+                    <!-- Area de anotações -->
+                    <div class="notes-section">
+                        <h4>Anotações</h4>
+                        <div class="notes-list" id="perf-notas">
+                            <!-- Notas -->
+                        </div>
+                        <div class="add-note-box">
+                            <textarea id="new-note-text" placeholder="Adicionar nova anotação..."></textarea>
+                            <div class="note-actions">
+                                <input type="date" id="new-note-date" title="Lembrete de Follow-up">
+                                <button class="btn btn-secondary btn-sm" onclick="addNote()">Adicionar</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Moto -->
+    <div class="modal" id="modal-moto">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="modal-moto-title">Nova Moto</h3>
+                <span class="close-btn" onclick="closeModal('modal-moto')">&times;</span>
+            </div>
+            <div class="modal-body">
+                <form id="form-moto">
+                    <input type="hidden" id="moto-id">
+                    <input type="hidden" id="moto-foto-base64">
+                    
+                    <div style="text-align: center; margin-bottom: 20px;">
+                        <img id="moto-foto-preview" src="" style="width: 120px; height: 100px; border-radius: var(--radius-md); object-fit: cover; border: 2px dashed var(--border); margin-bottom: 10px; display: none;">
+                        <div id="moto-foto-placeholder" style="width: 120px; height: 100px; border-radius: var(--radius-md); border: 2px dashed var(--border); margin: 0 auto 10px; display: flex; align-items: center; justify-content: center; font-size: 2rem; color: var(--text-muted); background: #f8fafc;">
+                            <i class="fa-solid fa-motorcycle"></i>
+                        </div>
+                        <div>
+                            <label class="btn btn-secondary btn-sm" style="cursor: pointer;">
+                                <i class="fa-solid fa-camera"></i> Foto da Moto
+                                <input type="file" id="moto-foto" accept="image/*" style="display: none;" onchange="previewMotoPhoto(event)">
+                            </label>
+                            <button type="button" class="btn btn-danger btn-sm" id="btn-remover-foto-moto" style="display:none;" onclick="removerFotoMoto()"><i class="fa-solid fa-trash"></i></button>
+                        </div>
+                    </div>
+
+                    <div class="form-group row">
+                        <div class="col">
+                            <label>Placa*</label>
+                            <input type="text" id="moto-placa" required placeholder="ABC-1234" style="text-transform: uppercase;">
+                        </div>
+                        <div class="col">
+                            <label>Cor</label>
+                            <input type="text" id="moto-cor">
+                        </div>
+                    </div>
+                    <div class="form-group row">
+                        <div class="col">
+                            <label>Modelo*</label>
+                            <input type="text" id="moto-modelo" required>
+                        </div>
+                        <div class="col">
+                            <label>Ano*</label>
+                            <input type="number" id="moto-ano" required min="1900" max="2100">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Valor da Diária (R$)*</label>
+                        <input type="number" id="moto-valor" required step="0.01" min="0">
+                    </div>
+                    <div class="form-group">
+                        <label>Status*</label>
+                        <select id="moto-status">
+                            <option value="disponivel">Disponível</option>
+                            <option value="manutencao">Em Manutenção</option>
+                            <!-- 'alugada' é setado automaticamente, mas liberado para set manual -->
+                            <option value="alugada">Alugada</option> 
+                        </select>
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-block">Salvar Frota</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Contrato -->
+    <div class="modal" id="modal-contrato">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="modal-contrato-title">Novo Contrato</h3>
+                <span class="close-btn" onclick="closeModal('modal-contrato')">&times;</span>
+            </div>
+            <div class="modal-body">
+                <form id="form-contrato">
+                    <input type="hidden" id="cont-id">
+                    <div class="form-group">
+                        <label>Cliente*</label>
+                        <select id="cont-cliente" required>
+                            <!-- Opções populadas pelo JS -->
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Moto (Disponíveis)*</label>
+                        <select id="cont-moto" required>
+                            <!-- Opções populadas pelo JS -->
+                        </select>
+                        <small class="hint-text">A moto terá seu status alterado para 'Alugada'.</small>
+                    </div>
+                    <div class="form-group row">
+                        <div class="col">
+                            <label>Data Início*</label>
+                            <input type="date" id="cont-inicio" required>
+                        </div>
+                        <div class="col">
+                            <label>Data Prevista Fim</label>
+                            <input type="date" id="cont-fim">
+                        </div>
+                    </div>
+                    <div class="form-group row">
+                        <div class="col">
+                            <label>Status do Contrato</label>
+                            <select id="cont-status">
+                                <option value="ativo">Ativo</option>
+                                <option value="encerrado">Encerrado</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-group row" style="align-items: center;">
+                        <div class="col">
+                            <label>Valor da Caução (R$)</label>
+                            <input type="number" id="cont-caucao" placeholder="100,00" step="0.01">
+                        </div>
+                        <div class="col" id="diaria-display-col">
+                            <label>Diária Calculada</label>
+                            <div id="cont-diaria-display" class="highlight-val">R$ 0,00</div>
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-block">Salvar Contrato</button>
+                    <button type="button" id="btn-encerrar-contrato" class="btn btn-danger btn-block mt-2" style="display:none;" onclick="encerrarContratoAtual()">Encerrar Devolução</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Usuario -->
+    <div class="modal" id="modal-usuario">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="modal-usuario-title">Novo Usuário Admin</h3>
+                <span class="close-btn" onclick="closeModal('modal-usuario')">&times;</span>
+            </div>
+            <div class="modal-body">
+                <form id="form-usuario">
+                    <input type="hidden" id="usr-id">
+
+                    <div class="form-group">
+                        <label>Nome do Administrador*</label>
+                        <input type="text" id="usr-nome" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Email (Login)*</label>
+                        <input type="email" id="usr-email" required>
+                    </div>
+                    <div class="form-group row">
+                        <div class="col">
+                            <label>Senha*</label>
+                            <input type="text" id="usr-senha" required>
+                        </div>
+                        <div class="col">
+                            <label>Nível de Acesso*</label>
+                            <select id="usr-nivel">
+                                <option value="admin">Administrador</option>
+                                <option value="funcionario">Funcionário</option>
+                            </select>
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-block">Salvar Usuário</button>
+                    <small style="display:block; text-align:center; margin-top:10px; color:var(--text-muted);">
+                        Este usuário poderá acessar todas as funções do CRM.
+                    </small>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Meu Perfil -->
+    <div class="modal" id="modal-meu-perfil">
+        <div class="modal-content" style="max-width: 400px;">
+            <div class="modal-header">
+                <h3>Meu Perfil</h3>
+                <span class="close-btn" onclick="closeModal('modal-meu-perfil')">&times;</span>
+            </div>
+            <div class="modal-body">
+                <form id="form-meu-perfil">
+                    <input type="hidden" id="meu-foto-base64">
+                    
+                    <div style="text-align: center; margin-bottom: 20px;">
+                        <img id="meu-foto-preview" src="https://ui-avatars.com/api/?name=User&background=e2e8f0&color=94a3b8" style="width: 100px; height: 100px; border-radius: 50%; object-fit: cover; border: 3px solid var(--primary); margin-bottom: 15px;">
+                        <div>
+                            <label class="btn btn-secondary btn-sm" style="cursor: pointer;">
+                                <i class="fa-solid fa-camera"></i> Alterar Foto
+                                <input type="file" id="meu-foto" accept="image/*" style="display: none;" onchange="previewMyPhoto(event)">
+                            </label>
+                        </div>
+                    </div>
+
+                    <div style="text-align: center; margin-bottom: 20px;">
+                        <h4 id="meu-nome-display" style="margin-bottom: 5px;">Nome User</h4>
+                        <p id="meu-email-display" style="font-size: 0.85rem; color: var(--text-muted);">email@user.com</p>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary btn-block">Salvar Perfil</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
