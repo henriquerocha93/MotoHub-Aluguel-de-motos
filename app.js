@@ -698,7 +698,7 @@ function renderFrota() {
 
         let photoDisplay = `<div style="width:40px; height:34px; border-radius:4px; border:1px solid var(--border); display:flex; align-items:center; justify-content:center; color:var(--text-muted); background:#f1f5f9;"><i class="fa-solid fa-motorcycle"></i></div>`;
         if(m.foto) {
-            photoDisplay = `<img src="${m.foto}" style="width:40px; height:34px; object-fit:cover; border-radius:4px; border:1px solid var(--border);">`;
+            photoDisplay = `<img src="${m.foto}" onclick="verFotoMotoCrm('${m.id}')" title="Clique para ampliar a foto" style="width:44px; height:36px; object-fit:cover; border-radius:4px; border:1px solid var(--border); cursor:pointer;">`;
         }
 
         const tr = document.createElement('tr');
@@ -1222,7 +1222,7 @@ function imprimirContrato(contratoId) {
     const printHtml = `
 <html>
 <head>
-    <title>Contrato de Locação - ${cliente.nome}</title>
+    <title>FACILITA MOTO | Contrato de Locação - ${cliente.nome}</title>
     <style>
         body { font-family: 'Arial', sans-serif; padding: 40px; margin: 0; color: #000; line-height: 1.6; }
         h1 { text-align: center; margin-bottom: 30px; font-size: 20px; text-decoration: underline; }
@@ -1237,7 +1237,7 @@ function imprimirContrato(contratoId) {
     </style>
 </head>
 <body onload="window.print()">
-    <h1>CONTRATO DE LOCAÇÃO DE MOTOCICLETA</h1>
+    <h1>FACILITA MOTO - CONTRATO DE LOCAÇÃO DE MOTOCICLETA</h1>
     
     <div class="section">
         <p><strong>LOCADOR:</strong> Henrique Rocha Clavijo, CPF: 852.216.190-91<br>
@@ -1282,7 +1282,7 @@ function imprimirContrato(contratoId) {
     ptWindow.document.write(printHtml);
     ptWindow.document.close();
 }// Populate initial data demo if empty
-if(getDb('crm_clientes').length === 0) {
+function verFotoMotoCrm(motoId) { const moto = getDb('crm_motos').find(m => m.id === motoId); if (!moto || !moto.foto) return; let modal = document.getElementById('modal-foto-crm'); if (!modal) { modal = document.createElement('div'); modal.id = 'modal-foto-crm'; modal.className = 'modal'; modal.onclick = function(e) { if (e.target === modal) modal.classList.remove('show'); }; modal.innerHTML = `<div class="modal-content" style="max-width:850px; background:#0F172A; color:#fff; border:1px solid rgba(255,255,255,0.12); padding:16px; text-align:center;"><div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;"><strong id="modal-foto-crm-titulo" style="font-size:1.05rem;">Foto da Moto</strong><span class="close-btn" style="color:#fff;" onclick="document.getElementById('modal-foto-crm').classList.remove('show')">&times;</span></div><img id="modal-foto-crm-img" src="" style="max-width:100%; max-height:78vh; object-fit:contain; border-radius:8px;"></div>`; document.body.appendChild(modal); } document.getElementById('modal-foto-crm-titulo').innerText = `${moto.modelo} (${moto.placa})`; document.getElementById('modal-foto-crm-img').src = moto.foto; modal.classList.add('show'); } if(false && getDb('crm_clientes').length === 0) {
     const dummyC = [
         {id: generateId(), nome: "João Silva", telefone: "11999999999", email: "joao@email.com", status: "novo", notas: []},
         {id: generateId(), nome: "Breno Souza", telefone: "11988888888", email: "breno@email.com", status: "fechado", notas: []}
