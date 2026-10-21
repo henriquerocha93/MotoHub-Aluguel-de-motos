@@ -7,6 +7,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="style.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 </head>
 <body>
     <div class="app-container">
@@ -22,12 +23,19 @@
                 <a href="#" data-target="dashboard" class="nav-item active"><i class="fa-solid fa-chart-pie"></i> Dashboard</a>
                 <a href="#" data-target="pipeline" class="nav-item"><i class="fa-solid fa-layer-group"></i> Pipeline de Vendas</a>
                 <a href="#" data-target="clientes" class="nav-item"><i class="fa-solid fa-users"></i> Clientes</a>
-                <a href="#" data-target="frota" class="nav-item"><i class="fa-solid fa-moped"></i> Frota</a>
+                <a href="#" data-target="frota" class="nav-item"><i class="fa-solid fa-motorcycle"></i> Frota & Rastreador</a>
+                <a href="#" data-target="oleo" class="nav-item">
+                    <i class="fa-solid fa-oil-can"></i> Troca de Óleo (1.000 km)
+                    <span class="badge" id="nav-badge-oleo" style="display:none; background:var(--danger); color:#fff; margin-left:auto; font-size:0.7rem; padding:2px 7px;">0</span>
+                </a>
+                <a href="#" data-target="contratos" class="nav-item"><i class="fa-solid fa-file-contract"></i> Contratos (Gov.br)</a>
                 <a href="#" data-target="usuarios" class="nav-item"><i class="fa-solid fa-user-shield"></i> Usuários</a>
-                <a href="#" data-target="contratos" class="nav-item"><i class="fa-solid fa-file-contract"></i> Contratos</a>
             </nav>
             <div class="sidebar-footer">
-                <button class="btn-whatsapp" title="Integração WhatsApp - Em breve">
+                <button class="btn-whatsapp" onclick="openModal('modal-config-rastreador-global')" style="background-color:#0f172a; margin-bottom:8px;" title="Configurar API de Rastreador GPS">
+                    <i class="fa-solid fa-satellite-dish" style="color:#38bdf8;"></i> Config. Rastreador GPS
+                </button>
+                <button class="btn-whatsapp" title="Integração WhatsApp - Ativa nos botões de cobrança e avisos">
                     <i class="fa-brands fa-whatsapp"></i> Integrar WhatsApp
                 </button>
             </div>
@@ -49,9 +57,12 @@
             <div class="views-container">
                 <!-- VIEW: DASHBOARD -->
                 <section id="view-dashboard" class="view active">
+                    <!-- Banner dinâmico de alerta de manutenção de 1.000 km -->
+                    <div id="dash-oleo-banner-container"></div>
+
                     <div class="dashboard-cards">
                         <div class="card stat-card">
-                            <div class="stat-icon"><i class="fa-solid fa-moped"></i></div>
+                            <div class="stat-icon"><i class="fa-solid fa-motorcycle"></i></div>
                             <div class="stat-info">
                                 <h3>Motos Alugadas</h3>
                                 <p id="dash-motos-alugadas">0 <span class="text-sm">/ 0 Total</span></p>
@@ -78,19 +89,73 @@
                                 <p id="dash-leads">0</p>
                             </div>
                         </div>
+                        <div class="card stat-card" style="cursor:pointer;" onclick="navegarParaView('oleo')" title="Ir para Área de Troca de Óleo (1.000 km)">
+                            <div class="stat-icon" style="background-color:#fee2e2; color:var(--danger);"><i class="fa-solid fa-oil-can"></i></div>
+                            <div class="stat-info">
+                                <h3>Revisão Óleo (1.000 km)</h3>
+                                <p id="dash-oleo-resumo">0 <span class="text-sm">Alertas</span></p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- PAINEL PRINCIPAL DO DASHBOARD: COM QUEM ESTÁ CADA MOTO, VENCIMENTO, KM & RASTREADOR -->
+                    <div class="card table-card" style="margin-bottom: 30px; border-top: 4px solid var(--primary);">
+                        <div class="section-card-header">
+                            <div>
+                                <h3><i class="fa-solid fa-satellite-dish" style="color:var(--primary);"></i> Controle de Frota em Operação: Condutor Atual, Vencimento do Aluguel & Rastreador GPS</h3>
+                                <span style="font-size:0.8rem; color:var(--text-muted);">Acompanhe com quem está cada moto, próximo vencimento semanal, controle de troca de óleo (1.000 km) e integração com rastreador.</span>
+                            </div>
+                            <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                                <button class="btn btn-secondary btn-sm" onclick="sincronizarTodosRastreadores()">
+                                    <i class="fa-solid fa-rotate"></i> Sincronizar GPS / KM
+                                </button>
+                                <button class="btn btn-secondary btn-sm" onclick="openModal('modal-config-rastreador-global')">
+                                    <i class="fa-solid fa-sliders"></i> Pré-Configuração Rastreador
+                                </button>
+                                <button class="btn btn-primary btn-sm" onclick="navegarParaView('oleo')">
+                                    <i class="fa-solid fa-oil-can"></i> Área Troca de Óleo
+                                </button>
+                            </div>
+                        </div>
+                        <div style="overflow-x:auto;">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>Motocicleta</th>
+                                        <th>Com Quem Está (Locatário)</th>
+                                        <th>Vencimento do Aluguel</th>
+                                        <th>Troca de Óleo (1.000 em 1.000 km)</th>
+                                        <th>Rastreador GPS (Pré-Configurado)</th>
+                                        <th>Ações Rápidas</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="dash-table-frota-controle">
+                                    <!-- Injetado via JS -->
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
                     
                     <div class="dashboard-charts">
                         <div class="card" style="border-top: 4px solid var(--danger);">
-                            <h3><i class="fa-solid fa-triangle-exclamation" style="color:var(--danger)"></i> Mensalidades Atrasadas</h3>
+                            <h3><i class="fa-solid fa-triangle-exclamation" style="color:var(--danger)"></i> Mensalidades / Semanas Atrasadas</h3>
                             <ul class="activity-list" id="dash-atrasados">
                                 <li class="empty-state">Nenhum cliente em atraso.</li>
                             </ul>
                         </div>
                         <div class="card" style="border-top: 4px solid var(--warning);">
-                            <h3><i class="fa-regular fa-clock" style="color:var(--warning)"></i> Vencem Hoje (7 Dias)</h3>
+                            <h3><i class="fa-regular fa-clock" style="color:var(--warning)"></i> Vencem Hoje / Próximos 7 Dias</h3>
                             <ul class="activity-list" id="dash-vence-hoje">
                                 <li class="empty-state">Nenhum vencimento para hoje.</li>
+                            </ul>
+                        </div>
+                        <div class="card" style="border-top: 4px solid #ea580c;">
+                            <div style="display:flex; justify-content:space-between; align-items:center;">
+                                <h3><i class="fa-solid fa-oil-can" style="color:#ea580c"></i> Aviso de Manutenção (1.000 km)</h3>
+                                <button class="btn btn-secondary btn-sm" onclick="navegarParaView('oleo')">Ver Tudo</button>
+                            </div>
+                            <ul class="activity-list" id="dash-alertas-oleo-list">
+                                <li class="empty-state">Todas as motos estão com óleo em dia.</li>
                             </ul>
                         </div>
                         <div class="card">
@@ -112,9 +177,7 @@
                             <div class="kanban-header">
                                 <h3>Novo Lead <span class="badge" id="count-novo">0</span></h3>
                             </div>
-                            <div class="kanban-cards" ondrop="drop(event)" ondragover="allowDrop(event)">
-                                <!-- Cards injected here -->
-                            </div>
+                            <div class="kanban-cards" ondrop="drop(event)" ondragover="allowDrop(event)"></div>
                         </div>
                         <div class="kanban-column" id="k-contato" data-stage="contato">
                             <div class="kanban-header">
@@ -152,7 +215,7 @@
                                 <tr>
                                     <th>Nome</th>
                                     <th>Telefone</th>
-                                    <th>Email</th>
+                                    <th>CPF / CNH</th>
                                     <th>Status (Funil)</th>
                                     <th>Ações</th>
                                 </tr>
@@ -171,7 +234,14 @@
                             <i class="fa-solid fa-search"></i>
                             <input type="text" id="search-moto" placeholder="Buscar placa, modelo...">
                         </div>
-                        <button class="btn btn-primary" onclick="openModal('modal-moto')"><i class="fa-solid fa-plus"></i> Nova Moto</button>
+                        <div style="display:flex; gap:10px; flex-wrap:wrap;">
+                            <button class="btn btn-secondary" onclick="openModal('modal-config-rastreador-global')">
+                                <i class="fa-solid fa-satellite-dish"></i> Configurar Integração Rastreador
+                            </button>
+                            <button class="btn btn-primary" onclick="openModal('modal-moto')">
+                                <i class="fa-solid fa-plus"></i> Nova Moto
+                            </button>
+                        </div>
                     </div>
                     <div class="card table-card">
                         <table class="data-table">
@@ -179,7 +249,9 @@
                                 <tr>
                                     <th>Cód / Foto</th>
                                     <th>Placa</th>
-                                    <th>Modelo / Ano</th>
+                                    <th>Modelo / Condutor / Vencimento</th>
+                                    <th>KM & Óleo (1.000 km)</th>
+                                    <th>Rastreador GPS</th>
                                     <th>Valor Diária</th>
                                     <th>Status</th>
                                     <th>Ações</th>
@@ -189,6 +261,89 @@
                                 <!-- Motos dinamicas -->
                             </tbody>
                         </table>
+                    </div>
+                </section>
+
+                <!-- VIEW: TROCA DE ÓLEO E MANUTENÇÃO DE 1.000 KM (ÁREA EXCLUSIVA) -->
+                <section id="view-oleo" class="view">
+                    <div class="view-header">
+                        <div>
+                            <h2 style="font-size:1.2rem; font-weight:700; color:var(--text-main);"><i class="fa-solid fa-oil-can" style="color:var(--primary);"></i> Controle Exclusivo de Troca de Óleo & Manutenção (A cada 1.000 km)</h2>
+                            <p style="font-size:0.85rem; color:var(--text-muted); margin-top:2px;">Informe o KM manualmente ou sincronize via Rastreador GPS. O sistema emite alerta automático a cada 1.000 km rodados.</p>
+                        </div>
+                        <div style="display:flex; gap:10px; flex-wrap:wrap;">
+                            <button class="btn btn-secondary" onclick="sincronizarTodosRastreadores()">
+                                <i class="fa-solid fa-satellite-dish" style="color:#0284c7;"></i> Sincronizar KM com Rastreadores
+                            </button>
+                            <button class="btn btn-primary" onclick="openModal('modal-config-rastreador-global')">
+                                <i class="fa-solid fa-gear"></i> Config. Odômetro GPS
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- KPIs de Troca de Óleo -->
+                    <div class="dashboard-cards" style="margin-bottom: 24px;">
+                        <div class="card stat-card">
+                            <div class="stat-icon"><i class="fa-solid fa-motorcycle"></i></div>
+                            <div class="stat-info">
+                                <h3>Motos Monitoradas</h3>
+                                <p id="oleo-kpi-total">0</p>
+                            </div>
+                        </div>
+                        <div class="card stat-card">
+                            <div class="stat-icon bg-success"><i class="fa-solid fa-circle-check"></i></div>
+                            <div class="stat-info">
+                                <h3>Óleo em Dia</h3>
+                                <p id="oleo-kpi-ok">0</p>
+                            </div>
+                        </div>
+                        <div class="card stat-card">
+                            <div class="stat-icon bg-warning"><i class="fa-solid fa-bell"></i></div>
+                            <div class="stat-info">
+                                <h3>Aviso Próximo (≤ 150 km)</h3>
+                                <p id="oleo-kpi-aviso">0</p>
+                            </div>
+                        </div>
+                        <div class="card stat-card">
+                            <div class="stat-icon" style="background:#fee2e2; color:var(--danger);"><i class="fa-solid fa-triangle-exclamation"></i></div>
+                            <div class="stat-info">
+                                <h3>Troca Vencida (≥ 1.000 km)</h3>
+                                <p id="oleo-kpi-vencido">0</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Banner de Avisos Críticos na Aba de Óleo -->
+                    <div id="oleo-view-alert-box"></div>
+
+                    <!-- Tabela de Controle de KM e Troca de Óleo -->
+                    <div class="card table-card">
+                        <div class="section-card-header">
+                            <h3><i class="fa-solid fa-gauge-high"></i> Hodômetro por Motocicleta & Ciclo de 1.000 em 1.000 km</h3>
+                            <div class="search-box" style="width:260px;">
+                                <i class="fa-solid fa-search"></i>
+                                <input type="text" id="search-oleo" placeholder="Filtrar moto, placa ou cliente..." oninput="renderOleoView()">
+                            </div>
+                        </div>
+                        <div style="overflow-x:auto;">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>Moto / Placa</th>
+                                        <th>Com Quem Está</th>
+                                        <th>Informar / Atualizar KM Atual</th>
+                                        <th>Última Troca</th>
+                                        <th>Próxima Troca (+1.000 km)</th>
+                                        <th>Progresso do Ciclo (1.000 km)</th>
+                                        <th>Integração GPS</th>
+                                        <th>Ações de Manutenção</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="table-oleo">
+                                    <!-- Preenchido via JS -->
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
                 </section>
 
@@ -220,16 +375,27 @@
                     </div>
                 </section>
 
-                <!-- VIEW: CONTRATOS -->
+                <!-- VIEW: CONTRATOS & GERADOR GOV.BR -->
                 <section id="view-contratos" class="view">
                     <div class="view-header">
                         <div class="search-box">
                             <i class="fa-solid fa-search"></i>
-                            <input type="text" id="search-contrato" placeholder="Buscar contratos...">
+                            <input type="text" id="search-contrato" placeholder="Buscar contratos..." oninput="renderContratos()">
                         </div>
-                        <button class="btn btn-primary" onclick="openModal('modal-contrato')"><i class="fa-solid fa-plus"></i> Novo Contrato</button>
+                        <div style="display:flex; gap:10px; flex-wrap:wrap;">
+                            <a href="CONTRATO%20%20LOCA%C3%87%C3%83O%20DE%20MOTOCICLETA.pdf" download="CONTRATO_LOCACAO_DE_MOTOCICLETA_PADRAO.pdf" class="btn btn-secondary" style="text-decoration:none;">
+                                <i class="fa-solid fa-file-pdf" style="color:var(--danger);"></i> Baixar PDF Padrão Original
+                            </a>
+                            <button class="btn btn-secondary" onclick="focarEditorContratoPadrao()" style="border:1px solid var(--primary); color:var(--primary);">
+                                <i class="fa-solid fa-file-signature"></i> Preencher Contrato Padrão (Gov.br)
+                            </button>
+                            <button class="btn btn-primary" onclick="openModal('modal-contrato')">
+                                <i class="fa-solid fa-plus"></i> Novo Contrato
+                            </button>
+                        </div>
                     </div>
-                    <div class="card table-card">
+
+                    <div class="card table-card" style="margin-bottom: 30px;">
                         <table class="data-table">
                             <thead>
                                 <tr>
@@ -237,15 +403,352 @@
                                     <th>Moto</th>
                                     <th>Início</th>
                                     <th>Próx. Vencimento</th>
-                                    <th>Valor Diária</th>
+                                    <th>Diária / Semanal</th>
                                     <th>Status</th>
-                                    <th>Ações</th>
+                                    <th>Ações e Contrato Gov.br</th>
                                 </tr>
                             </thead>
                             <tbody id="table-contratos">
                                 <!-- Contratos dinamicos -->
                             </tbody>
                         </table>
+                    </div>
+
+                    <!-- ÁREA RESERVADA PARA PREENCHIMENTO DO CONTRATO PADRÃO E DOWNLOAD PARA ASSINATURA GOV.BR -->
+                    <div class="card" id="area-contrato-padrao-gov" style="border-top: 4px solid #2563eb; padding: 0; overflow: hidden;">
+                        <div class="section-card-header" style="background: linear-gradient(90deg, #eff6ff 0%, #f8fafc 100%);">
+                            <div>
+                                <h3 style="color:#1e3a8a; font-size:1.08rem;">
+                                    <i class="fa-solid fa-file-signature" style="color:#2563eb;"></i>
+                                    Central do Contrato Padrão (CONTRATO LOCAÇÃO DE MOTOCICLETA) — Preenchimento & Assinatura Gov.br
+                                </h3>
+                                <span style="font-size:0.82rem; color:#475569;">
+                                    Preencha todos os dados pelo sistema usando um contrato ativo ou manualmente, visualize as 17 Cláusulas + Anexo I (Vistoria) + Anexo II e baixe o PDF formatado para assinar no Gov.br.
+                                </span>
+                            </div>
+                            <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                                <button type="button" class="btn btn-primary btn-sm" onclick="baixarContratoPadraoPdfGov()" style="background:#2563eb;">
+                                    <i class="fa-solid fa-download"></i> Baixar PDF p/ Assinatura Gov.br
+                                </button>
+                                <button type="button" class="btn btn-secondary btn-sm" onclick="imprimirContratoPadraoPreenchido()">
+                                    <i class="fa-solid fa-print"></i> Imprimir / Salvar PDF
+                                </button>
+                                <a href="https://assinador.iti.br/" target="_blank" class="btn btn-secondary btn-sm" style="text-decoration:none; background:#059669; color:#fff;">
+                                    <i class="fa-solid fa-stamp"></i> Abrir Assinador Gov.br
+                                </a>
+                            </div>
+                        </div>
+
+                        <div style="padding: 20px;">
+                            <!-- Barra de Carregamento Rápido do Sistema -->
+                            <div style="background:#f8fafc; border:1px solid var(--border); border-radius:10px; padding:15px; margin-bottom:20px;">
+                                <div class="form-group row" style="margin-bottom:0; align-items:flex-end;">
+                                    <div class="col">
+                                        <label><i class="fa-solid fa-bolt" style="color:var(--warning);"></i> Carregar Dados de um Contrato Existente</label>
+                                        <select id="gov-select-contrato" onchange="carregarContratoNoEditorGov(this.value)">
+                                            <option value="">-- Selecione um Contrato para preencher automaticamente --</option>
+                                        </select>
+                                    </div>
+                                    <div class="col">
+                                        <label><i class="fa-solid fa-user"></i> Ou puxar de um Cliente cadastrado</label>
+                                        <select id="gov-select-cliente" onchange="carregarClienteNoEditorGov(this.value)">
+                                            <option value="">-- Selecionar Cliente avulso --</option>
+                                        </select>
+                                    </div>
+                                    <div class="col">
+                                        <label><i class="fa-solid fa-motorcycle"></i> E puxar de uma Moto da Frota</label>
+                                        <select id="gov-select-moto" onchange="carregarMotoNoEditorGov(this.value)">
+                                            <option value="">-- Selecionar Moto avulsa --</option>
+                                        </select>
+                                    </div>
+                                    <div style="flex:0 0 auto;">
+                                        <button type="button" class="btn btn-secondary" onclick="salvarDadosEditorNoContrato()" title="Salva os dados preenchidos abaixo no contrato e no cadastro">
+                                            <i class="fa-solid fa-floppy-disk"></i> Salvar Dados no Sistema
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Abas de Preenchimento dos Dados do Contrato -->
+                            <div class="contrato-tabs">
+                                <button type="button" class="contrato-tab-btn active" onclick="trocarAbaContratoGov('partes', this)">1. Locador & Locatário (Cláusula 1ª)</button>
+                                <button type="button" class="contrato-tab-btn" onclick="trocarAbaContratoGov('moto', this)">2. Motocicleta & Prazo (Cláusulas 2ª e 3ª)</button>
+                                <button type="button" class="contrato-tab-btn" onclick="trocarAbaContratoGov('financeiro', this)">3. Aluguel, Caução & Foro (Cláusulas 4ª, 7ª e 17ª)</button>
+                                <button type="button" class="contrato-tab-btn" onclick="trocarAbaContratoGov('vistoria', this)">4. Anexo I (Vistoria) & Anexo II</button>
+                            </div>
+
+                            <!-- ABA 1: PARTES -->
+                            <div id="gov-tab-partes" class="gov-tab-pane">
+                                <h4 style="margin-bottom:10px; color:var(--primary); font-size:0.9rem;">1.1. LOCADOR (Proprietário ou Responsável)</h4>
+                                <div class="form-group row">
+                                    <div class="col">
+                                        <label>Nome Completo / Razão Social do Locador</label>
+                                        <input type="text" id="gov-locador-nome" value="Henrique Rocha Clavijo" oninput="atualizarPreviewContratoGov()">
+                                    </div>
+                                    <div class="col">
+                                        <label>CPF / CNPJ do Locador</label>
+                                        <input type="text" id="gov-locador-cpf" value="85221619091" oninput="atualizarPreviewContratoGov()">
+                                    </div>
+                                    <div class="col">
+                                        <label>Telefone / WhatsApp do Locador</label>
+                                        <input type="text" id="gov-locador-tel" placeholder="(51) 99999-9999" oninput="atualizarPreviewContratoGov()">
+                                    </div>
+                                </div>
+
+                                <h4 style="margin:15px 0 10px; color:var(--primary); font-size:0.9rem;">1.2. LOCATÁRIO (Responsável pela Motocicleta)</h4>
+                                <div class="form-group row">
+                                    <div class="col">
+                                        <label>Nome Completo do Locatário</label>
+                                        <input type="text" id="gov-locatario-nome" placeholder="Nome completo do cliente" oninput="atualizarPreviewContratoGov()">
+                                    </div>
+                                    <div class="col">
+                                        <label>CPF</label>
+                                        <input type="text" id="gov-locatario-cpf" placeholder="000.000.000-00" oninput="atualizarPreviewContratoGov()">
+                                    </div>
+                                    <div class="col">
+                                        <label>RG</label>
+                                        <input type="text" id="gov-locatario-rg" placeholder="0000000000" oninput="atualizarPreviewContratoGov()">
+                                    </div>
+                                </div>
+                                <div class="form-group row">
+                                    <div class="col" style="flex:2;">
+                                        <label>Endereço Completo</label>
+                                        <input type="text" id="gov-locatario-endereco" placeholder="Rua, Número, Bairro, Cidade - UF, CEP" oninput="atualizarPreviewContratoGov()">
+                                    </div>
+                                    <div class="col">
+                                        <label>Telefone / WhatsApp</label>
+                                        <input type="text" id="gov-locatario-tel" placeholder="(51) 99999-9999" oninput="atualizarPreviewContratoGov()">
+                                    </div>
+                                </div>
+                                <div class="form-group row">
+                                    <div class="col">
+                                        <label>CNH nº</label>
+                                        <input type="text" id="gov-locatario-cnh" placeholder="Número de registro CNH" oninput="atualizarPreviewContratoGov()">
+                                    </div>
+                                    <div class="col">
+                                        <label>Categoria da CNH</label>
+                                        <input type="text" id="gov-locatario-cnh-cat" value="A" placeholder="Ex: A, AB" oninput="atualizarPreviewContratoGov()">
+                                    </div>
+                                    <div class="col">
+                                        <label>Validade da CNH</label>
+                                        <input type="text" id="gov-locatario-cnh-val" placeholder="DD/MM/AAAA" oninput="atualizarPreviewContratoGov()">
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- ABA 2: MOTOCICLETA & PRAZO -->
+                            <div id="gov-tab-moto" class="gov-tab-pane" style="display:none;">
+                                <h4 style="margin-bottom:10px; color:var(--primary); font-size:0.9rem;">CLÁUSULA 2ª — IDENTIFICAÇÃO DA MOTOCICLETA</h4>
+                                <div class="form-group row">
+                                    <div class="col">
+                                        <label>Marca / Modelo</label>
+                                        <input type="text" id="gov-moto-modelo" placeholder="Ex: Honda CG 160 Start" oninput="atualizarPreviewContratoGov()">
+                                    </div>
+                                    <div class="col">
+                                        <label>Ano de Fabricação / Modelo</label>
+                                        <input type="text" id="gov-moto-ano" placeholder="Ex: 2024/2024" oninput="atualizarPreviewContratoGov()">
+                                    </div>
+                                    <div class="col">
+                                        <label>Placa</label>
+                                        <input type="text" id="gov-moto-placa" placeholder="ABC1D23" oninput="atualizarPreviewContratoGov()">
+                                    </div>
+                                </div>
+                                <div class="form-group row">
+                                    <div class="col">
+                                        <label>RENAVAM</label>
+                                        <input type="text" id="gov-moto-renavam" placeholder="00000000000" oninput="atualizarPreviewContratoGov()">
+                                    </div>
+                                    <div class="col">
+                                        <label>Chassi</label>
+                                        <input type="text" id="gov-moto-chassi" placeholder="9C2..." oninput="atualizarPreviewContratoGov()">
+                                    </div>
+                                    <div class="col">
+                                        <label>Cor</label>
+                                        <input type="text" id="gov-moto-cor" placeholder="Ex: Preta" oninput="atualizarPreviewContratoGov()">
+                                    </div>
+                                    <div class="col">
+                                        <label>Quilometragem na Entrega (KM)</label>
+                                        <input type="text" id="gov-moto-km" placeholder="Ex: 12.450 km" oninput="atualizarPreviewContratoGov()">
+                                    </div>
+                                </div>
+
+                                <h4 style="margin:15px 0 10px; color:var(--primary); font-size:0.9rem;">CLÁUSULA 3ª — OBJETO E PRAZO DA LOCAÇÃO</h4>
+                                <div class="form-group row">
+                                    <div class="col">
+                                        <label>Data de Início (3.2)</label>
+                                        <input type="text" id="gov-prazo-inicio" placeholder="DD/MM/AAAA" oninput="atualizarPreviewContratoGov()">
+                                    </div>
+                                    <div class="col">
+                                        <label>Horário de Início (às ___ horas)</label>
+                                        <input type="text" id="gov-prazo-hora" value="09:00" placeholder="09:00" oninput="atualizarPreviewContratoGov()">
+                                    </div>
+                                    <div class="col" style="flex:2;">
+                                        <label>Prazo da Locação (3.3)</label>
+                                        <input type="text" id="gov-prazo-duracao" placeholder="Ex: 30 dias (renovável automaticamente por períodos semanais)" oninput="atualizarPreviewContratoGov()">
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- ABA 3: FINANCEIRO, MULTAS, FORO E TESTEMUNHAS -->
+                            <div id="gov-tab-financeiro" class="gov-tab-pane" style="display:none;">
+                                <h4 style="margin-bottom:10px; color:var(--primary); font-size:0.9rem;">CLÁUSULA 4ª — VALOR DO ALUGUEL SEMANAL, VENCIMENTO E CAUÇÃO</h4>
+                                <div class="form-group row">
+                                    <div class="col">
+                                        <label>Valor do Aluguel Semanal (R$)</label>
+                                        <input type="text" id="gov-fin-semanal" placeholder="Ex: 350,00" oninput="autoExtensoSemanal(); atualizarPreviewContratoGov()">
+                                    </div>
+                                    <div class="col" style="flex:2;">
+                                        <label>Valor Semanal por Extenso</label>
+                                        <input type="text" id="gov-fin-semanal-extenso" placeholder="Ex: trezentos e cinquenta reais" oninput="atualizarPreviewContratoGov()">
+                                    </div>
+                                </div>
+                                <div class="form-group row">
+                                    <div class="col">
+                                        <label>Vencimento ocorrerá toda (Dia da semana - 4.2)</label>
+                                        <input type="text" id="gov-fin-dia-venc" placeholder="Ex: Segunda-feira" oninput="atualizarPreviewContratoGov()">
+                                    </div>
+                                    <div class="col">
+                                        <label>Até as (Horário limite - 4.2)</label>
+                                        <input type="text" id="gov-fin-hora-venc" value="18:00" placeholder="18:00" oninput="atualizarPreviewContratoGov()">
+                                    </div>
+                                    <div class="col">
+                                        <label>Forma de Pagamento (4.3)</label>
+                                        <input type="text" id="gov-fin-forma-pag" value="PIX / Transferência" oninput="atualizarPreviewContratoGov()">
+                                    </div>
+                                </div>
+                                <div class="form-group row">
+                                    <div class="col">
+                                        <label>Valor da Caução (R$ - 4.4)</label>
+                                        <input type="text" id="gov-fin-caucao" placeholder="Ex: 500,00" oninput="autoExtensoCaucao(); atualizarPreviewContratoGov()">
+                                    </div>
+                                    <div class="col" style="flex:2;">
+                                        <label>Valor da Caução por Extenso</label>
+                                        <input type="text" id="gov-fin-caucao-extenso" placeholder="Ex: quinhentos reais" oninput="atualizarPreviewContratoGov()">
+                                    </div>
+                                    <div class="col">
+                                        <label>Prazo Pagto. Multas (Dias - Cláusula 7.7)</label>
+                                        <input type="text" id="gov-multa-prazo-dias" value="5 (cinco)" oninput="atualizarPreviewContratoGov()">
+                                    </div>
+                                </div>
+
+                                <h4 style="margin:15px 0 10px; color:var(--primary); font-size:0.9rem;">CLÁUSULA 17ª — LOCAL, DATA E TESTEMUNHAS</h4>
+                                <div class="form-group row">
+                                    <div class="col">
+                                        <label>Local de Assinatura</label>
+                                        <input type="text" id="gov-foro-local" value="Porto Alegre / RS" oninput="atualizarPreviewContratoGov()">
+                                    </div>
+                                    <div class="col">
+                                        <label>Data de Assinatura</label>
+                                        <input type="text" id="gov-foro-data" placeholder="DD/MM/AAAA" oninput="atualizarPreviewContratoGov()">
+                                    </div>
+                                </div>
+                                <div class="form-group row">
+                                    <div class="col">
+                                        <label>Testemunha 1 — Nome (Opcional)</label>
+                                        <input type="text" id="gov-test1-nome" oninput="atualizarPreviewContratoGov()">
+                                    </div>
+                                    <div class="col">
+                                        <label>Testemunha 1 — CPF</label>
+                                        <input type="text" id="gov-test1-cpf" oninput="atualizarPreviewContratoGov()">
+                                    </div>
+                                    <div class="col">
+                                        <label>Testemunha 2 — Nome (Opcional)</label>
+                                        <input type="text" id="gov-test2-nome" oninput="atualizarPreviewContratoGov()">
+                                    </div>
+                                    <div class="col">
+                                        <label>Testemunha 2 — CPF</label>
+                                        <input type="text" id="gov-test2-cpf" oninput="atualizarPreviewContratoGov()">
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- ABA 4: ANEXO I (VISTORIA) & ANEXO II -->
+                            <div id="gov-tab-vistoria" class="gov-tab-pane" style="display:none;">
+                                <h4 style="margin-bottom:10px; color:var(--primary); font-size:0.9rem;">ANEXO I — TERMO DE ENTREGA E VISTORIA DA MOTOCICLETA</h4>
+                                <div class="form-group row">
+                                    <div class="col">
+                                        <label>Nível de Combustível</label>
+                                        <input type="text" id="gov-vist-combustivel" value="Tanque Cheio" oninput="atualizarPreviewContratoGov()">
+                                    </div>
+                                    <div class="col">
+                                        <label>Pneus</label>
+                                        <input type="text" id="gov-vist-pneus" value="Em bom estado de conservação" oninput="atualizarPreviewContratoGov()">
+                                    </div>
+                                    <div class="col">
+                                        <label>Freios</label>
+                                        <input type="text" id="gov-vist-freios" value="Revisados e funcionando perfeitamente" oninput="atualizarPreviewContratoGov()">
+                                    </div>
+                                </div>
+                                <div class="form-group row">
+                                    <div class="col">
+                                        <label>Faróis, Lanternas e Setas</label>
+                                        <input type="text" id="gov-vist-farois" value="Funcionando perfeitamente" oninput="atualizarPreviewContratoGov()">
+                                    </div>
+                                    <div class="col">
+                                        <label>Retrovisores</label>
+                                        <input type="text" id="gov-vist-retrovisores" value="Par original em perfeito estado" oninput="atualizarPreviewContratoGov()">
+                                    </div>
+                                    <div class="col">
+                                        <label>Carroceria, Carenagem e Pintura</label>
+                                        <input type="text" id="gov-vist-carenagem" value="Bom estado, sem avarias estruturais" oninput="atualizarPreviewContratoGov()">
+                                    </div>
+                                </div>
+                                <div class="form-group row">
+                                    <div class="col">
+                                        <label>Chaves e Acessórios Entregues</label>
+                                        <input type="text" id="gov-vist-chaves" value="01 Chave de ignição + CRLV Digital" oninput="atualizarPreviewContratoGov()">
+                                    </div>
+                                    <div class="col">
+                                        <label>Danos Preexistentes Identificados</label>
+                                        <input type="text" id="gov-vist-danos" value="Nenhum" oninput="atualizarPreviewContratoGov()">
+                                    </div>
+                                    <div class="col">
+                                        <label>Registro Fotográfico Realizado?</label>
+                                        <select id="gov-vist-fotos" onchange="atualizarPreviewContratoGov()">
+                                            <option value="Sim">(X) Sim  ( ) Não</option>
+                                            <option value="Não">( ) Sim  (X) Não</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="form-group">
+                                    <label>Observações Adicionais da Vistoria</label>
+                                    <input type="text" id="gov-vist-obs" value="Motocicleta entregue com óleo em dia. Troca obrigatória a cada 1.000 km." oninput="atualizarPreviewContratoGov()">
+                                </div>
+
+                                <h4 style="margin:15px 0 10px; color:var(--primary); font-size:0.9rem;">ANEXO II — CONDIÇÕES FINANCEIRAS COMPLEMENTARES</h4>
+                                <div class="form-group row">
+                                    <div class="col">
+                                        <label>Chave PIX ou Dados para Pagamento</label>
+                                        <input type="text" id="gov-anexo2-pix" value="CPF: 852.216.190-91 (Henrique Rocha Clavijo)" oninput="atualizarPreviewContratoGov()">
+                                    </div>
+                                    <div class="col">
+                                        <label>Prazo de Devolução da Caução Após Conferência</label>
+                                        <input type="text" id="gov-anexo2-prazo-caucao" value="Até 40 dias corridos após devolução (Cláusula 8ª)" oninput="atualizarPreviewContratoGov()">
+                                    </div>
+                                </div>
+                                <div class="form-group row">
+                                    <div class="col">
+                                        <label>Uso Autorizado da Motocicleta</label>
+                                        <input type="text" id="gov-anexo2-uso" value="Deslocamento próprio, entregas e aplicativos (uso exclusivo do LOCATÁRIO)" oninput="atualizarPreviewContratoGov()">
+                                    </div>
+                                    <div class="col">
+                                        <label>Outras Condições Acordadas</label>
+                                        <input type="text" id="gov-anexo2-outras" value="Comparecer para troca de óleo a cada 1.000 km rodados." oninput="atualizarPreviewContratoGov()">
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- PREVIEW AO VIVO DO CONTRATO PADRÃO COMPLETO -->
+                            <div style="margin-top:18px;">
+                                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                                    <strong style="font-size:0.9rem; color:var(--text-main);"><i class="fa-solid fa-eye"></i> Visualização do Documento Oficial (Pronto para Assinatura Digital Gov.br)</strong>
+                                    <span style="font-size:0.78rem; color:var(--text-muted);">Você também pode clicar dentro do documento abaixo para editar qualquer palavra antes de baixar.</span>
+                                </div>
+                                <div id="contrato-padrao-preview" class="contrato-paper" contenteditable="true" spellcheck="false">
+                                    <!-- Renderizado dinamicamente com 100% das cláusulas do PDF CONTRATO LOCAÇÃO DE MOTOCICLETA -->
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </section>
             </div>
@@ -277,15 +780,38 @@
                             <label>CPF*</label>
                             <input type="text" id="cli-cpf" placeholder="000.000.000-00">
                         </div>
+                        <div class="col">
+                            <label>RG</label>
+                            <input type="text" id="cli-rg" placeholder="0000000000">
+                        </div>
                     </div>
                     <div class="form-group row">
                         <div class="col">
-                            <label>CNH</label>
+                            <label>CNH nº</label>
                             <input type="text" id="cli-cnh">
                         </div>
                         <div class="col">
+                            <label>Categoria CNH</label>
+                            <input type="text" id="cli-cnh-cat" placeholder="Ex: A, AB" value="A">
+                        </div>
+                        <div class="col">
+                            <label>Validade CNH</label>
+                            <input type="date" id="cli-cnh-val">
+                        </div>
+                    </div>
+                    <div class="form-group row">
+                        <div class="col">
                             <label>Email</label>
                             <input type="email" id="cli-email">
+                        </div>
+                        <div class="col">
+                            <label>Status Inicial</label>
+                            <select id="cli-status">
+                                <option value="novo">Novo Lead</option>
+                                <option value="contato">Contato Feito</option>
+                                <option value="proposta">Proposta Enviada</option>
+                                <option value="fechado">Fechado</option>
+                            </select>
                         </div>
                     </div>
                     <div class="form-group">
@@ -301,15 +827,6 @@
                             <input type="file" id="cli-foto-cnh" accept="image/*" onchange="previewCnhPhoto(event)" style="flex:1;">
                             <button type="button" class="btn btn-secondary btn-sm" id="btn-remover-foto-cnh" style="display:none;" onclick="removerFotoCnh()">Remover</button>
                         </div>
-                    </div>
-                    <div class="form-group">
-                        <label>Status Inicial</label>
-                        <select id="cli-status">
-                            <option value="novo">Novo Lead</option>
-                            <option value="contato">Contato Feito</option>
-                            <option value="proposta">Proposta Enviada</option>
-                            <option value="fechado">Fechado</option>
-                        </select>
                     </div>
                     <button type="submit" class="btn btn-primary btn-block">Salvar Cliente</button>
                 </form>
@@ -329,7 +846,8 @@
                     <h2 id="perf-nome">Nome do Cliente</h2>
                     <p><i class="fa-solid fa-phone"></i> <span id="perf-telefone"></span></p>
                     <p><i class="fa-solid fa-envelope"></i> <span id="perf-email"></span></p>
-                    <p><i class="fa-solid fa-id-card"></i> <strong>CPF:</strong> <span id="perf-cpf"></span> &nbsp; <strong>CNH:</strong> <span id="perf-cnh"></span></p>
+                    <p><i class="fa-solid fa-id-card"></i> <strong>CPF:</strong> <span id="perf-cpf"></span> &nbsp; <strong>RG:</strong> <span id="perf-rg"></span></p>
+                    <p><i class="fa-solid fa-id-badge"></i> <strong>CNH:</strong> <span id="perf-cnh"></span></p>
                     <p><i class="fa-solid fa-map-marker-alt"></i> <span id="perf-endereco"></span></p>
                     
                     <div id="perf-cnh-anexo" style="margin-top:15px; display:none;">
@@ -359,9 +877,9 @@
         </div>
     </div>
 
-    <!-- Modal Moto -->
+    <!-- Modal Moto (Com KM, Troca de Óleo 1.000 km e Rastreador Pré-Configurado) -->
     <div class="modal" id="modal-moto">
-        <div class="modal-content">
+        <div class="modal-content modal-lg">
             <div class="modal-header">
                 <h3 id="modal-moto-title">Nova Moto</h3>
                 <span class="close-btn" onclick="closeModal('modal-moto')">&times;</span>
@@ -371,7 +889,7 @@
                     <input type="hidden" id="moto-id">
                     <input type="hidden" id="moto-foto-base64">
                     
-                    <div style="text-align: center; margin-bottom: 20px;">
+                    <div style="text-align: center; margin-bottom: 18px;">
                         <img id="moto-foto-preview" src="" style="width: 120px; height: 100px; border-radius: var(--radius-md); object-fit: cover; border: 2px dashed var(--border); margin-bottom: 10px; display: none;">
                         <div id="moto-foto-placeholder" style="width: 120px; height: 100px; border-radius: var(--radius-md); border: 2px dashed var(--border); margin: 0 auto 10px; display: flex; align-items: center; justify-content: center; font-size: 2rem; color: var(--text-muted); background: #f8fafc;">
                             <i class="fa-solid fa-motorcycle"></i>
@@ -391,34 +909,85 @@
                             <input type="text" id="moto-placa" required placeholder="ABC-1234" style="text-transform: uppercase;">
                         </div>
                         <div class="col">
-                            <label>Cor</label>
-                            <input type="text" id="moto-cor">
-                        </div>
-                    </div>
-                    <div class="form-group row">
-                        <div class="col">
                             <label>Modelo*</label>
-                            <input type="text" id="moto-modelo" required>
+                            <input type="text" id="moto-modelo" required placeholder="Ex: Honda CG 160 Start">
+                        </div>
+                        <div class="col">
+                            <label>Cor</label>
+                            <input type="text" id="moto-cor" placeholder="Ex: Preta">
                         </div>
                         <div class="col">
                             <label>Ano*</label>
                             <input type="number" id="moto-ano" required min="1900" max="2100">
                         </div>
                     </div>
-                    <div class="form-group">
-                        <label>Valor da Diária (R$)*</label>
-                        <input type="number" id="moto-valor" required step="0.01" min="0">
+
+                    <div class="form-group row">
+                        <div class="col">
+                            <label>RENAVAM (Para o Contrato)</label>
+                            <input type="text" id="moto-renavam" placeholder="00000000000">
+                        </div>
+                        <div class="col">
+                            <label>Chassi (Para o Contrato)</label>
+                            <input type="text" id="moto-chassi" placeholder="9C2...">
+                        </div>
+                        <div class="col">
+                            <label>Valor da Diária (R$)*</label>
+                            <input type="number" id="moto-valor" required step="0.01" min="0">
+                        </div>
+                        <div class="col">
+                            <label>Status*</label>
+                            <select id="moto-status">
+                                <option value="disponivel">Disponível</option>
+                                <option value="manutencao">Em Manutenção</option>
+                                <option value="alugada">Alugada</option> 
+                            </select>
+                        </div>
                     </div>
-                    <div class="form-group">
-                        <label>Status*</label>
-                        <select id="moto-status">
-                            <option value="disponivel">Disponível</option>
-                            <option value="manutencao">Em Manutenção</option>
-                            <!-- 'alugada' é setado automaticamente, mas liberado para set manual -->
-                            <option value="alugada">Alugada</option> 
-                        </select>
+
+                    <!-- Bloco de Controle de KM e Troca de Óleo (1.000 em 1.000 km) -->
+                    <div style="background:#fffbeb; border:1px solid #fde68a; border-radius:8px; padding:14px; margin-bottom:15px;">
+                        <h4 style="font-size:0.88rem; color:#b45309; margin-bottom:10px;"><i class="fa-solid fa-oil-can"></i> Controle de Quilometragem & Troca de Óleo (A cada 1.000 km)</h4>
+                        <div class="form-group row" style="margin-bottom:0;">
+                            <div class="col">
+                                <label>KM Atual da Moto</label>
+                                <input type="number" id="moto-km-atual" placeholder="Ex: 15000" min="0" oninput="calcularProxTrocaModalMoto()">
+                            </div>
+                            <div class="col">
+                                <label>KM da Última Troca de Óleo</label>
+                                <input type="number" id="moto-km-ultima-troca" placeholder="Ex: 14500" min="0" oninput="calcularProxTrocaModalMoto()">
+                            </div>
+                            <div class="col">
+                                <label>Próxima Troca (+1.000 km)</label>
+                                <input type="number" id="moto-km-proxima-troca" placeholder="Ex: 15500" readonly style="background:#fef3c7; font-weight:700;">
+                            </div>
+                        </div>
                     </div>
-                    <button type="submit" class="btn btn-primary btn-block">Salvar Frota</button>
+
+                    <!-- Bloco de Pré-Configuração do Rastreador GPS -->
+                    <div style="background:#f0f9ff; border:1px solid #bae6fd; border-radius:8px; padding:14px; margin-bottom:15px;">
+                        <h4 style="font-size:0.88rem; color:#0369a1; margin-bottom:10px;"><i class="fa-solid fa-satellite-dish"></i> Integração com Rastreador da Moto (Pré-Configurado)</h4>
+                        <div class="form-group row" style="margin-bottom:0;">
+                            <div class="col">
+                                <label>IMEI / ID do Rastreador</label>
+                                <input type="text" id="moto-rastreador-imei" placeholder="Ex: 864123059812345">
+                            </div>
+                            <div class="col">
+                                <label>Chip M2M / Telefone do Rastreador</label>
+                                <input type="text" id="moto-rastreador-chip" placeholder="Ex: (51) 99999-0000">
+                            </div>
+                            <div class="col">
+                                <label>Plataforma / Modelo GPS</label>
+                                <input type="text" id="moto-rastreador-modelo" placeholder="Ex: Traccar / Suntech / J16">
+                            </div>
+                            <div class="col">
+                                <label>Link Externo de Rastreio (Opcional)</label>
+                                <input type="text" id="moto-rastreador-link" placeholder="https://...">
+                            </div>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary btn-block">Salvar Frota & Configurações</button>
                 </form>
             </div>
         </div>
@@ -459,17 +1028,36 @@
                     </div>
                     <div class="form-group row">
                         <div class="col">
+                            <label>Próximo Vencimento Semanal</label>
+                            <input type="date" id="cont-prox-venc">
+                        </div>
+                        <div class="col">
+                            <label>Forma de Pagamento</label>
+                            <select id="cont-forma-pagamento">
+                                <option value="PIX">PIX</option>
+                                <option value="Dinheiro">Dinheiro</option>
+                                <option value="Cartão de Crédito/Débito">Cartão de Crédito/Débito</option>
+                                <option value="Boleto / Transferência">Boleto / Transferência</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-group row">
+                        <div class="col">
+                            <label>Valor Semanal (R$)</label>
+                            <input type="number" id="cont-valor-semanal" placeholder="350,00" step="0.01">
+                        </div>
+                        <div class="col">
+                            <label>Valor da Caução (R$)</label>
+                            <input type="number" id="cont-caucao" placeholder="500,00" step="0.01">
+                        </div>
+                    </div>
+                    <div class="form-group row" style="align-items: center;">
+                        <div class="col">
                             <label>Status do Contrato</label>
                             <select id="cont-status">
                                 <option value="ativo">Ativo</option>
                                 <option value="encerrado">Encerrado</option>
                             </select>
-                        </div>
-                    </div>
-                    <div class="form-group row" style="align-items: center;">
-                        <div class="col">
-                            <label>Valor da Caução (R$)</label>
-                            <input type="number" id="cont-caucao" placeholder="100,00" step="0.01">
                         </div>
                         <div class="col" id="diaria-display-col">
                             <label>Diária Calculada</label>
@@ -479,6 +1067,186 @@
                     <button type="submit" class="btn btn-primary btn-block">Salvar Contrato</button>
                     <button type="button" id="btn-encerrar-contrato" class="btn btn-danger btn-block mt-2" style="display:none;" onclick="encerrarContratoAtual()">Encerrar Devolução</button>
                 </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Painel do Rastreador Individual da Moto -->
+    <div class="modal" id="modal-rastreador">
+        <div class="modal-content modal-lg">
+            <div class="modal-header" style="background:#0f172a; color:#fff; border-radius:12px 12px 0 0;">
+                <h3 id="modal-rastreador-title" style="display:flex; align-items:center; gap:10px;">
+                    <i class="fa-solid fa-satellite-dish" style="color:#38bdf8;"></i> Rastreamento & Telemetria da Moto
+                </h3>
+                <span class="close-btn" style="color:#fff;" onclick="closeModal('modal-rastreador')">&times;</span>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="rast-moto-id">
+                <div class="tracker-telemetry-grid">
+                    <div class="telemetry-box">
+                        <span>Condutor Atual</span>
+                        <strong id="rast-condutor">-</strong>
+                    </div>
+                    <div class="telemetry-box">
+                        <span>Vencimento Aluguel</span>
+                        <strong id="rast-vencimento">-</strong>
+                    </div>
+                    <div class="telemetry-box">
+                        <span>Status Sinal GPS</span>
+                        <strong id="rast-status-sinal" style="color:var(--success);">Online (Pré-Configurado)</strong>
+                    </div>
+                    <div class="telemetry-box">
+                        <span>Hodômetro GPS (KM)</span>
+                        <strong id="rast-km-atual">0 km</strong>
+                    </div>
+                    <div class="telemetry-box">
+                        <span>Próx. Troca de Óleo</span>
+                        <strong id="rast-km-oleo">1.000 km</strong>
+                    </div>
+                    <div class="telemetry-box">
+                        <span>Status Bloqueio (Cláusula 10ª)</span>
+                        <strong id="rast-status-bloqueio">Desbloqueada</strong>
+                    </div>
+                </div>
+
+                <!-- Mapa Pré-Configurado (Porto Alegre / RS) -->
+                <div style="border:1px solid var(--border); border-radius:10px; overflow:hidden; margin-bottom:16px; position:relative; background:#0f172a;">
+                    <iframe id="rast-map-iframe" width="100%" height="250" frameborder="0" style="border:0; display:block;"
+                        src="https://www.openstreetmap.org/export/embed.html?bbox=-51.2600%2C-30.0600%2C-51.1600%2C-29.9900&amp;layer=mapnik&amp;marker=-30.0346%2C-51.2177">
+                    </iframe>
+                    <div style="padding:10px 14px; background:#0f172a; color:#f8fafc; font-size:0.8rem; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
+                        <span id="rast-ultima-sync"><i class="fa-solid fa-location-dot" style="color:#38bdf8;"></i> Localização monitorada • Integração pronta para API de Rastreamento</span>
+                        <a id="rast-external-link" href="#" target="_blank" style="color:#38bdf8; display:none; font-weight:600;">Abrir Plataforma Externa <i class="fa-solid fa-up-right-from-square"></i></a>
+                    </div>
+                </div>
+
+                <!-- Ações de Comando do Rastreador e Sincronização de KM -->
+                <div style="background:#f8fafc; border:1px solid var(--border); border-radius:10px; padding:15px;">
+                    <h4 style="font-size:0.9rem; margin-bottom:10px;"><i class="fa-solid fa-bolt"></i> Comandos Remotos & Sincronização de Hodômetro (1.000 km)</h4>
+                    <div class="form-group row" style="align-items:flex-end; margin-bottom:12px;">
+                        <div class="col">
+                            <label>IMEI / ID Dispositivo GPS</label>
+                            <input type="text" id="rast-input-imei" placeholder="Informe o IMEI do rastreador">
+                        </div>
+                        <div class="col">
+                            <label>Atualizar KM via Rastreador / Painel</label>
+                            <input type="number" id="rast-input-km" placeholder="KM atual">
+                        </div>
+                        <div style="flex:0 0 auto;">
+                            <button type="button" class="btn btn-primary" onclick="salvarTelemetriaRastreadorMoto()">
+                                <i class="fa-solid fa-rotate"></i> Sincronizar KM & Salvar
+                            </button>
+                        </div>
+                    </div>
+                    <div style="display:flex; gap:10px; flex-wrap:wrap; padding-top:10px; border-top:1px solid var(--border);">
+                        <button type="button" class="btn btn-danger btn-sm" id="btn-toggle-bloqueio-moto" onclick="alternarBloqueioRemotoMoto()">
+                            <i class="fa-solid fa-lock"></i> Enviar Bloqueio Preventivo (Cláusula 10ª)
+                        </button>
+                        <button type="button" class="btn btn-secondary btn-sm" onclick="abrirModalTrocaOleo(document.getElementById('rast-moto-id').value)">
+                            <i class="fa-solid fa-oil-can"></i> Registrar Troca de Óleo (+1.000 km)
+                        </button>
+                        <button type="button" class="btn btn-secondary btn-sm" onclick="openModal('modal-config-rastreador-global')">
+                            <i class="fa-solid fa-gear"></i> Configurar API da Plataforma GPS
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Pré-Configuração Global da Integração com Rastreador -->
+    <div class="modal" id="modal-config-rastreador-global">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3><i class="fa-solid fa-satellite-dish" style="color:var(--primary);"></i> Pré-Configuração da Integração de Rastreador</h3>
+                <span class="close-btn" onclick="closeModal('modal-config-rastreador-global')">&times;</span>
+            </div>
+            <div class="modal-body">
+                <p style="font-size:0.85rem; color:var(--text-muted); margin-bottom:15px;">
+                    Deixe sua plataforma de rastreamento pré-configurada para sincronizar a localização das motos, bloqueio remoto seguro e leitura automática de KM para o aviso de troca de óleo a cada 1.000 km.
+                </p>
+                <form id="form-config-rastreador" onsubmit="salvarConfigRastreadorGlobal(event)">
+                    <div class="form-group">
+                        <label>Plataforma / Provedor do Rastreador</label>
+                        <select id="cfg-gps-provedor">
+                            <option value="traccar">Traccar GPS Server (API REST)</option>
+                            <option value="suntech">Suntech / Coban / J16 Portal</option>
+                            <option value="segsat">Segsat / Sascar / Ituran</option>
+                            <option value="mobiltracker">Mobiltracker / Softruck / FullTrack</option>
+                            <option value="webhook">Webhook / API Personalizada</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>URL da API / Endpoint do Servidor GPS</label>
+                        <input type="text" id="cfg-gps-url" placeholder="https://api.seurastreador.com.br/v1/vehicles">
+                    </div>
+                    <div class="form-group">
+                        <label>Token de Autenticação / API Key</label>
+                        <input type="text" id="cfg-gps-token" placeholder="Cole aqui a chave de API quando ativar o rastreador">
+                    </div>
+                    <div class="form-group row">
+                        <div class="col">
+                            <label>Intervalo de Troca de Óleo (KM)</label>
+                            <input type="number" id="cfg-gps-intervalo-oleo" value="1000" min="100">
+                        </div>
+                        <div class="col">
+                            <label>Aviso Antecipado de Manutenção (KM)</label>
+                            <input type="number" id="cfg-gps-aviso-antecipado" value="150" min="10">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
+                            <input type="checkbox" id="cfg-gps-auto-km" checked style="width:auto;">
+                            Sincronizar hodômetro (KM) do rastreador automaticamente com o alerta de óleo
+                        </label>
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-block"><i class="fa-solid fa-check"></i> Salvar Pré-Configuração</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Registrar Troca de Óleo (+1.000 km) & Histórico -->
+    <div class="modal" id="modal-troca-oleo">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3><i class="fa-solid fa-oil-can" style="color:var(--primary);"></i> Registrar Troca de Óleo (Ciclo 1.000 km)</h3>
+                <span class="close-btn" onclick="closeModal('modal-troca-oleo')">&times;</span>
+            </div>
+            <div class="modal-body">
+                <form id="form-troca-oleo" onsubmit="confirmarRegistroTrocaOleo(event)">
+                    <input type="hidden" id="oleo-moto-id">
+                    <div style="background:#f8fafc; padding:12px; border-radius:8px; border:1px solid var(--border); margin-bottom:15px;">
+                        <strong id="oleo-modal-moto-nome" style="font-size:1rem; display:block;">Moto</strong>
+                        <span id="oleo-modal-condutor" style="font-size:0.82rem; color:var(--text-muted);">Condutor</span>
+                    </div>
+                    <div class="form-group row">
+                        <div class="col">
+                            <label>KM no Momento da Troca*</label>
+                            <input type="number" id="oleo-input-km-troca" required min="0" oninput="document.getElementById('oleo-input-prox-km').value = (parseInt(this.value||0) + 1000)">
+                        </div>
+                        <div class="col">
+                            <label>Próxima Troca Programada (+1.000 km)</label>
+                            <input type="number" id="oleo-input-prox-km" readonly style="background:#fef3c7; font-weight:700;">
+                        </div>
+                    </div>
+                    <div class="form-group row">
+                        <div class="col">
+                            <label>Data da Troca*</label>
+                            <input type="date" id="oleo-input-data" required>
+                        </div>
+                        <div class="col">
+                            <label>Observação / Marca do Óleo</label>
+                            <input type="text" id="oleo-input-obs" placeholder="Ex: Mobil 10W30 Semissintético">
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-block"><i class="fa-solid fa-check-double"></i> Confirmar Troca e Iniciar Novo Ciclo (+1.000 km)</button>
+                </form>
+
+                <div style="margin-top:20px; border-top:1px solid var(--border); padding-top:15px;">
+                    <h4 style="font-size:0.88rem; margin-bottom:10px;"><i class="fa-solid fa-clock-rotate-left"></i> Histórico de Trocas desta Moto</h4>
+                    <div id="oleo-historico-lista" style="max-height:160px; overflow-y:auto; font-size:0.83rem;"></div>
+                </div>
             </div>
         </div>
     </div>

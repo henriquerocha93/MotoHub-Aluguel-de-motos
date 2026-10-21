@@ -289,21 +289,180 @@
 
         /* Card Institucional à Direita no Hero */
         .hero-brand-card {
-            background: linear-gradient(160deg, rgba(24, 35, 56, 0.9) 0%, rgba(15, 23, 42, 0.95) 100%);
-            border: 1px solid rgba(255, 255, 255, 0.1);
+            background: linear-gradient(160deg, rgba(24, 35, 56, 0.92) 0%, rgba(15, 23, 42, 0.98) 100%);
+            border: 1px solid rgba(255, 255, 255, 0.12);
             border-radius: 20px;
-            padding: 28px;
-            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.6);
+            padding: 22px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.65);
             position: relative;
         }
 
         .hero-brand-card-logo {
             width: 100%;
-            max-width: 340px;
+            max-width: 240px;
             height: auto;
             display: block;
-            margin: 0 auto 22px;
-            border-radius: 12px;
+            margin: 0 auto 14px;
+            border-radius: 10px;
+        }
+
+        /* =========================================================
+           ANIMAÇÃO GPS MAPA + MOTOQUEIRO COM BAG IFOOD FAZENDO ENTREGAS
+        ========================================================= */
+        .gps-delivery-stage {
+            position: relative;
+            width: 100%;
+            height: 235px;
+            border-radius: 14px;
+            overflow: hidden;
+            background: #070d19;
+            border: 1px solid rgba(56, 189, 248, 0.28);
+            box-shadow: inset 0 0 35px rgba(0, 0, 0, 0.8), 0 8px 20px rgba(0, 0, 0, 0.4);
+            margin-bottom: 16px;
+        }
+
+        .gps-hud-top {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            right: 10px;
+            z-index: 6;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            pointer-events: none;
+        }
+
+        .gps-live-pill {
+            background: rgba(9, 13, 22, 0.88);
+            backdrop-filter: blur(6px);
+            border: 1px solid rgba(16, 185, 129, 0.45);
+            color: #34D399;
+            font-size: 0.68rem;
+            font-weight: 700;
+            padding: 4px 10px;
+            border-radius: 999px;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+        }
+
+        .gps-live-dot {
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            background: #10B981;
+            box-shadow: 0 0 8px #10B981;
+            animation: gpsBlink 1.2s infinite;
+        }
+
+        .gps-ifood-pill {
+            background: linear-gradient(135deg, #EA1D2C 0%, #B91C1C 100%);
+            color: #fff;
+            font-size: 0.68rem;
+            font-weight: 800;
+            padding: 4px 10px;
+            border-radius: 999px;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            box-shadow: 0 4px 12px rgba(234, 29, 44, 0.45);
+        }
+
+        .gps-hud-bottom {
+            position: absolute;
+            bottom: 8px;
+            left: 10px;
+            right: 10px;
+            z-index: 6;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: rgba(9, 13, 22, 0.86);
+            backdrop-filter: blur(6px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            padding: 6px 10px;
+            font-size: 0.72rem;
+            color: #E2E8F0;
+        }
+
+        @keyframes gpsBlink {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.35; transform: scale(1.3); }
+        }
+
+        /* Animação da rota tracejada do GPS */
+        .gps-route-glow {
+            stroke-dasharray: 8 6;
+            animation: routeDashMove 1.2s linear infinite;
+        }
+
+        @keyframes routeDashMove {
+            to { stroke-dashoffset: -28; }
+        }
+
+        /* Pulso dos Pinos de Coleta e Entrega no Mapa */
+        .map-pin-pulse {
+            transform-box: fill-box;
+            transform-origin: center;
+            animation: pinPulseAnim 2s ease-out infinite;
+        }
+
+        @keyframes pinPulseAnim {
+            0% { transform: scale(0.6); opacity: 0.95; }
+            100% { transform: scale(2.4); opacity: 0; }
+        }
+
+        /* Movimento do Motoqueiro com Bag iFood pelo Mapa GPS */
+        .motoboy-mover {
+            animation: motoboyGpsJourney 9s ease-in-out infinite;
+        }
+
+        @keyframes motoboyGpsJourney {
+            0% {
+                transform: translate(42px, 165px) scale(0.92) rotate(-18deg);
+            }
+            22% {
+                transform: translate(118px, 112px) scale(0.95) rotate(-8deg);
+            }
+            48% {
+                transform: translate(205px, 128px) scale(0.95) rotate(8deg);
+            }
+            75% {
+                transform: translate(285px, 76px) scale(0.98) rotate(-14deg);
+            }
+            88% {
+                transform: translate(285px, 74px) scale(1.02) rotate(0deg);
+            }
+            100% {
+                transform: translate(42px, 165px) scale(0.92) rotate(-18deg);
+            }
+        }
+
+        /* Balanço suave da moto em movimento */
+        .motoboy-bounce {
+            animation: motoVibration 0.35s ease-in-out infinite alternate;
+        }
+
+        @keyframes motoVibration {
+            from { transform: translateY(0px); }
+            to { transform: translateY(-2.2px); }
+        }
+
+        /* Notificação de Entrega Concluída quando chega no destino */
+        .delivery-complete-pop {
+            animation: deliveryPopBadge 9s ease-in-out infinite;
+            transform-box: fill-box;
+            transform-origin: center;
+        }
+
+        @keyframes deliveryPopBadge {
+            0%, 68% { opacity: 0; transform: translateY(6px) scale(0.8); }
+            75%, 90% { opacity: 1; transform: translateY(-4px) scale(1); }
+            96%, 100% { opacity: 0; transform: translateY(-10px) scale(0.8); }
         }
 
         .hero-brand-features {
@@ -1155,6 +1314,169 @@
 
             <div class="hero-brand-card">
                 <img src="logo.png.png" alt="FACILITA MOTO - Aluguel de Motos" class="hero-brand-card-logo">
+
+                <!-- ANIMAÇÃO: MAPA GPS + MOTOQUEIRO COM BAG DO IFOOD NAS COSTAS FAZENDO ENTREGAS -->
+                <div class="gps-delivery-stage" title="Simulação GPS em Tempo Real • Entregas iFood & Apps">
+                    <div class="gps-hud-top">
+                        <span class="gps-live-pill">
+                            <span class="gps-live-dot"></span> GPS Ativo • Em Rota
+                        </span>
+                        <span class="gps-ifood-pill">
+                            <i class="fa-solid fa-bag-shopping"></i> Bag iFood • Delivery
+                        </span>
+                    </div>
+
+                    <svg viewBox="0 0 380 235" width="100%" height="100%" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">
+                        <defs>
+                            <linearGradient id="gpsRouteGrad" x1="0%" y1="100%" x2="100%" y2="0%">
+                                <stop offset="0%" stop-color="#38BDF8" />
+                                <stop offset="55%" stop-color="#F59E0B" />
+                                <stop offset="100%" stop-color="#10B981" />
+                            </linearGradient>
+                            <radialGradient id="headlightBeam" cx="0%" cy="50%" r="100%">
+                                <stop offset="0%" stop-color="rgba(253, 224, 71, 0.55)" />
+                                <stop offset="100%" stop-color="rgba(253, 224, 71, 0)" />
+                            </radialGradient>
+                            <filter id="glowFilter" x="-20%" y="-20%" width="140%" height="140%">
+                                <feGaussianBlur stdDeviation="3" result="blur" />
+                                <feComposite in="SourceGraphic" in2="blur" operator="over" />
+                            </filter>
+                        </defs>
+
+                        <!-- Fundo do Mapa Urbano Noturno (Quadras e Ruas) -->
+                        <rect width="380" height="235" fill="#070d19" />
+                        
+                        <!-- Quadras estilizadas do Mapa -->
+                        <g fill="#0d1627" stroke="#162238" stroke-width="1">
+                            <rect x="-10" y="12" width="85" height="55" rx="6" />
+                            <rect x="92" y="10" width="110" height="48" rx="6" />
+                            <rect x="220" y="8" width="75" height="45" rx="6" />
+                            <rect x="310" y="10" width="80" height="55" rx="6" />
+
+                            <rect x="-5" y="84" width="75" height="62" rx="6" />
+                            <rect x="88" y="75" width="95" height="52" rx="6" />
+                            <rect x="200" y="70" width="68" height="58" rx="6" />
+                            <rect x="284" y="82" width="95" height="64" rx="6" />
+
+                            <rect x="10" y="164" width="95" height="65" rx="6" />
+                            <rect x="122" y="145" width="115" height="75" rx="6" />
+                            <rect x="254" y="162" width="120" height="70" rx="6" />
+                        </g>
+
+                        <!-- Malha de Ruas e Avenidas do GPS -->
+                        <g stroke="#1e293b" stroke-width="10" fill="none" stroke-linecap="round">
+                            <path d="M -10 74 L 390 66" />
+                            <path d="M -10 155 L 390 150" />
+                            <path d="M 80 -10 L 78 245" />
+                            <path d="M 192 -10 L 192 245" />
+                            <path d="M 276 -10 L 276 245" />
+                        </g>
+
+                        <!-- Trilha Sombra da Rota do GPS -->
+                        <path d="M 55 182 C 95 165, 110 122, 145 125 C 185 128, 210 148, 240 132 C 268 118, 282 98, 315 86"
+                              fill="none" stroke="rgba(56, 189, 248, 0.2)" stroke-width="9" stroke-linecap="round" />
+
+                        <!-- Linha Principal da Rota do GPS -->
+                        <path d="M 55 182 C 95 165, 110 122, 145 125 C 185 128, 210 148, 240 132 C 268 118, 282 98, 315 86"
+                              fill="none" stroke="url(#gpsRouteGrad)" stroke-width="4" stroke-linecap="round" filter="url(#glowFilter)" />
+
+                        <!-- Linha Animada Tracejada de Fluxo GPS -->
+                        <path class="gps-route-glow"
+                              d="M 55 182 C 95 165, 110 122, 145 125 C 185 128, 210 148, 240 132 C 268 118, 282 98, 315 86"
+                              fill="none" stroke="#ffffff" stroke-width="2" stroke-linecap="round" opacity="0.85" />
+
+                        <!-- PINO DE ORIGEM (RESTAURANTE / COLETA IFOOD) -->
+                        <g transform="translate(55, 182)">
+                            <circle class="map-pin-pulse" cx="0" cy="0" r="12" fill="rgba(234, 29, 44, 0.35)" />
+                            <circle cx="0" cy="0" r="7" fill="#EA1D2C" stroke="#ffffff" stroke-width="2" />
+                            <rect x="-28" y="-26" width="56" height="15" rx="4" fill="#0f172a" stroke="#EA1D2C" stroke-width="1" />
+                            <text x="0" y="-16" fill="#ffffff" font-size="7.5" font-weight="bold" text-anchor="middle" font-family="Inter, sans-serif">COLETA</text>
+                        </g>
+
+                        <!-- PINO DE DESTINO (CLIENTE / ENTREGA) -->
+                        <g transform="translate(315, 86)">
+                            <circle class="map-pin-pulse" cx="0" cy="0" r="15" fill="rgba(16, 185, 129, 0.35)" />
+                            <circle cx="0" cy="0" r="8" fill="#10B981" stroke="#ffffff" stroke-width="2" />
+                            <!-- Ícone Pin GPS Destino -->
+                            <path d="M 0 -22 C -7 -22 -12 -17 -12 -10 C -12 -2 0 4 0 4 C 0 4 12 -2 12 -10 C 12 -17 7 -22 0 -22 Z" fill="#10B981" stroke="#ffffff" stroke-width="1.2" />
+                            <circle cx="0" cy="-11" r="3.5" fill="#ffffff" />
+                        </g>
+
+                        <!-- Balão Flutuante de Entrega Concluída (+R$) -->
+                        <g class="delivery-complete-pop" transform="translate(250, 26)">
+                            <rect x="0" y="0" width="112" height="24" rx="12" fill="#10B981" stroke="#ffffff" stroke-width="1.2" />
+                            <text x="56" y="15" fill="#052e16" font-size="9" font-weight="800" text-anchor="middle" font-family="Inter, sans-serif">✓ ENTREGA +R$ 18,90</text>
+                        </g>
+
+                        <!-- MINIATURA ANIMADA DO MOTOQUEIRO COM BAG DO IFOOD NAS COSTAS -->
+                        <g class="motoboy-mover">
+                            <g class="motoboy-bounce">
+                                <!-- Pulso de Radar GPS sob a Moto -->
+                                <ellipse cx="22" cy="22" rx="22" ry="9" fill="rgba(56, 189, 248, 0.18)" stroke="#38BDF8" stroke-width="1" stroke-dasharray="3 2" />
+
+                                <!-- Feixe do Farol de LED da Moto -->
+                                <polygon points="42,8 82,-4 82,22" fill="url(#headlightBeam)" />
+
+                                <!-- Sombra no Asfalto -->
+                                <ellipse cx="22" cy="24" rx="19" ry="4.5" fill="rgba(0,0,0,0.65)" />
+
+                                <!-- Roda Traseira -->
+                                <circle cx="8" cy="18" r="7.5" fill="#0f172a" stroke="#94a3b8" stroke-width="2.2" />
+                                <circle cx="8" cy="18" r="3" fill="#F59E0B" />
+
+                                <!-- Roda Dianteira -->
+                                <circle cx="37" cy="18" r="7.5" fill="#0f172a" stroke="#94a3b8" stroke-width="2.2" />
+                                <circle cx="37" cy="18" r="3" fill="#F59E0B" />
+
+                                <!-- Escapamento e Chassi Traseiro -->
+                                <path d="M 2 14 L 14 16" stroke="#64748b" stroke-width="3" stroke-linecap="round" />
+
+                                <!-- Corpo / Carenagem da Moto (Estilo CG 160 / Fazer) -->
+                                <path d="M 7 12 L 18 11 L 28 7 L 35 12 L 25 18 L 12 18 Z" fill="#F59E0B" stroke="#ffffff" stroke-width="0.8" />
+                                <!-- Bengala Dianteira e Guidão -->
+                                <path d="M 37 18 L 30 3 L 26 3" stroke="#cbd5e1" stroke-width="2.2" stroke-linecap="round" fill="none" />
+                                <!-- Farol Dianteiro -->
+                                <circle cx="34" cy="7" r="2.6" fill="#fef08a" stroke="#ca8a04" stroke-width="0.8" />
+
+                                <!-- Pernas e Tronco do Motoqueiro -->
+                                <path d="M 18 12 L 23 15 L 21 20" stroke="#1e293b" stroke-width="3.5" stroke-linecap="round" fill="none" />
+                                <path d="M 16 11 L 21 1" stroke="#0f172a" stroke-width="5.5" stroke-linecap="round" />
+                                <!-- Braço segurando o guidão -->
+                                <path d="M 21 2 L 29 4" stroke="#1e293b" stroke-width="2.8" stroke-linecap="round" />
+
+                                <!-- ============================================= -->
+                                <!-- BAG VERMELHA DO IFOOD NAS COSTAS DO MOTOQUEIRO -->
+                                <!-- ============================================= -->
+                                <g transform="translate(2, -13)">
+                                    <!-- Caixa Térmica Vermelha iFood -->
+                                    <rect x="0" y="0" width="16.5" height="15.5" rx="3" fill="#EA1D2C" stroke="#ffffff" stroke-width="1.1" />
+                                    <!-- Tampa Superior da Bag -->
+                                    <rect x="-0.5" y="0" width="17.5" height="3.5" rx="1.5" fill="#B91C1C" />
+                                    <!-- Faixa Refletiva Prateada da Bag -->
+                                    <rect x="1.5" y="11.5" width="13.5" height="1.6" fill="#fde047" opacity="0.9" />
+                                    <!-- Símbolo Sorriso/Seta Branca característico do iFood na Bag -->
+                                    <circle cx="6" cy="6.2" r="1.1" fill="#ffffff" />
+                                    <circle cx="10.2" cy="6.2" r="1.1" fill="#ffffff" />
+                                    <path d="M 4.5 8.5 Q 8.2 11.4 12 8.2" stroke="#ffffff" stroke-width="1.3" fill="none" stroke-linecap="round" />
+                                    <path d="M 10.7 7.8 L 12.2 8.1 L 11.6 9.6" stroke="#ffffff" stroke-width="1.1" fill="none" stroke-linecap="round" stroke-linejoin="round" />
+                                </g>
+                                <!-- Alça da Bag nas costas do motoqueiro -->
+                                <path d="M 18 -7 L 22 2" stroke="#EA1D2C" stroke-width="1.6" stroke-linecap="round" />
+
+                                <!-- Capacete do Motoqueiro com Viseira -->
+                                <circle cx="23" cy="-4.5" r="5.2" fill="#1e293b" stroke="#ffffff" stroke-width="1" />
+                                <!-- Viseira Azul/Ciano -->
+                                <path d="M 24 -6.5 Q 28.5 -5.5 27.8 -2.5 L 23.5 -3 Z" fill="#38BDF8" />
+                            </g>
+                        </g>
+                    </svg>
+
+                    <div class="gps-hud-bottom">
+                        <span><i class="fa-solid fa-satellite-dish" style="color:#38BDF8;"></i> <strong>Rastreamento & Manutenção 1.000 km</strong></span>
+                        <span style="color:#34D399; font-weight:700;"><i class="fa-solid fa-bolt"></i> Pronta p/ Rodar</span>
+                    </div>
+                </div>
+
                 <div class="hero-brand-features">
                     <div class="hero-brand-feature">
                         <div class="hero-brand-feature-icon"><i class="fa-solid fa-bolt"></i></div>
@@ -1167,7 +1489,7 @@
                         <div class="hero-brand-feature-icon"><i class="fa-solid fa-screwdriver-wrench"></i></div>
                         <div>
                             <strong>Frota com Manutenção em Dia</strong>
-                            <span>Segurança e economia de combustível no seu dia a dia</span>
+                            <span>Troca de óleo a cada 1.000 km e segurança no seu dia a dia</span>
                         </div>
                     </div>
                     <div class="hero-brand-feature">
