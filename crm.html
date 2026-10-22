@@ -1001,22 +1001,22 @@
 
                     <!-- Bloco de Integração com Chip IoT / Rastreador M2M -->
                     <div style="background:#f0f9ff; border:1px solid #bae6fd; border-radius:8px; padding:14px; margin-bottom:15px;">
-                        <h4 style="font-size:0.88rem; color:#0369a1; margin-bottom:10px;"><i class="fa-solid fa-sim-card"></i> Rastreador via Chip IoT / Telemetria M2M (Pré-Configurado)</h4>
+                        <h4 style="font-size:0.88rem; color:#0369a1; margin-bottom:10px;"><i class="fa-solid fa-sim-card"></i> Dados do Rastreador Chip IoT (ID & ICCID da Linha)</h4>
                         <div class="form-group row" style="margin-bottom:0;">
                             <div class="col">
-                                <label>ID / Serial / ICCID do Chip IoT</label>
-                                <input type="text" id="moto-rastreador-imei" placeholder="Ex: 00018E1B ou 8955...">
+                                <label>ID do Rastreador</label>
+                                <input type="text" id="moto-rastreador-imei" placeholder="Ex: 00018E1B">
                             </div>
                             <div class="col">
-                                <label>Linha M2M / MSISDN do Chip</label>
-                                <input type="text" id="moto-rastreador-chip" placeholder="Ex: (51) 99999-0000">
+                                <label>ICCID (Linha do Chip IoT)</label>
+                                <input type="text" id="moto-rastreador-chip" placeholder="Ex: 89555480000080813880">
                             </div>
                             <div class="col">
-                                <label>Operadora / APN do Chip IoT</label>
-                                <input type="text" id="moto-rastreador-modelo" placeholder="Ex: Multi-Operadora M2M / Vivo / Arqia">
+                                <label>Localização / Endereço Atual da Moto</label>
+                                <input type="text" id="moto-rastreador-modelo" placeholder="Ex: Rua, Bairro, Cidade - RS">
                             </div>
                             <div class="col">
-                                <label>Link Painel IoT (Opcional)</label>
+                                <label>Link Plataforma / Rastreio (Opcional)</label>
                                 <input type="text" id="moto-rastreador-link" placeholder="https://...">
                             </div>
                         </div>
@@ -1232,10 +1232,10 @@
                 <div style="border:2px solid #0284c7; border-radius:12px; overflow:hidden; margin-bottom:16px; position:relative; background:#0f172a; box-shadow:0 8px 24px rgba(2,132,199,0.18);">
                     <!-- HUD Superior de Rastreamento Ao Vivo -->
                     <div style="padding:8px 14px; background:linear-gradient(90deg, #0f172a 0%, #1e293b 100%); color:#fff; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; border-bottom:1px solid #334155;">
-                        <div style="display:flex; align-items:center; gap:8px; font-size:0.8rem; font-weight:700;">
+                        <div style="display:flex; align-items:center; gap:8px; font-size:0.79rem; font-weight:700; flex-wrap:wrap;">
                             <span id="rast-live-dot" style="width:10px; height:10px; border-radius:50%; background:#10b981; display:inline-block; box-shadow:0 0 10px #10b981; animation:pulseGps 1.2s infinite;"></span>
-                            <span id="rast-live-badge-text" style="color:#38bdf8; letter-spacing:0.3px;">RASTREAMENTO EM TEMPO REAL ATIVO</span>
-                            <span id="rast-live-velocidade" style="background:#1e293b; border:1px solid #475569; padding:2px 8px; border-radius:999px; font-size:0.75rem; color:#f8fafc;">38 km/h • Ignição ON</span>
+                            <span id="rast-live-badge-text" style="color:#38bdf8; letter-spacing:0.3px;">ID: 00018E1B • ICCID (LINHA): 89555480000080813880</span>
+                            <span id="rast-live-velocidade" style="background:#1e293b; border:1px solid #475569; padding:2px 8px; border-radius:999px; font-size:0.74rem; color:#f8fafc;">Chip IoT Online</span>
                         </div>
                         <div style="display:flex; gap:6px; align-items:center;">
                             <button type="button" class="btn btn-secondary btn-sm" style="padding:3px 9px; font-size:0.73rem; background:#1e293b; color:#38bdf8; border:1px solid #334155;" onclick="centralizarMapaNaMoto()">
@@ -1247,17 +1247,27 @@
                         </div>
                     </div>
 
-                    <!-- Container do Mapa Interativo com a Moto em Movimento -->
+                    <!-- Barra de Busca de Endereço Real / Coordenadas da Moto no Mapa -->
+                    <div style="padding:8px 12px; background:#1e293b; display:flex; gap:8px; align-items:center; flex-wrap:wrap; border-bottom:1px solid #334155;">
+                        <div style="flex:1; min-width:220px; position:relative;">
+                            <input type="text" id="rast-input-busca-endereco" placeholder="Digite a Rua, Número, Bairro, Cidade ou Lat,Lng onde a moto está (ou arraste o pino no mapa)..." style="padding:6px 10px; font-size:0.8rem; background:#0f172a; color:#fff; border:1px solid #475569; border-radius:6px; width:100%;" onkeydown="if(event.key==='Enter'){event.preventDefault(); buscarEnderecoRealMotoNoMapa();}">
+                        </div>
+                        <button type="button" class="btn btn-primary btn-sm" style="padding:6px 12px; font-size:0.76rem; background:#0284c7;" onclick="buscarEnderecoRealMotoNoMapa()">
+                            <i class="fa-solid fa-magnifying-glass-location"></i> Atualizar Posição no Mapa
+                        </button>
+                    </div>
+
+                    <!-- Container do Mapa Interativo com a Moto -->
                     <div id="rast-live-map" style="width:100%; height:310px; position:relative; z-index:1; background:#e2e8f0;"></div>
 
                     <!-- Barra Inferior de Endereço em Tempo Real e Telemetria M2M -->
                     <div style="padding:10px 14px; background:#0f172a; color:#f8fafc; font-size:0.8rem; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; border-top:1px solid #334155;">
                         <div>
                             <div id="rast-endereco-atual" style="font-weight:700; color:#f8fafc; margin-bottom:2px;">
-                                <i class="fa-solid fa-location-dot" style="color:#10b981;"></i> Localizando motocicleta via Chip IoT...
+                                <i class="fa-solid fa-location-dot" style="color:#10b981;"></i> Posição da Motocicleta no Mapa (Arraste a moto ou clique na rua exata)
                             </div>
                             <span id="rast-ultima-sync" style="font-size:0.74rem; color:#94a3b8;">
-                                <i class="fa-solid fa-sim-card" style="color:#38bdf8;"></i> Telemetria M2M via Chip IoT Ativa • Rastreamento em tempo real
+                                <i class="fa-solid fa-sim-card" style="color:#38bdf8;"></i> ID: 00018E1B • ICCID (LINHA): 89555480000080813880
                             </span>
                         </div>
                         <a id="rast-external-link" href="#" target="_blank" style="color:#38bdf8; display:none; font-weight:600;">Abrir Painel da Operadora IoT <i class="fa-solid fa-up-right-from-square"></i></a>
@@ -1266,15 +1276,15 @@
 
                 <!-- Ações de Comando do Chip IoT e Sincronização de KM -->
                 <div style="background:#f8fafc; border:1px solid var(--border); border-radius:10px; padding:15px;">
-                    <h4 style="font-size:0.9rem; margin-bottom:10px;"><i class="fa-solid fa-sim-card" style="color:#0284c7;"></i> Identificação do Chip IoT (M2M) & Sincronização de Hodômetro (Ciclo 1.000 km)</h4>
+                    <h4 style="font-size:0.9rem; margin-bottom:10px;"><i class="fa-solid fa-sim-card" style="color:#0284c7;"></i> Dados do Rastreador Chip IoT (ID & ICCID da Linha) e Hodômetro (Ciclo 1.000 km)</h4>
                     <div class="form-group row" style="align-items:flex-end; margin-bottom:12px;">
                         <div class="col">
-                            <label>ID / Serial / ICCID do Chip IoT</label>
-                            <input type="text" id="rast-input-imei" placeholder="Ex: 00018E1B ou ICCID">
+                            <label>ID do Rastreador</label>
+                            <input type="text" id="rast-input-imei" placeholder="Ex: 00018E1B">
                         </div>
-                        <div class="col">
-                            <label>Operadora / Linha M2M (Opcional)</label>
-                            <input type="text" id="rast-input-chip" placeholder="Ex: Multi-Operadora / Vivo M2M">
+                        <div class="col" style="flex:1.4;">
+                            <label>ICCID (LINHA)</label>
+                            <input type="text" id="rast-input-chip" placeholder="Ex: 89555480000080813880">
                         </div>
                         <div class="col">
                             <label>KM Atual da Moto</label>
@@ -1286,7 +1296,7 @@
                         </div>
                         <div style="flex:0 0 auto;">
                             <button type="button" class="btn btn-primary" onclick="salvarTelemetriaRastreadorMoto()">
-                                <i class="fa-solid fa-rotate"></i> Sincronizar Chip IoT & Salvar
+                                <i class="fa-solid fa-rotate"></i> Salvar Dados do Rastreador
                             </button>
                         </div>
                     </div>
@@ -1484,6 +1494,6 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <!-- Firebase Firestore -->
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
-    <script src="app.js?v=20261022_iot"></script>
+    <script src="app.js?v=20261022_ipui57"></script>
 </body>
 </html>

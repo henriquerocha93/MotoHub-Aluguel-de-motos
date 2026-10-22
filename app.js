@@ -403,7 +403,46 @@ function getInfoVencimentoContrato(cont) {
 // ==========================================
 // MODULE: DASHBOARD
 // ==========================================
+function sincronizarDadosPadraoRastreadoresFrota() {
+    let motos = getDb('crm_motos');
+    let mudou = false;
+
+    motos.forEach(m => {
+        const placaLimpa = (m.placa || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+        // Configuração oficial do rastreador da HONDA/CG150 TITAN MIXESD (Placa: IPU2I57)
+        if (placaLimpa === 'IPU2I57') {
+            if (m.rastreadorImei !== '00018E1B') {
+                m.rastreadorImei = '00018E1B';
+                mudou = true;
+            }
+            if (m.rastreadorChip !== '89555480000080813880') {
+                m.rastreadorChip = '89555480000080813880';
+                mudou = true;
+            }
+            if (!m.rastreadorModelo || m.rastreadorModelo === 'Traccar / GPS' || m.rastreadorModelo === 'Chip IoT M2M Multi-Operadora') {
+                m.rastreadorModelo = 'Chip IoT M2M';
+                mudou = true;
+            }
+        }
+        // Limpa rótulo legado "Traccar / GPS" de qualquer moto
+        if (m.rastreadorChip === 'Traccar / GPS') {
+            m.rastreadorChip = '';
+            mudou = true;
+        }
+        if (m.rastreadorModelo === 'Traccar / GPS') {
+            m.rastreadorModelo = 'Chip IoT M2M';
+            mudou = true;
+        }
+    });
+
+    if (mudou) {
+        saveDb('crm_motos', motos);
+    }
+    return motos;
+}
+
 function renderDashboard() {
+    sincronizarDadosPadraoRastreadoresFrota();
     const clientes = getDb('crm_clientes');
     const motos = getDb('crm_motos');
     const contratos = getDb('crm_contratos');
@@ -611,15 +650,16 @@ function renderDashboard() {
                 const isBloqueada = m.rastreadorBloqueado === true;
                 const gpsPillClass = isBloqueada ? 'gps-blocked' : (m.rastreadorImei ? 'gps-online' : 'gps-preconfig');
                 const gpsText = isBloqueada ? 'Bloqueada (Chip IoT)' : (m.rastreadorImei ? 'Chip IoT Online' : 'Chip IoT Pré-Config.');
-                const imeiInfo = m.rastreadorImei ? `ID Chip IoT: <strong>${m.rastreadorImei}</strong>` : 'Aguardando ID do Chip IoT';
+                const imeiInfo = m.rastreadorImei ? `ID: <strong>${m.rastreadorImei}</strong>` : 'Aguardando ID do Chip IoT';
+                const iccidInfo = m.rastreadorChip ? `<br>ICCID (Linha): <strong>${m.rastreadorChip}</strong>` : '';
 
                 const rastreadorHtml = `
                     <div>
                         <span class="gps-pill ${gpsPillClass}">
                             <span class="gps-dot"></span> ${gpsText}
                         </span>
-                        <div style="font-size:0.74rem; color:var(--text-muted); margin-top:4px;">
-                            ${imeiInfo} ${m.rastreadorChip ? `• ${m.rastreadorChip}` : (m.rastreadorModelo ? `• ${m.rastreadorModelo}` : '• M2M')}
+                        <div style="font-size:0.73rem; color:var(--text-muted); margin-top:4px; line-height:1.35;">
+                            ${imeiInfo}${iccidInfo}
                         </div>
                     </div>
                 `;
@@ -1283,7 +1323,10 @@ function renderFrota() {
             </td>
             <td>
                 ${gpsBadge}<br>
-                <small style="color:var(--text-muted); font-size:0.72rem;">${m.rastreadorImei ? `Chip IoT: <strong>${m.rastreadorImei}</strong>` : 'Vincular Chip IoT'}</small>
+                <small style="color:var(--text-muted); font-size:0.72rem; line-height:1.35; display:inline-block; margin-top:2px;">
+                    ${m.rastreadorImei ? `ID: <strong>${m.rastreadorImei}</strong>` : 'Vincular Chip IoT'}
+                    ${m.rastreadorChip ? `<br>ICCID: <strong>${m.rastreadorChip}</strong>` : ''}
+                </small>
             </td>
             <td>R$ ${parseFloat(m.valor || 0).toFixed(2)}</td>
             <td><span class="badge ${badgeClass}">${statusLabel}</span></td>
@@ -1786,37 +1829,27 @@ window.rastTileLayerStreet = null;
 window.rastTileLayerSat = null;
 window.rastModoSatelite = false;
 window.rastLiveInterval = null;
-window.rastCurrentCoords = [-30.0277, -51.2085];
+window.rastCurrentCoords = [-30.0346, -51.2177];
 
-// Rotas urbanas realistas em Porto Alegre / RS para telemetria em tempo real da moto
-const ROTAS_TELEMETRIA_POA = [
-    { lat: -30.0277, lng: -51.2185, via: 'Av. Farrapos, 1450 — Floresta, Porto Alegre/RS', vel: 42 },
-    { lat: -30.0252, lng: -51.2128, via: 'Av. Cristóvão Colombo, 890 — Independência, Porto Alegre/RS', vel: 38 },
-    { lat: -30.0218, lng: -51.2065, via: 'Av. Benjamin Constant, 1120 — São João, Porto Alegre/RS', vel: 45 },
-    { lat: -30.0169, lng: -51.1984, via: 'Av. Assis Brasil, 1840 — Passo d\'Areia, Porto Alegre/RS', vel: 48 },
-    { lat: -30.0205, lng: -51.1915, via: 'Av. Plínio Brasil Milano, 720 — Higienópolis, Porto Alegre/RS', vel: 36 },
-    { lat: -30.0268, lng: -51.1968, via: 'Av. Goethe, 210 — Rio Branco, Porto Alegre/RS', vel: 40 },
-    { lat: -30.0315, lng: -51.2052, via: 'Av. Osvaldo Aranha, 1020 — Bom Fim, Porto Alegre/RS', vel: 34 },
-    { lat: -30.0302, lng: -51.2140, via: 'Av. Alberto Bins, 650 — Centro Histórico, Porto Alegre/RS', vel: 39 }
-];
-
-function criarIconeMotoNoMapa(moto, cliente, velocidadeKmH) {
+function criarIconeMotoNoMapa(moto, cliente) {
     const isBloq = moto.rastreadorBloqueado === true;
-    const chipId = moto.rastreadorImei || 'M2M-ATIVO';
-    const nomeCondutor = cliente ? cliente.nome.split(' ')[0] : 'Pátio';
-    const statusVel = isBloq
-        ? `<span style="color:#f87171; font-weight:700;">🔒 BLOQUEADA (0 km/h)</span>`
-        : `<span style="color:#34d399; font-weight:700;">⚡ ${velocidadeKmH} km/h • Ao Vivo</span>`;
+    const chipId = moto.rastreadorImei || 'Sem ID';
+    const iccid = moto.rastreadorChip || 'Sem ICCID';
+    const nomeCondutor = cliente ? cliente.nome : 'No Pátio';
+    const statusTexto = isBloq
+        ? `<span style="color:#f87171; font-weight:700;">🔒 BLOQUEADA REMOTAMENTE</span>`
+        : `<span style="color:#34d399; font-weight:700;">🟢 CHIP IOT CONECTADO</span>`;
 
     const html = `
         <div class="moto-iot-marker-wrap">
             <div class="moto-iot-floating-card">
-                <div style="font-weight:800; color:#38bdf8;">🏍️ ${moto.modelo} (${moto.placa})</div>
-                <div>👤 ${nomeCondutor} • Chip IoT: <strong>${chipId}</strong></div>
-                <div>${statusVel}</div>
+                <div style="font-weight:800; color:#38bdf8;">🏍️ ${moto.modelo} • Placa: ${moto.placa} (${moto.cor || 'Preta'})</div>
+                <div>👤 Condutor: <strong>${nomeCondutor}</strong></div>
+                <div>📶 ID: <strong>${chipId}</strong> • ICCID (Linha): <strong>${iccid}</strong></div>
+                <div>${statusTexto}</div>
             </div>
             <div class="moto-iot-pulse-ring ${isBloq ? 'blocked' : ''}"></div>
-            <div class="moto-iot-pin ${isBloq ? 'blocked' : ''}">
+            <div class="moto-iot-pin ${isBloq ? 'blocked' : ''}" title="Arraste o pino ou clique no mapa para ajustar a posição exata da moto">
                 <i class="fa-solid fa-motorcycle"></i>
             </div>
         </div>
@@ -1830,6 +1863,109 @@ function criarIconeMotoNoMapa(moto, cliente, velocidadeKmH) {
     });
 }
 
+function salvarPosicaoRealMotoNoMapa(motoId, lat, lng, enderecoTexto) {
+    let motos = getDb('crm_motos');
+    const idx = motos.findIndex(m => m.id === motoId);
+    if (idx === -1) return;
+
+    motos[idx].rastreadorLat = lat;
+    motos[idx].rastreadorLng = lng;
+    if (enderecoTexto) {
+        motos[idx].rastreadorEndereco = enderecoTexto;
+    }
+    motos[idx].rastreadorUltimaSync = new Date().toISOString();
+    saveDb('crm_motos', motos);
+
+    atualizarHudTelemetriaAoVivo(motos[idx], enderecoTexto || motos[idx].rastreadorEndereco || 'Posição demarcada no mapa');
+}
+
+function consultarEnderecoReversoNominatim(motoId, lat, lng) {
+    const endEl = document.getElementById('rast-endereco-atual');
+    if (endEl) {
+        endEl.innerHTML = `<i class="fa-solid fa-spinner fa-spin" style="color:#38bdf8;"></i> Consultando endereço exato das coordenadas (${lat.toFixed(5)}, ${lng.toFixed(5)})...`;
+    }
+
+    fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}&accept-language=pt-BR`)
+        .then(r => r.json())
+        .then(data => {
+            let enderecoFormatado = data && data.display_name
+                ? data.display_name
+                : `Lat: ${lat.toFixed(5)}, Lng: ${lng.toFixed(5)}`;
+            if (data && data.address) {
+                const a = data.address;
+                const rua = a.road || a.pedestrian || a.suburb || '';
+                const num = a.house_number ? `, ${a.house_number}` : '';
+                const bairro = a.suburb || a.neighbourhood || a.city_district || '';
+                const cidade = a.city || a.town || a.municipality || 'Porto Alegre';
+                const uf = a.state_code || 'RS';
+                if (rua) {
+                    enderecoFormatado = `${rua}${num}${bairro ? ' — ' + bairro : ''}, ${cidade}/${uf}`;
+                }
+            }
+            const inputBusca = document.getElementById('rast-input-busca-endereco');
+            if (inputBusca) inputBusca.value = enderecoFormatado;
+            salvarPosicaoRealMotoNoMapa(motoId, lat, lng, enderecoFormatado);
+        })
+        .catch(() => {
+            const fallbackEnd = `Coordenadas GPS: ${lat.toFixed(5)}, ${lng.toFixed(5)}`;
+            salvarPosicaoRealMotoNoMapa(motoId, lat, lng, fallbackEnd);
+        });
+}
+
+function buscarEnderecoRealMotoNoMapa() {
+    const motoId = document.getElementById('rast-moto-id')?.value;
+    const inputEl = document.getElementById('rast-input-busca-endereco');
+    if (!motoId || !inputEl) return;
+
+    const termo = inputEl.value.trim();
+    if (!termo) {
+        alert('Digite a Rua, Número, Bairro, Cidade ou as coordenadas (Lat, Lng) onde a moto está.');
+        return;
+    }
+
+    // Verifica se o usuário digitou coordenadas diretas (ex: -30.0346, -51.2177)
+    const coordMatch = termo.match(/^(-?\d+\.\d+)\s*[,;]\s*(-?\d+\.\d+)$/);
+    if (coordMatch) {
+        const lat = parseFloat(coordMatch[1]);
+        const lng = parseFloat(coordMatch[2]);
+        window.rastCurrentCoords = [lat, lng];
+        if (window.rastLeafletMarker && window.rastLeafletMap) {
+            window.rastLeafletMarker.setLatLng(window.rastCurrentCoords);
+            window.rastLeafletMap.setView(window.rastCurrentCoords, 17, { animate: true });
+        }
+        consultarEnderecoReversoNominatim(motoId, lat, lng);
+        return;
+    }
+
+    const endEl = document.getElementById('rast-endereco-atual');
+    if (endEl) {
+        endEl.innerHTML = `<i class="fa-solid fa-spinner fa-spin" style="color:#38bdf8;"></i> Localizando endereço "${termo}" no mapa...`;
+    }
+
+    fetch(`https://nominatim.openstreetmap.org/search?format=jsonv2&q=${encodeURIComponent(termo)}&limit=1&countrycodes=br&accept-language=pt-BR`)
+        .then(r => r.json())
+        .then(results => {
+            if (!results || results.length === 0) {
+                alert('Endereço não encontrado. Tente informar Rua, Bairro e Cidade (ex: Av. Assis Brasil, Porto Alegre - RS).');
+                return;
+            }
+            const loc = results[0];
+            const lat = parseFloat(loc.lat);
+            const lng = parseFloat(loc.lon);
+            const nomeEnd = loc.display_name;
+
+            window.rastCurrentCoords = [lat, lng];
+            if (window.rastLeafletMarker && window.rastLeafletMap) {
+                window.rastLeafletMarker.setLatLng(window.rastCurrentCoords);
+                window.rastLeafletMap.setView(window.rastCurrentCoords, 17, { animate: true });
+            }
+            salvarPosicaoRealMotoNoMapa(motoId, lat, lng, nomeEnd);
+        })
+        .catch(() => {
+            alert('Erro ao buscar endereço no mapa. Você também pode clicar diretamente na rua desejada no mapa.');
+        });
+}
+
 function inicializarOuAtualizarMapaVivoMoto(moto, cliente) {
     const mapContainer = document.getElementById('rast-live-map');
     if (!mapContainer || typeof L === 'undefined') return;
@@ -1839,66 +1975,80 @@ function inicializarOuAtualizarMapaVivoMoto(moto, cliente) {
         window.rastLiveInterval = null;
     }
 
-    // Ponto inicial determinístico para cada moto na rota
-    let stepIdx = Math.abs((moto.placa || 'A').charCodeAt(0) + (moto.placa || 'B').charCodeAt(3 || 0)) % ROTAS_TELEMETRIA_POA.length;
-    const pontoInicial = ROTAS_TELEMETRIA_POA[stepIdx];
-    window.rastCurrentCoords = [pontoInicial.lat, pontoInicial.lng];
+    const latSalva = parseFloat(moto.rastreadorLat);
+    const lngSalva = parseFloat(moto.rastreadorLng);
+    if (!isNaN(latSalva) && !isNaN(lngSalva)) {
+        window.rastCurrentCoords = [latSalva, lngSalva];
+    } else {
+        window.rastCurrentCoords = [-30.0346, -51.2177]; // Centro de Porto Alegre / RS como ponto inicial
+    }
+
+    const enderecoSalvo = moto.rastreadorEndereco || 'Porto Alegre / RS (Clique no mapa ou digite a rua acima para fixar a posição exata da moto)';
+    const inputBusca = document.getElementById('rast-input-busca-endereco');
+    if (inputBusca) {
+        inputBusca.value = moto.rastreadorEndereco || '';
+    }
 
     if (!window.rastLeafletMap) {
         window.rastLeafletMap = L.map('rast-live-map', {
             center: window.rastCurrentCoords,
-            zoom: 15,
+            zoom: !isNaN(latSalva) ? 17 : 14,
             zoomControl: true
         });
 
         window.rastTileLayerStreet = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             maxZoom: 19,
-            attribution: '&copy; OpenStreetMap • Telemetria Chip IoT FACILITA MOTO'
+            attribution: '&copy; OpenStreetMap • Chip IoT FACILITA MOTO'
         });
 
         window.rastTileLayerSat = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
             maxZoom: 19,
-            attribution: '&copy; Satélite M2M • Telemetria Chip IoT'
+            attribution: '&copy; Satélite M2M • Chip IoT'
         });
 
         window.rastTileLayerStreet.addTo(window.rastLeafletMap);
+
+        // Clicar em qualquer ponto do mapa posiciona a moto exatamente naquele local real
+        window.rastLeafletMap.on('click', function(e) {
+            const mId = document.getElementById('rast-moto-id')?.value;
+            if (!mId) return;
+            const clickedLat = e.latlng.lat;
+            const clickedLng = e.latlng.lng;
+            window.rastCurrentCoords = [clickedLat, clickedLng];
+            if (window.rastLeafletMarker) {
+                window.rastLeafletMarker.setLatLng(window.rastCurrentCoords);
+            }
+            consultarEnderecoReversoNominatim(mId, clickedLat, clickedLng);
+        });
     } else {
-        window.rastLeafletMap.setView(window.rastCurrentCoords, 15);
+        window.rastLeafletMap.setView(window.rastCurrentCoords, !isNaN(latSalva) ? 17 : 14);
     }
 
-    // Remover marcador e trilha anteriores
     if (window.rastLeafletMarker) {
         window.rastLeafletMap.removeLayer(window.rastLeafletMarker);
     }
     if (window.rastLeafletTrail) {
         window.rastLeafletMap.removeLayer(window.rastLeafletTrail);
+        window.rastLeafletTrail = null;
     }
 
-    const isBloq = moto.rastreadorBloqueado === true;
-    const velInicial = isBloq ? 0 : pontoInicial.vel;
-
-    // Trilha percorrida pela moto
-    const historicoCoords = [
-        ROTAS_TELEMETRIA_POA[(stepIdx + ROTAS_TELEMETRIA_POA.length - 2) % ROTAS_TELEMETRIA_POA.length],
-        ROTAS_TELEMETRIA_POA[(stepIdx + ROTAS_TELEMETRIA_POA.length - 1) % ROTAS_TELEMETRIA_POA.length],
-        pontoInicial
-    ].map(p => [p.lat, p.lng]);
-
-    window.rastLeafletTrail = L.polyline(historicoCoords, {
-        color: isBloq ? '#ef4444' : '#0284c7',
-        weight: 4,
-        opacity: 0.85,
-        dashArray: '8, 6'
-    }).addTo(window.rastLeafletMap);
-
-    // Marcador da Moto com Radar Chip IoT
+    // Marcador da Moto (arrastável para posicionar no ponto exato)
     window.rastLeafletMarker = L.marker(window.rastCurrentCoords, {
-        icon: criarIconeMotoNoMapa(moto, cliente, velInicial)
+        icon: criarIconeMotoNoMapa(moto, cliente),
+        draggable: true
     }).addTo(window.rastLeafletMap);
 
-    atualizarHudTelemetriaAoVivo(moto, pontoInicial, velInicial);
+    window.rastLeafletMarker.on('dragend', function(e) {
+        const mId = document.getElementById('rast-moto-id')?.value;
+        if (!mId) return;
+        const pos = e.target.getLatLng();
+        window.rastCurrentCoords = [pos.lat, pos.lng];
+        consultarEnderecoReversoNominatim(mId, pos.lat, pos.lng);
+    });
 
-    // Força recalcular tamanho do mapa após abertura do modal (elimina qualquer faixa preta)
+    atualizarHudTelemetriaAoVivo(moto, enderecoSalvo);
+
+    // Força recalcular tamanho do mapa após abertura do modal
     setTimeout(() => {
         if (window.rastLeafletMap) {
             window.rastLeafletMap.invalidateSize();
@@ -1910,56 +2060,12 @@ function inicializarOuAtualizarMapaVivoMoto(moto, cliente) {
             window.rastLeafletMap.invalidateSize();
         }
     }, 380);
-
-    // Loop de Rastreamento em Tempo Real via Chip IoT (a cada 2.4 segundos)
-    let subStep = 0;
-    window.rastLiveInterval = setInterval(() => {
-        const motosAtuais = getDb('crm_motos');
-        const motoAtual = motosAtuais.find(x => x.id === moto.id) || moto;
-        const bloqueadaAgora = motoAtual.rastreadorBloqueado === true;
-
-        if (bloqueadaAgora) {
-            atualizarHudTelemetriaAoVivo(motoAtual, ROTAS_TELEMETRIA_POA[stepIdx], 0);
-            if (window.rastLeafletMarker) {
-                window.rastLeafletMarker.setIcon(criarIconeMotoNoMapa(motoAtual, cliente, 0));
-            }
-            return;
-        }
-
-        subStep++;
-        const pOrig = ROTAS_TELEMETRIA_POA[stepIdx];
-        const nextIdx = (stepIdx + 1) % ROTAS_TELEMETRIA_POA.length;
-        const pDest = ROTAS_TELEMETRIA_POA[nextIdx];
-
-        const frac = (subStep % 5) / 5;
-        if (subStep % 5 === 0) {
-            stepIdx = nextIdx;
-        }
-
-        const curLat = pOrig.lat + (pDest.lat - pOrig.lat) * frac;
-        const curLng = pOrig.lng + (pDest.lng - pOrig.lng) * frac;
-        const curVel = Math.max(22, pDest.vel + Math.floor(Math.sin(subStep) * 5));
-
-        window.rastCurrentCoords = [curLat, curLng];
-
-        if (window.rastLeafletMarker && window.rastLeafletMap) {
-            window.rastLeafletMarker.setLatLng(window.rastCurrentCoords);
-            window.rastLeafletMarker.setIcon(criarIconeMotoNoMapa(motoAtual, cliente, curVel));
-            if (window.rastLeafletTrail) {
-                window.rastLeafletTrail.addLatLng(window.rastCurrentCoords);
-            }
-            window.rastLeafletMap.panTo(window.rastCurrentCoords, { animate: true, duration: 1.5 });
-        }
-
-        atualizarHudTelemetriaAoVivo(motoAtual, frac > 0.5 ? pDest : pOrig, curVel);
-    }, 2400);
 }
 
-function atualizarHudTelemetriaAoVivo(moto, pontoRota, vel) {
+function atualizarHudTelemetriaAoVivo(moto, enderecoTexto) {
     const isBloq = moto.rastreadorBloqueado === true;
-    const chipId = moto.rastreadorImei || 'M2M-ATIVO';
-    const opInfo = moto.rastreadorChip || moto.rastreadorModelo || 'Telemetria 4G/2G M2M';
-    const horaAgora = new Date().toLocaleTimeString('pt-BR');
+    const chipId = moto.rastreadorImei || 'Sem ID';
+    const iccid = moto.rastreadorChip || 'Sem ICCID';
 
     const dotEl = document.getElementById('rast-live-dot');
     const badgeTextEl = document.getElementById('rast-live-badge-text');
@@ -1972,28 +2078,26 @@ function atualizarHudTelemetriaAoVivo(moto, pontoRota, vel) {
         dotEl.style.boxShadow = isBloq ? '0 0 10px #ef4444' : '0 0 10px #10b981';
     }
     if (badgeTextEl) {
-        badgeTextEl.innerText = isBloq
-            ? `CHIP IOT (${chipId}) • MOTO BLOQUEADA REMOTAMENTE`
-            : `RASTREAMENTO EM TEMPO REAL • CHIP IOT: ${chipId}`;
+        badgeTextEl.innerText = `ID: ${chipId} • ICCID (LINHA): ${iccid}`;
         badgeTextEl.style.color = isBloq ? '#f87171' : '#38bdf8';
     }
     if (velEl) {
         velEl.innerText = isBloq
-            ? `0 km/h • Ignição Cortada (Cláusula 11ª)`
-            : `${vel} km/h • Ignição ON • Sinal M2M 99%`;
+            ? `🔒 Moto Bloqueada (Cláusula 11ª)`
+            : `🟢 Chip IoT M2M Ativo • ${moto.placa}`;
     }
-    if (endEl && pontoRota) {
-        endEl.innerHTML = `<i class="fa-solid fa-location-dot" style="color:${isBloq ? '#ef4444' : '#10b981'};"></i> Localização da Moto: <strong>${pontoRota.via}</strong> <span style="color:#94a3b8; font-weight:400; font-size:0.74rem;">(${window.rastCurrentCoords[0].toFixed(5)}, ${window.rastCurrentCoords[1].toFixed(5)})</span>`;
+    if (endEl) {
+        endEl.innerHTML = `<i class="fa-solid fa-location-dot" style="color:${isBloq ? '#ef4444' : '#10b981'};"></i> Localização da Moto (${moto.modelo} • ${moto.placa}): <strong>${enderecoTexto}</strong> <span style="color:#94a3b8; font-weight:400; font-size:0.74rem;">(${window.rastCurrentCoords[0].toFixed(5)}, ${window.rastCurrentCoords[1].toFixed(5)})</span>`;
     }
     if (syncEl) {
-        syncEl.innerHTML = `<i class="fa-solid fa-sim-card" style="color:#38bdf8;"></i> Chip IoT ID: <strong>${chipId}</strong> • ${opInfo} • Último pacote M2M recebido às <strong>${horaAgora}</strong>`;
+        syncEl.innerHTML = `<i class="fa-solid fa-sim-card" style="color:#38bdf8;"></i> Moto: <strong>${moto.modelo} (${moto.placa} • ${moto.cor || 'Preta'})</strong> • ID: <strong>${chipId}</strong> • ICCID (LINHA): <strong>${iccid}</strong>`;
     }
 }
 
 function centralizarMapaNaMoto() {
     if (window.rastLeafletMap && window.rastCurrentCoords) {
         window.rastLeafletMap.invalidateSize();
-        window.rastLeafletMap.setView(window.rastCurrentCoords, 16, { animate: true });
+        window.rastLeafletMap.setView(window.rastCurrentCoords, 17, { animate: true });
     }
 }
 
@@ -2010,6 +2114,7 @@ function alternarCamadaMapaRastreador() {
 }
 
 function abrirPainelRastreadorMoto(motoId) {
+    sincronizarDadosPadraoRastreadoresFrota();
     let motos = getDb('crm_motos');
     const mIdx = motos.findIndex(m => m.id === motoId);
     if (mIdx === -1) return;
@@ -2032,7 +2137,7 @@ function abrirPainelRastreadorMoto(motoId) {
     const oleo = getMotoOleoInfo(moto);
 
     document.getElementById('rast-moto-id').value = moto.id;
-    document.getElementById('modal-rastreador-title').innerHTML = `<i class="fa-solid fa-sim-card" style="color:#38bdf8;"></i> Rastreador Chip IoT: ${moto.modelo} (${moto.placa})`;
+    document.getElementById('modal-rastreador-title').innerHTML = `<i class="fa-solid fa-sim-card" style="color:#38bdf8;"></i> Rastreador Chip IoT: ${moto.modelo} (${moto.placa} • ${moto.cor || 'Preta'})`;
     document.getElementById('rast-condutor').innerText = cliente ? `${cliente.nome} (${cliente.telefone})` : 'Sem condutor (Pátio)';
     document.getElementById('rast-vencimento').innerText = contrato && contrato.dataProxVenc ? formatarDataBr(contrato.dataProxVenc) : 'Sem contrato ativo';
     document.getElementById('rast-km-atual').innerText = `${oleo.kmAtual} km`;
@@ -2041,7 +2146,7 @@ function abrirPainelRastreadorMoto(motoId) {
     const sinalEl = document.getElementById('rast-status-sinal');
     if (sinalEl) {
         sinalEl.innerText = moto.rastreadorImei
-            ? `Chip IoT Online (${moto.rastreadorImei})`
+            ? `ID: ${moto.rastreadorImei} (Ativo)`
             : 'Chip IoT M2M (Online)';
         sinalEl.style.color = 'var(--success)';
     }
@@ -2063,7 +2168,7 @@ function abrirPainelRastreadorMoto(motoId) {
 
     document.getElementById('rast-input-imei').value = moto.rastreadorImei || '';
     if (document.getElementById('rast-input-chip')) {
-        document.getElementById('rast-input-chip').value = moto.rastreadorChip || moto.rastreadorModelo || 'Chip IoT M2M Multi-Operadora';
+        document.getElementById('rast-input-chip').value = moto.rastreadorChip || '';
     }
     document.getElementById('rast-input-km').value = oleo.kmAtual;
     if (document.getElementById('rast-input-km-ultima')) {
