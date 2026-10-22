@@ -98,19 +98,19 @@
                         </div>
                     </div>
 
-                    <!-- PAINEL PRINCIPAL DO DASHBOARD: COM QUEM ESTÁ CADA MOTO, VENCIMENTO, KM & RASTREADOR -->
+                    <!-- PAINEL PRINCIPAL DO DASHBOARD: COM QUEM ESTÁ CADA MOTO, VENCIMENTO, KM & CHIP IOT -->
                     <div class="card table-card" style="margin-bottom: 30px; border-top: 4px solid var(--primary);">
                         <div class="section-card-header">
                             <div>
-                                <h3><i class="fa-solid fa-satellite-dish" style="color:var(--primary);"></i> Controle de Frota em Operação: Condutor Atual, Vencimento do Aluguel & Rastreador GPS</h3>
-                                <span style="font-size:0.8rem; color:var(--text-muted);">Acompanhe com quem está cada moto, próximo vencimento semanal, controle de troca de óleo (1.000 km) e integração com rastreador.</span>
+                                <h3><i class="fa-solid fa-microchip" style="color:var(--primary);"></i> Controle de Frota em Operação: Condutor Atual, Vencimento do Aluguel & Rastreador Chip IoT</h3>
+                                <span style="font-size:0.8rem; color:var(--text-muted);">Acompanhe com quem está cada moto, próximo vencimento semanal, controle de troca de óleo (1.000 km) e telemetria via Chip IoT M2M.</span>
                             </div>
                             <div style="display:flex; gap:8px; flex-wrap:wrap;">
                                 <button class="btn btn-secondary btn-sm" onclick="sincronizarTodosRastreadores()">
-                                    <i class="fa-solid fa-rotate"></i> Sincronizar GPS / KM
+                                    <i class="fa-solid fa-rotate"></i> Sincronizar Chips IoT / KM
                                 </button>
                                 <button class="btn btn-secondary btn-sm" onclick="openModal('modal-config-rastreador-global')">
-                                    <i class="fa-solid fa-sliders"></i> Pré-Configuração Rastreador
+                                    <i class="fa-solid fa-sim-card"></i> Configurar Chips IoT
                                 </button>
                                 <button class="btn btn-primary btn-sm" onclick="navegarParaView('oleo')">
                                     <i class="fa-solid fa-oil-can"></i> Área Troca de Óleo
@@ -125,7 +125,7 @@
                                         <th>Com Quem Está (Locatário)</th>
                                         <th>Vencimento do Aluguel</th>
                                         <th>Troca de Óleo (1.000 em 1.000 km)</th>
-                                        <th>Rastreador GPS (Pré-Configurado)</th>
+                                        <th>Rastreador Chip IoT (M2M)</th>
                                         <th>Ações Rápidas</th>
                                     </tr>
                                 </thead>
@@ -236,7 +236,7 @@
                         </div>
                         <div style="display:flex; gap:10px; flex-wrap:wrap;">
                             <button class="btn btn-secondary" onclick="openModal('modal-config-rastreador-global')">
-                                <i class="fa-solid fa-satellite-dish"></i> Configurar Integração Rastreador
+                                <i class="fa-solid fa-sim-card"></i> Configurar Chips IoT (M2M)
                             </button>
                             <button class="btn btn-primary" onclick="openModal('modal-moto')">
                                 <i class="fa-solid fa-plus"></i> Nova Moto
@@ -251,7 +251,7 @@
                                     <th>Placa</th>
                                     <th>Modelo / Condutor / Vencimento</th>
                                     <th>KM & Óleo (1.000 km)</th>
-                                    <th>Rastreador GPS</th>
+                                    <th>Chip IoT / Rastreador</th>
                                     <th>Valor Diária</th>
                                     <th>Status</th>
                                     <th>Ações</th>
@@ -269,14 +269,14 @@
                     <div class="view-header">
                         <div>
                             <h2 style="font-size:1.2rem; font-weight:700; color:var(--text-main);"><i class="fa-solid fa-oil-can" style="color:var(--primary);"></i> Controle Exclusivo de Troca de Óleo & Manutenção (A cada 1.000 km)</h2>
-                            <p style="font-size:0.85rem; color:var(--text-muted); margin-top:2px;">Informe o KM manualmente ou sincronize via Rastreador GPS. O sistema emite alerta automático a cada 1.000 km rodados.</p>
+                            <p style="font-size:0.85rem; color:var(--text-muted); margin-top:2px;">Informe o KM manualmente ou sincronize via Chip IoT do Rastreador. O sistema emite alerta automático a cada 1.000 km rodados.</p>
                         </div>
                         <div style="display:flex; gap:10px; flex-wrap:wrap;">
                             <button class="btn btn-secondary" onclick="sincronizarTodosRastreadores()">
-                                <i class="fa-solid fa-satellite-dish" style="color:#0284c7;"></i> Sincronizar KM com Rastreadores
+                                <i class="fa-solid fa-sim-card" style="color:#0284c7;"></i> Sincronizar KM via Chips IoT
                             </button>
                             <button class="btn btn-primary" onclick="openModal('modal-config-rastreador-global')">
-                                <i class="fa-solid fa-gear"></i> Config. Odômetro GPS
+                                <i class="fa-solid fa-gear"></i> Config. Chips IoT & Ciclo
                             </button>
                         </div>
                     </div>
@@ -423,7 +423,7 @@
                                     Central do Contrato Padrão (CONTRATO LOCAÇÃO DE MOTOCICLETA) — Preenchimento & Assinatura Gov.br
                                 </h3>
                                 <span style="font-size:0.82rem; color:#475569;">
-                                    Preencha todos os dados pelo sistema usando um contrato ativo ou manualmente, visualize as 17 Cláusulas + Anexo I (Vistoria) + Anexo II e baixe o PDF formatado para assinar no Gov.br.
+                                    Preencha todos os dados pelo sistema usando um contrato ativo ou manualmente, visualize as 18 Cláusulas (incluindo Furto, Roubo e Perda Total) + Anexo I (Vistoria) + Anexo II e baixe o PDF formatado para assinar no Gov.br.
                                 </span>
                             </div>
                             <div style="display:flex; gap:8px; flex-wrap:wrap;">
@@ -473,13 +473,13 @@
                             <div class="contrato-tabs">
                                 <button type="button" class="contrato-tab-btn active" onclick="trocarAbaContratoGov('partes', this)">1. Locador & Locatário (Cláusula 1ª)</button>
                                 <button type="button" class="contrato-tab-btn" onclick="trocarAbaContratoGov('moto', this)">2. Motocicleta & Prazo (Cláusulas 2ª e 3ª)</button>
-                                <button type="button" class="contrato-tab-btn" onclick="trocarAbaContratoGov('financeiro', this)">3. Aluguel, Caução & Foro (Cláusulas 4ª, 7ª e 17ª)</button>
+                                <button type="button" class="contrato-tab-btn" onclick="trocarAbaContratoGov('financeiro', this)">3. Aluguel, Caução & Foro (Cláusulas 4ª, 8ª e 18ª)</button>
                                 <button type="button" class="contrato-tab-btn" onclick="trocarAbaContratoGov('vistoria', this)">4. Anexo I (Vistoria) & Anexo II</button>
                             </div>
 
                             <!-- ABA 1: PARTES -->
                             <div id="gov-tab-partes" class="gov-tab-pane">
-                                <h4 style="margin-bottom:10px; color:var(--primary); font-size:0.9rem;">1.1. LOCADOR (Proprietário ou Responsável)</h4>
+                                <h4 style="margin-bottom:10px; color:var(--primary); font-size:0.9rem;">1.1. LOCADOR (Proprietário ou Responsável pela Locação)</h4>
                                 <div class="form-group row">
                                     <div class="col">
                                         <label>Nome Completo / Razão Social do Locador</label>
@@ -488,6 +488,16 @@
                                     <div class="col">
                                         <label>CPF / CNPJ do Locador</label>
                                         <input type="text" id="gov-locador-cpf" value="85221619091" oninput="atualizarPreviewContratoGov()">
+                                    </div>
+                                    <div class="col">
+                                        <label>RG do Locador</label>
+                                        <input type="text" id="gov-locador-rg" placeholder="RG do Locador" oninput="atualizarPreviewContratoGov()">
+                                    </div>
+                                </div>
+                                <div class="form-group row">
+                                    <div class="col" style="flex:2;">
+                                        <label>Endereço Completo do Locador</label>
+                                        <input type="text" id="gov-locador-endereco" value="Porto Alegre - RS" placeholder="Rua, Número, Bairro, Cidade - UF" oninput="atualizarPreviewContratoGov()">
                                     </div>
                                     <div class="col">
                                         <label>Telefone / WhatsApp do Locador</label>
@@ -626,12 +636,12 @@
                                         <input type="text" id="gov-fin-caucao-extenso" placeholder="Ex: quinhentos reais" oninput="atualizarPreviewContratoGov()">
                                     </div>
                                     <div class="col">
-                                        <label>Prazo Pagto. Multas (Dias - Cláusula 7.7)</label>
+                                        <label>Prazo Pagto. Multas (Dias - Cláusula 8.7)</label>
                                         <input type="text" id="gov-multa-prazo-dias" value="5 (cinco)" oninput="atualizarPreviewContratoGov()">
                                     </div>
                                 </div>
 
-                                <h4 style="margin:15px 0 10px; color:var(--primary); font-size:0.9rem;">CLÁUSULA 17ª — LOCAL, DATA E TESTEMUNHAS</h4>
+                                <h4 style="margin:15px 0 10px; color:var(--primary); font-size:0.9rem;">CLÁUSULA 18ª — LOCAL, DATA E TESTEMUNHAS</h4>
                                 <div class="form-group row">
                                     <div class="col">
                                         <label>Local de Assinatura</label>
@@ -722,8 +732,8 @@
                                         <input type="text" id="gov-anexo2-pix" value="CPF: 852.216.190-91 (Henrique Rocha Clavijo)" oninput="atualizarPreviewContratoGov()">
                                     </div>
                                     <div class="col">
-                                        <label>Prazo de Devolução da Caução Após Conferência</label>
-                                        <input type="text" id="gov-anexo2-prazo-caucao" value="Até 40 dias corridos após devolução (Cláusula 8ª)" oninput="atualizarPreviewContratoGov()">
+                                        <label>Prazo para Devolução da Caução Após Conferência</label>
+                                        <input type="text" id="gov-anexo2-prazo-caucao" value="Até 40 dias corridos após devolução (Cláusula 9ª)" oninput="atualizarPreviewContratoGov()">
                                     </div>
                                 </div>
                                 <div class="form-group row">
@@ -987,24 +997,24 @@
                         </div>
                     </div>
 
-                    <!-- Bloco de Pré-Configuração do Rastreador GPS -->
+                    <!-- Bloco de Integração com Chip IoT / Rastreador M2M -->
                     <div style="background:#f0f9ff; border:1px solid #bae6fd; border-radius:8px; padding:14px; margin-bottom:15px;">
-                        <h4 style="font-size:0.88rem; color:#0369a1; margin-bottom:10px;"><i class="fa-solid fa-satellite-dish"></i> Integração com Rastreador da Moto (Pré-Configurado)</h4>
+                        <h4 style="font-size:0.88rem; color:#0369a1; margin-bottom:10px;"><i class="fa-solid fa-sim-card"></i> Rastreador via Chip IoT / Telemetria M2M (Pré-Configurado)</h4>
                         <div class="form-group row" style="margin-bottom:0;">
                             <div class="col">
-                                <label>IMEI / ID do Rastreador</label>
-                                <input type="text" id="moto-rastreador-imei" placeholder="Ex: 864123059812345">
+                                <label>ID / Serial / ICCID do Chip IoT</label>
+                                <input type="text" id="moto-rastreador-imei" placeholder="Ex: 00018E1B ou 8955...">
                             </div>
                             <div class="col">
-                                <label>Chip M2M / Telefone do Rastreador</label>
+                                <label>Linha M2M / MSISDN do Chip</label>
                                 <input type="text" id="moto-rastreador-chip" placeholder="Ex: (51) 99999-0000">
                             </div>
                             <div class="col">
-                                <label>Plataforma / Modelo GPS</label>
-                                <input type="text" id="moto-rastreador-modelo" placeholder="Ex: Traccar / Suntech / J16">
+                                <label>Operadora / APN do Chip IoT</label>
+                                <input type="text" id="moto-rastreador-modelo" placeholder="Ex: Multi-Operadora M2M / Vivo / Arqia">
                             </div>
                             <div class="col">
-                                <label>Link Externo de Rastreio (Opcional)</label>
+                                <label>Link Painel IoT (Opcional)</label>
                                 <input type="text" id="moto-rastreador-link" placeholder="https://...">
                             </div>
                         </div>
@@ -1178,12 +1188,12 @@
         </div>
     </div>
 
-    <!-- Modal Painel do Rastreador Individual da Moto -->
+    <!-- Modal Painel do Rastreador Chip IoT Individual da Moto -->
     <div class="modal" id="modal-rastreador">
         <div class="modal-content modal-lg">
             <div class="modal-header" style="background:#0f172a; color:#fff; border-radius:12px 12px 0 0;">
                 <h3 id="modal-rastreador-title" style="display:flex; align-items:center; gap:10px;">
-                    <i class="fa-solid fa-satellite-dish" style="color:#38bdf8;"></i> Rastreamento & Telemetria da Moto
+                    <i class="fa-solid fa-sim-card" style="color:#38bdf8;"></i> Rastreamento via Chip IoT & Telemetria M2M
                 </h3>
                 <span class="close-btn" style="color:#fff;" onclick="closeModal('modal-rastreador')">&times;</span>
             </div>
@@ -1199,15 +1209,15 @@
                         <strong id="rast-vencimento">-</strong>
                     </div>
                     <div class="telemetry-box">
-                        <span>Status Sinal GPS</span>
-                        <strong id="rast-status-sinal" style="color:var(--success);">Online (Pré-Configurado)</strong>
+                        <span>Status Sinal Chip IoT</span>
+                        <strong id="rast-status-sinal" style="color:var(--success);">Chip IoT Ativo (4G/2G M2M)</strong>
                     </div>
                     <div class="telemetry-box">
-                        <span>Hodômetro GPS (KM)</span>
+                        <span>Hodômetro Telemetria (KM)</span>
                         <strong id="rast-km-atual">0 km</strong>
                     </div>
                     <div class="telemetry-box">
-                        <span>Próx. Troca de Óleo</span>
+                        <span>Próx. Troca de Óleo (+1.000 km)</span>
                         <strong id="rast-km-oleo">1.000 km</strong>
                     </div>
                     <div class="telemetry-box">
@@ -1222,38 +1232,46 @@
                         src="https://www.openstreetmap.org/export/embed.html?bbox=-51.2600%2C-30.0600%2C-51.1600%2C-29.9900&amp;layer=mapnik&amp;marker=-30.0346%2C-51.2177">
                     </iframe>
                     <div style="padding:10px 14px; background:#0f172a; color:#f8fafc; font-size:0.8rem; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
-                        <span id="rast-ultima-sync"><i class="fa-solid fa-location-dot" style="color:#38bdf8;"></i> Localização monitorada • Integração pronta para API de Rastreamento</span>
-                        <a id="rast-external-link" href="#" target="_blank" style="color:#38bdf8; display:none; font-weight:600;">Abrir Plataforma Externa <i class="fa-solid fa-up-right-from-square"></i></a>
+                        <span id="rast-ultima-sync"><i class="fa-solid fa-sim-card" style="color:#38bdf8;"></i> Telemetria M2M via Chip IoT Ativa • Rastreamento em tempo real</span>
+                        <a id="rast-external-link" href="#" target="_blank" style="color:#38bdf8; display:none; font-weight:600;">Abrir Painel da Operadora IoT <i class="fa-solid fa-up-right-from-square"></i></a>
                     </div>
                 </div>
 
-                <!-- Ações de Comando do Rastreador e Sincronização de KM -->
+                <!-- Ações de Comando do Chip IoT e Sincronização de KM -->
                 <div style="background:#f8fafc; border:1px solid var(--border); border-radius:10px; padding:15px;">
-                    <h4 style="font-size:0.9rem; margin-bottom:10px;"><i class="fa-solid fa-bolt"></i> Comandos Remotos & Sincronização de Hodômetro (1.000 km)</h4>
+                    <h4 style="font-size:0.9rem; margin-bottom:10px;"><i class="fa-solid fa-sim-card" style="color:#0284c7;"></i> Identificação do Chip IoT (M2M) & Sincronização de Hodômetro (Ciclo 1.000 km)</h4>
                     <div class="form-group row" style="align-items:flex-end; margin-bottom:12px;">
                         <div class="col">
-                            <label>IMEI / ID Dispositivo GPS</label>
-                            <input type="text" id="rast-input-imei" placeholder="Informe o IMEI do rastreador">
+                            <label>ID / Serial / ICCID do Chip IoT</label>
+                            <input type="text" id="rast-input-imei" placeholder="Ex: 00018E1B ou ICCID">
                         </div>
                         <div class="col">
-                            <label>Atualizar KM via Rastreador / Painel</label>
-                            <input type="number" id="rast-input-km" placeholder="KM atual">
+                            <label>Operadora / Linha M2M (Opcional)</label>
+                            <input type="text" id="rast-input-chip" placeholder="Ex: Multi-Operadora / Vivo M2M">
+                        </div>
+                        <div class="col">
+                            <label>KM Atual da Moto</label>
+                            <input type="number" id="rast-input-km" placeholder="KM atual" oninput="atualizarPreviewOleoNoRastreador()">
+                        </div>
+                        <div class="col">
+                            <label>KM Última Troca (Base 1.000 km)</label>
+                            <input type="number" id="rast-input-km-ultima" placeholder="KM base óleo">
                         </div>
                         <div style="flex:0 0 auto;">
                             <button type="button" class="btn btn-primary" onclick="salvarTelemetriaRastreadorMoto()">
-                                <i class="fa-solid fa-rotate"></i> Sincronizar KM & Salvar
+                                <i class="fa-solid fa-rotate"></i> Sincronizar Chip IoT & Salvar
                             </button>
                         </div>
                     </div>
                     <div style="display:flex; gap:10px; flex-wrap:wrap; padding-top:10px; border-top:1px solid var(--border);">
                         <button type="button" class="btn btn-danger btn-sm" id="btn-toggle-bloqueio-moto" onclick="alternarBloqueioRemotoMoto()">
-                            <i class="fa-solid fa-lock"></i> Enviar Bloqueio Preventivo (Cláusula 10ª)
+                            <i class="fa-solid fa-lock"></i> Enviar Bloqueio Preventivo via Chip IoT (Cláusula 10ª)
                         </button>
                         <button type="button" class="btn btn-secondary btn-sm" onclick="abrirModalTrocaOleo(document.getElementById('rast-moto-id').value)">
                             <i class="fa-solid fa-oil-can"></i> Registrar Troca de Óleo (+1.000 km)
                         </button>
                         <button type="button" class="btn btn-secondary btn-sm" onclick="openModal('modal-config-rastreador-global')">
-                            <i class="fa-solid fa-gear"></i> Configurar API da Plataforma GPS
+                            <i class="fa-solid fa-sim-card"></i> Configurar Conectividade Chips IoT
                         </button>
                     </div>
                 </div>
@@ -1261,39 +1279,43 @@
         </div>
     </div>
 
-    <!-- Modal Pré-Configuração Global da Integração com Rastreador -->
+    <!-- Modal Pré-Configuração Global da Conectividade de Chips IoT (M2M) -->
     <div class="modal" id="modal-config-rastreador-global">
         <div class="modal-content">
             <div class="modal-header">
-                <h3><i class="fa-solid fa-satellite-dish" style="color:var(--primary);"></i> Pré-Configuração da Integração de Rastreador</h3>
+                <h3><i class="fa-solid fa-sim-card" style="color:var(--primary);"></i> Configuração dos Rastreadores — Chips IoT (M2M)</h3>
                 <span class="close-btn" onclick="closeModal('modal-config-rastreador-global')">&times;</span>
             </div>
             <div class="modal-body">
-                <p style="font-size:0.85rem; color:var(--text-muted); margin-bottom:15px;">
-                    Deixe sua plataforma de rastreamento pré-configurada para sincronizar a localização das motos, bloqueio remoto seguro e leitura automática de KM para o aviso de troca de óleo a cada 1.000 km.
-                </p>
+                <div style="background:#ecfdf5; border:1px solid #a7f3d0; border-radius:8px; padding:10px 12px; margin-bottom:14px; font-size:0.82rem; color:#065f46; display:flex; align-items:center; gap:10px;">
+                    <i class="fa-solid fa-circle-check" style="font-size:1.1rem; color:#10b981;"></i>
+                    <div>
+                        <strong>Módulo de Telemetria via Chips IoT (M2M) Pré-Ativado!</strong><br>
+                        Basta informar o <strong>ID / Serial / ICCID do Chip IoT</strong> (ex: <code>00018E1B</code>) em cada moto para vincular o rastreamento e o controle de óleo de 1.000 em 1.000 km.
+                    </div>
+                </div>
                 <form id="form-config-rastreador" onsubmit="salvarConfigRastreadorGlobal(event)">
                     <div class="form-group">
-                        <label>Plataforma / Provedor do Rastreador</label>
+                        <label>Operadora / Tecnologia dos Chips IoT (M2M)</label>
                         <select id="cfg-gps-provedor">
-                            <option value="traccar">Traccar GPS Server (API REST)</option>
-                            <option value="suntech">Suntech / Coban / J16 Portal</option>
-                            <option value="segsat">Segsat / Sascar / Ituran</option>
-                            <option value="mobiltracker">Mobiltracker / Softruck / FullTrack</option>
-                            <option value="webhook">Webhook / API Personalizada</option>
+                            <option value="chip_iot_m2m">Chip IoT M2M Multi-Operadora (Vivo / Claro / TIM / Algar)</option>
+                            <option value="arqia_allcom">Chip IoT Arqia / Allcom / Links Field / Kore Telemetria</option>
+                            <option value="iot_j16_suntech">Rastreador com Chip IoT Embarcado (J16 / Suntech / GT06 / Coban)</option>
+                            <option value="traccar">Gateway M2M / Servidor Traccar / MQTT IoT</option>
+                            <option value="webhook">Portal IoT Externo / API M2M Personalizada</option>
                         </select>
                     </div>
                     <div class="form-group">
-                        <label>URL da API / Endpoint do Servidor GPS</label>
-                        <input type="text" id="cfg-gps-url" placeholder="https://api.seurastreador.com.br/v1/vehicles">
+                        <label>APN M2M / Servidor de Conectividade IoT (Pré-Configurado)</label>
+                        <input type="text" id="cfg-gps-url" value="m2m.iot.br (Telemetria 4G/2G GPRS Ativa)" placeholder="Ex: m2m.iot.br ou URL do Portal IoT">
                     </div>
                     <div class="form-group">
-                        <label>Token de Autenticação / API Key</label>
-                        <input type="text" id="cfg-gps-token" placeholder="Cole aqui a chave de API quando ativar o rastreador">
+                        <label>Conta M2M / Chave de Integração IoT (Opcional)</label>
+                        <input type="text" id="cfg-gps-token" placeholder="Opcional — Os Chips IoT já funcionam diretamente pelo ID/ICCID na moto">
                     </div>
                     <div class="form-group row">
                         <div class="col">
-                            <label>Intervalo de Troca de Óleo (KM)</label>
+                            <label>Ciclo de Troca de Óleo (KM)</label>
                             <input type="number" id="cfg-gps-intervalo-oleo" value="1000" min="100">
                         </div>
                         <div class="col">
@@ -1304,10 +1326,10 @@
                     <div class="form-group">
                         <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
                             <input type="checkbox" id="cfg-gps-auto-km" checked style="width:auto;">
-                            Sincronizar hodômetro (KM) do rastreador automaticamente com o alerta de óleo
+                            Sincronizar hodômetro (KM) dos Chips IoT automaticamente com o alerta de 1.000 km
                         </label>
                     </div>
-                    <button type="submit" class="btn btn-primary btn-block"><i class="fa-solid fa-check"></i> Salvar Pré-Configuração</button>
+                    <button type="submit" class="btn btn-primary btn-block"><i class="fa-solid fa-check"></i> Salvar Configuração de Chips IoT</button>
                 </form>
             </div>
         </div>

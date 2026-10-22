@@ -87,8 +87,8 @@ function saveDb(key, data) {
 
 function getTrackerConfig() {
     const def = {
-        provedor: 'traccar',
-        url: 'https://api.rastreador.facilitamoto.com.br/v1/telemetry',
+        provedor: 'chip_iot_m2m',
+        url: 'm2m.iot.br (Telemetria 4G/2G GPRS Ativa)',
         token: '',
         intervaloOleo: 1000,
         avisoAntecipado: 150,
@@ -96,7 +96,12 @@ function getTrackerConfig() {
     };
     try {
         const saved = JSON.parse(localStorage.getItem('crm_tracker_config'));
-        return saved ? Object.assign({}, def, saved) : def;
+        if (!saved) return def;
+        if (saved.provedor === 'traccar' && (!saved.url || saved.url.includes('facilitamoto.com.br'))) {
+            saved.provedor = 'chip_iot_m2m';
+            saved.url = 'm2m.iot.br (Telemetria 4G/2G GPRS Ativa)';
+        }
+        return Object.assign({}, def, saved);
     } catch (e) {
         return def;
     }
@@ -268,8 +273,8 @@ function openModal(id) {
     }
     if (id === 'modal-config-rastreador-global') {
         const cfg = getTrackerConfig();
-        document.getElementById('cfg-gps-provedor').value = cfg.provedor || 'traccar';
-        document.getElementById('cfg-gps-url').value = cfg.url || '';
+        document.getElementById('cfg-gps-provedor').value = cfg.provedor || 'chip_iot_m2m';
+        document.getElementById('cfg-gps-url').value = cfg.url || 'm2m.iot.br (Telemetria 4G/2G GPRS Ativa)';
         document.getElementById('cfg-gps-token').value = cfg.token || '';
         document.getElementById('cfg-gps-intervalo-oleo').value = cfg.intervaloOleo || 1000;
         document.getElementById('cfg-gps-aviso-antecipado').value = cfg.avisoAntecipado || 150;
@@ -283,7 +288,7 @@ function closeModal(id) {
 }
 
 // ==========================================
-// HELPERS: TROCA DE ÓLEO (1.000 KM) & RASTREADOR
+// HELPERS: TROCA DE ÓLEO (1.000 KM) & CHIP IOT
 // ==========================================
 function getMotoOleoInfo(moto) {
     const cfg = getTrackerConfig();
@@ -291,8 +296,18 @@ function getMotoOleoInfo(moto) {
     const avisoAntecipado = parseInt(cfg.avisoAntecipado) || 150;
 
     const kmAtual = parseInt(moto.kmAtual) || 0;
-    const kmUltimaTroca = parseInt(moto.kmUltimaTroca) || 0;
-    const kmProximaTroca = parseInt(moto.kmProximaTroca) || (kmUltimaTroca + intervalo);
+    let kmUltimaTroca = parseInt(moto.kmUltimaTroca) || 0;
+
+    // Se a moto ainda estava com base 0 (recém cadastrada) e foi informado o KM atual real da moto (ex: 26094 km),
+    // usa o KM atual como ponto de partida do ciclo de 1.000 km (Próxima troca = KM atual + 1.000 km)
+    const semHistoricoPrevio = !moto.historicoOleo || moto.historicoOleo.length === 0;
+    if (kmUltimaTroca === 0 && kmAtual > intervalo && semHistoricoPrevio) {
+        kmUltimaTroca = kmAtual;
+    }
+
+    const kmProximaTroca = (parseInt(moto.kmProximaTroca) && parseInt(moto.kmUltimaTroca) > 0)
+        ? parseInt(moto.kmProximaTroca)
+        : (kmUltimaTroca + intervalo);
 
     const kmRodadosCiclo = Math.max(0, kmAtual - kmUltimaTroca);
     const kmRestantes = kmProximaTroca - kmAtual;
@@ -588,11 +603,11 @@ function renderDashboard() {
                     </div>
                 `;
 
-                // Rastreador GPS (Pré-configurado)
+                // Rastreador Chip IoT (M2M)
                 const isBloqueada = m.rastreadorBloqueado === true;
                 const gpsPillClass = isBloqueada ? 'gps-blocked' : (m.rastreadorImei ? 'gps-online' : 'gps-preconfig');
-                const gpsText = isBloqueada ? 'Bloqueada (Remoto)' : (m.rastreadorImei ? 'GPS Online • Ativo' : 'Pré-Configurado');
-                const imeiInfo = m.rastreadorImei ? `IMEI: ${m.rastreadorImei}` : 'Aguardando vínculo IMEI';
+                const gpsText = isBloqueada ? 'Bloqueada (Chip IoT)' : (m.rastreadorImei ? 'Chip IoT Online' : 'Chip IoT Pré-Config.');
+                const imeiInfo = m.rastreadorImei ? `ID Chip IoT: <strong>${m.rastreadorImei}</strong>` : 'Aguardando ID do Chip IoT';
 
                 const rastreadorHtml = `
                     <div>
@@ -600,7 +615,7 @@ function renderDashboard() {
                             <span class="gps-dot"></span> ${gpsText}
                         </span>
                         <div style="font-size:0.74rem; color:var(--text-muted); margin-top:4px;">
-                            ${imeiInfo} ${m.rastreadorModelo ? `• ${m.rastreadorModelo}` : ''}
+                            ${imeiInfo} ${m.rastreadorChip ? `• ${m.rastreadorChip}` : (m.rastreadorModelo ? `• ${m.rastreadorModelo}` : '• M2M')}
                         </div>
                     </div>
                 `;
@@ -1241,7 +1256,7 @@ function renderFrota() {
         const isBloq = m.rastreadorBloqueado === true;
         const gpsBadge = isBloq
             ? `<span class="gps-pill gps-blocked"><span class="gps-dot"></span> Bloqueada</span>`
-            : `<span class="gps-pill ${m.rastreadorImei ? 'gps-online' : 'gps-preconfig'}"><span class="gps-dot"></span> ${m.rastreadorImei ? 'Online' : 'Pré-Config.'}</span>`;
+            : `<span class="gps-pill ${m.rastreadorImei ? 'gps-online' : 'gps-preconfig'}"><span class="gps-dot"></span> ${m.rastreadorImei ? 'Chip IoT Ativo' : 'Pré-Config.'}</span>`;
 
         const tr = document.createElement('tr');
         tr.innerHTML = `
@@ -1264,7 +1279,7 @@ function renderFrota() {
             </td>
             <td>
                 ${gpsBadge}<br>
-                <small style="color:var(--text-muted); font-size:0.72rem;">${m.rastreadorImei ? `IMEI: ${m.rastreadorImei}` : 'Pronto p/ vincular'}</small>
+                <small style="color:var(--text-muted); font-size:0.72rem;">${m.rastreadorImei ? `Chip IoT: <strong>${m.rastreadorImei}</strong>` : 'Vincular Chip IoT'}</small>
             </td>
             <td>R$ ${parseFloat(m.valor || 0).toFixed(2)}</td>
             <td><span class="badge ${badgeClass}">${statusLabel}</span></td>
@@ -1638,7 +1653,7 @@ function renderOleoView() {
             </td>
             <td>
                 <span class="gps-pill ${m.rastreadorImei ? 'gps-online' : 'gps-preconfig'}">
-                    <span class="gps-dot"></span> ${m.rastreadorImei ? 'KM via GPS Ativo' : 'GPS Pré-Config.'}
+                    <span class="gps-dot"></span> ${m.rastreadorImei ? `Chip IoT (${m.rastreadorImei})` : 'Chip IoT Pré-Config.'}
                 </span>
             </td>
             <td>
@@ -1664,9 +1679,17 @@ function salvarKmInlineMoto(motoId) {
     const idx = motos.findIndex(m => m.id === motoId);
     if (idx === -1) return;
 
+    const cfg = getTrackerConfig();
+    const intervalo = parseInt(cfg.intervaloOleo) || 1000;
+    const semHistoricoPrevio = !motos[idx].historicoOleo || motos[idx].historicoOleo.length === 0;
+    const ultimaAtual = parseInt(motos[idx].kmUltimaTroca) || 0;
+
     motos[idx].kmAtual = novoKm;
-    if (!motos[idx].kmProximaTroca) {
-        motos[idx].kmProximaTroca = (parseInt(motos[idx].kmUltimaTroca) || 0) + 1000;
+    if (ultimaAtual === 0 && semHistoricoPrevio && novoKm > 0) {
+        motos[idx].kmUltimaTroca = novoKm;
+        motos[idx].kmProximaTroca = novoKm + intervalo;
+    } else if (!motos[idx].kmProximaTroca) {
+        motos[idx].kmProximaTroca = ultimaAtual + intervalo;
     }
     motos[idx].rastreadorUltimaSync = new Date().toISOString();
 
@@ -1750,12 +1773,24 @@ function confirmarRegistroTrocaOleo(e) {
 }
 
 // ====================================================
-// MODULE: INTEGRAÇÃO COM RASTREADOR GPS (PRÉ-CONFIGURADO)
+// MODULE: INTEGRAÇÃO COM RASTREADOR CHIP IOT (M2M)
 // ====================================================
 function abrirPainelRastreadorMoto(motoId) {
-    const motos = getDb('crm_motos');
-    const moto = motos.find(m => m.id === motoId);
-    if (!moto) return;
+    let motos = getDb('crm_motos');
+    const mIdx = motos.findIndex(m => m.id === motoId);
+    if (mIdx === -1) return;
+    const moto = motos[mIdx];
+
+    // Se a moto foi cadastrada com kmUltimaTroca = 0 e já tem um KM alto (ex: 26094 km), corrige a base automaticamente
+    const cfg = getTrackerConfig();
+    const intervalo = parseInt(cfg.intervaloOleo) || 1000;
+    const semHistoricoPrevio = !moto.historicoOleo || moto.historicoOleo.length === 0;
+    if ((!moto.kmUltimaTroca || parseInt(moto.kmUltimaTroca) === 0) && parseInt(moto.kmAtual) > intervalo && semHistoricoPrevio) {
+        moto.kmUltimaTroca = parseInt(moto.kmAtual);
+        moto.kmProximaTroca = moto.kmUltimaTroca + intervalo;
+        motos[mIdx] = moto;
+        saveDb('crm_motos', motos);
+    }
 
     const contratos = getDb('crm_contratos');
     const clientes = getDb('crm_clientes');
@@ -1763,29 +1798,50 @@ function abrirPainelRastreadorMoto(motoId) {
     const oleo = getMotoOleoInfo(moto);
 
     document.getElementById('rast-moto-id').value = moto.id;
-    document.getElementById('modal-rastreador-title').innerHTML = `<i class="fa-solid fa-satellite-dish" style="color:#38bdf8;"></i> Rastreador GPS: ${moto.modelo} (${moto.placa})`;
+    document.getElementById('modal-rastreador-title').innerHTML = `<i class="fa-solid fa-sim-card" style="color:#38bdf8;"></i> Rastreador Chip IoT: ${moto.modelo} (${moto.placa})`;
     document.getElementById('rast-condutor').innerText = cliente ? `${cliente.nome} (${cliente.telefone})` : 'Sem condutor (Pátio)';
     document.getElementById('rast-vencimento').innerText = contrato && contrato.dataProxVenc ? formatarDataBr(contrato.dataProxVenc) : 'Sem contrato ativo';
     document.getElementById('rast-km-atual').innerText = `${oleo.kmAtual} km`;
     document.getElementById('rast-km-oleo').innerText = `${oleo.kmProximaTroca} km (${oleo.label})`;
 
+    const sinalEl = document.getElementById('rast-status-sinal');
+    if (sinalEl) {
+        sinalEl.innerText = moto.rastreadorImei
+            ? `Chip IoT Ativo (${moto.rastreadorImei})`
+            : 'Chip IoT M2M (Pré-Configurado)';
+        sinalEl.style.color = 'var(--success)';
+    }
+
+    const syncEl = document.getElementById('rast-ultima-sync');
+    if (syncEl) {
+        const chipInfo = moto.rastreadorImei ? `Chip IoT ID: <strong>${moto.rastreadorImei}</strong>` : 'Chip IoT M2M Multi-Operadora';
+        const opInfo = moto.rastreadorChip || moto.rastreadorModelo || 'Telemetria 4G/2G GPRS';
+        syncEl.innerHTML = `<i class="fa-solid fa-sim-card" style="color:#38bdf8;"></i> ${chipInfo} • ${opInfo} • Conectividade M2M Ativa`;
+    }
+
     const isBloq = moto.rastreadorBloqueado === true;
     const statusBloqEl = document.getElementById('rast-status-bloqueio');
     const btnBloq = document.getElementById('btn-toggle-bloqueio-moto');
     if (isBloq) {
-        statusBloqEl.innerText = '🔒 BLOQUEADA REMOTAMENTE';
+        statusBloqEl.innerText = '🔒 BLOQUEADA VIA CHIP IOT';
         statusBloqEl.style.color = 'var(--danger)';
-        btnBloq.innerHTML = '<i class="fa-solid fa-unlock"></i> Desbloquear Motocicleta Remotamente';
+        btnBloq.innerHTML = '<i class="fa-solid fa-unlock"></i> Desbloquear Motocicleta via Chip IoT';
         btnBloq.className = 'btn btn-primary btn-sm';
     } else {
         statusBloqEl.innerText = '🔓 Desbloqueada (Operação Normal)';
         statusBloqEl.style.color = 'var(--success)';
-        btnBloq.innerHTML = '<i class="fa-solid fa-lock"></i> Enviar Bloqueio Preventivo (Cláusula 10ª)';
+        btnBloq.innerHTML = '<i class="fa-solid fa-lock"></i> Enviar Bloqueio Preventivo via Chip IoT (Cláusula 10ª)';
         btnBloq.className = 'btn btn-danger btn-sm';
     }
 
     document.getElementById('rast-input-imei').value = moto.rastreadorImei || '';
+    if (document.getElementById('rast-input-chip')) {
+        document.getElementById('rast-input-chip').value = moto.rastreadorChip || moto.rastreadorModelo || 'Chip IoT M2M Multi-Operadora';
+    }
     document.getElementById('rast-input-km').value = oleo.kmAtual;
+    if (document.getElementById('rast-input-km-ultima')) {
+        document.getElementById('rast-input-km-ultima').value = oleo.kmUltimaTroca;
+    }
 
     const extLink = document.getElementById('rast-external-link');
     if (moto.rastreadorLink) {
@@ -1798,17 +1854,51 @@ function abrirPainelRastreadorMoto(motoId) {
     openModal('modal-rastreador');
 }
 
+function atualizarPreviewOleoNoRastreador() {
+    const kmInput = document.getElementById('rast-input-km');
+    const ultimaInput = document.getElementById('rast-input-km-ultima');
+    if (!kmInput || !ultimaInput) return;
+    const novoKm = parseInt(kmInput.value) || 0;
+    const ultimaAtual = parseInt(ultimaInput.value) || 0;
+    // Se a base de última troca estava zerada, acompanha automaticamente o KM inicial da moto
+    if (ultimaAtual === 0 && novoKm > 0) {
+        ultimaInput.value = novoKm;
+    }
+}
+
 function salvarTelemetriaRastreadorMoto() {
     const motoId = document.getElementById('rast-moto-id').value;
     const imei = document.getElementById('rast-input-imei').value.trim();
+    const chipOperadora = document.getElementById('rast-input-chip') ? document.getElementById('rast-input-chip').value.trim() : '';
     const novoKm = parseInt(document.getElementById('rast-input-km').value) || 0;
+    let kmUltimaInput = document.getElementById('rast-input-km-ultima')
+        ? parseInt(document.getElementById('rast-input-km-ultima').value)
+        : NaN;
 
     let motos = getDb('crm_motos');
     const idx = motos.findIndex(m => m.id === motoId);
     if (idx === -1) return;
 
+    const cfg = getTrackerConfig();
+    const intervalo = parseInt(cfg.intervaloOleo) || 1000;
+    const semHistoricoPrevio = !motos[idx].historicoOleo || motos[idx].historicoOleo.length === 0;
+
+    // Se a última troca estava em 0 (primeira configuração do KM real da moto, ex: 26094 km),
+    // define a base do ciclo de 1.000 km a partir do KM atual para que a próxima troca seja +1.000 km (27094 km)
+    if ((isNaN(kmUltimaInput) || kmUltimaInput === 0) && novoKm > 0 && semHistoricoPrevio) {
+        kmUltimaInput = novoKm;
+    } else if (isNaN(kmUltimaInput)) {
+        kmUltimaInput = parseInt(motos[idx].kmUltimaTroca) || 0;
+    }
+
     motos[idx].rastreadorImei = imei;
+    if (chipOperadora) {
+        motos[idx].rastreadorChip = chipOperadora;
+        motos[idx].rastreadorModelo = chipOperadora;
+    }
     motos[idx].kmAtual = novoKm;
+    motos[idx].kmUltimaTroca = kmUltimaInput;
+    motos[idx].kmProximaTroca = kmUltimaInput + intervalo;
     motos[idx].rastreadorUltimaSync = new Date().toISOString();
 
     saveDb('crm_motos', motos);
@@ -1817,9 +1907,9 @@ function salvarTelemetriaRastreadorMoto() {
 
     const oleo = getMotoOleoInfo(motos[idx]);
     if (oleo.status === 'vencido') {
-        alert(`🚨 ALERTA DO RASTREADOR (1.000 KM):\nHodômetro sincronizado em ${novoKm} km! A moto ${motos[idx].modelo} atingiu o limite de troca de óleo (${oleo.kmProximaTroca} km).`);
+        alert(`🚨 ALERTA DO CHIP IOT (1.000 KM):\nHodômetro sincronizado em ${novoKm} km! A moto ${motos[idx].modelo} atingiu o limite de troca de óleo (${oleo.kmProximaTroca} km).`);
     } else {
-        alert(`✅ Dados do rastreador e quilometragem (${novoKm} km) sincronizados com sucesso!`);
+        alert(`✅ Chip IoT (${imei || 'M2M'}) e quilometragem (${novoKm} km • Próx. troca aos ${oleo.kmProximaTroca} km) sincronizados com sucesso!`);
     }
 }
 
@@ -1831,8 +1921,8 @@ function alternarBloqueioRemotoMoto() {
 
     const vaiBloquear = !motos[idx].rastreadorBloqueado;
     const msgConfirm = vaiBloquear
-        ? `Confirmar envio de COMANDO DE BLOQUEIO REMOTO para ${motos[idx].modelo} (${motos[idx].placa})?\n\nConforme Cláusula 10.3 do Contrato, certifique-se de que a motocicleta está em condição tecnicamente segura (parada).`
-        : `Confirmar DESBLOQUEIO REMOTO da motocicleta ${motos[idx].modelo} (${motos[idx].placa})?`;
+        ? `Confirmar envio de COMANDO DE BLOQUEIO REMOTO via Chip IoT para ${motos[idx].modelo} (${motos[idx].placa})?\n\nConforme Cláusula 10.3 do Contrato, certifique-se de que a motocicleta está em condição tecnicamente segura (parada).`
+        : `Confirmar DESBLOQUEIO REMOTO via Chip IoT da motocicleta ${motos[idx].modelo} (${motos[idx].placa})?`;
 
     if (!confirm(msgConfirm)) return;
 
@@ -1844,11 +1934,17 @@ function alternarBloqueioRemotoMoto() {
 
 function sincronizarTodosRastreadores() {
     const cfg = getTrackerConfig();
+    const intervalo = parseInt(cfg.intervaloOleo) || 1000;
     const motos = getDb('crm_motos');
     let alertas = [];
 
     motos.forEach(m => {
         m.rastreadorUltimaSync = new Date().toISOString();
+        const semHistoricoPrevio = !m.historicoOleo || m.historicoOleo.length === 0;
+        if ((!m.kmUltimaTroca || parseInt(m.kmUltimaTroca) === 0) && parseInt(m.kmAtual) > intervalo && semHistoricoPrevio) {
+            m.kmUltimaTroca = parseInt(m.kmAtual);
+            m.kmProximaTroca = m.kmUltimaTroca + intervalo;
+        }
         const oleo = getMotoOleoInfo(m);
         if (oleo.status === 'vencido') {
             alertas.push(`• ${m.modelo} (${m.placa}): ${oleo.kmAtual} km — TROCA DE ÓLEO VENCIDA!`);
@@ -1861,9 +1957,9 @@ function sincronizarTodosRastreadores() {
     updateViews();
 
     if (alertas.length > 0) {
-        alert(`📡 Sincronização GPS (${cfg.provedor.toUpperCase()}) concluída!\n\nAvisos de Manutenção (Ciclo 1.000 km):\n` + alertas.join('\n'));
+        alert(`📶 Sincronização de Telemetria via Chips IoT (M2M) concluída!\n\nAvisos de Manutenção (Ciclo 1.000 km):\n` + alertas.join('\n'));
     } else {
-        alert(`📡 Sincronização GPS (${cfg.provedor.toUpperCase()}) concluída! Todas as ${motos.length} motos estão com telemetria e óleo em dia.`);
+        alert(`📶 Sincronização via Chips IoT (M2M) concluída! Todas as ${motos.length} motos estão com telemetria e ciclo de óleo (1.000 km) em dia.`);
     }
 }
 
@@ -1880,7 +1976,7 @@ function salvarConfigRastreadorGlobal(e) {
     localStorage.setItem('crm_tracker_config', JSON.stringify(cfg));
     closeModal('modal-config-rastreador-global');
     updateViews();
-    alert('✅ Pré-configuração do Rastreador GPS e alerta de 1.000 km salva com sucesso!');
+    alert('✅ Configuração de Conectividade dos Chips IoT (M2M) e ciclo de 1.000 km salva com sucesso!');
 }
 
 // ==========================================
@@ -2346,7 +2442,7 @@ function carregarContratoNoEditorGov(contratoId) {
 
 function coletarCamposEditorGov() {
     const ids = [
-        'gov-locador-nome', 'gov-locador-cpf', 'gov-locador-tel',
+        'gov-locador-nome', 'gov-locador-cpf', 'gov-locador-rg', 'gov-locador-endereco', 'gov-locador-tel',
         'gov-locatario-nome', 'gov-locatario-cpf', 'gov-locatario-rg', 'gov-locatario-endereco', 'gov-locatario-tel',
         'gov-locatario-cnh', 'gov-locatario-cnh-cat', 'gov-locatario-cnh-val',
         'gov-moto-modelo', 'gov-moto-ano', 'gov-moto-placa', 'gov-moto-renavam', 'gov-moto-chassi', 'gov-moto-cor', 'gov-moto-km',
@@ -2425,13 +2521,15 @@ function gerarHtmlContratoPadraoCompleto(d) {
 
     return `
         <h2>CONTRATO PARTICULAR DE LOCAÇÃO DE MOTOCICLETA</h2>
-        <div class="sub-header">Com pagamento semanal, caução, responsabilidade por danos, multas e regras de utilização</div>
-        <p>Pelo presente instrumento particular, as partes identificadas abaixo celebram o presente Contrato de Locação de Motocicleta, mediante as cláusulas e condições seguintes.</p>
+        <div class="sub-header">LOCAÇÃO SEMANAL — CAUÇÃO — RESPONSABILIDADE POR DANOS, MULTAS, FURTO, ROUBO E PERDA TOTAL</div>
+        <p>Pelo presente instrumento particular, as partes abaixo identificadas celebram o presente Contrato de Locação de Motocicleta, mediante as cláusulas e condições seguintes.</p>
 
         <h4>CLÁUSULA 1ª — IDENTIFICAÇÃO DAS PARTES</h4>
         <p><strong>1.1. LOCADOR — PROPRIETÁRIO OU RESPONSÁVEL PELA LOCAÇÃO</strong><br>
         Nome completo/Razão social: ${v('gov-locador-nome', 'Henrique Rocha Clavijo')}<br>
         CPF/CNPJ: ${v('gov-locador-cpf', '85221619091')}<br>
+        RG: ${v('gov-locador-rg', '___________________________________________________________')}<br>
+        Endereço completo: ${v('gov-locador-endereco', '_____________________________________________')}<br>
         Telefone/WhatsApp: ${v('gov-locador-tel', '_____________________________________________')}</p>
 
         <p><strong>1.2. LOCATÁRIO — RESPONSÁVEL PELA MOTOCICLETA</strong><br>
@@ -2453,16 +2551,16 @@ function gerarHtmlContratoPadraoCompleto(d) {
 
         <h4>CLÁUSULA 3ª — OBJETO E PRAZO DA LOCAÇÃO</h4>
         <p>3.1. O LOCADOR entrega ao LOCATÁRIO a motocicleta identificada neste contrato para utilização durante o período contratado, mediante pagamento de aluguel semanal.</p>
-        <p>3.2. Data e horário de início: ${v('gov-prazo-inicio', '__/__/________')}, às ${v('gov-prazo-hora', '______')} horas.</p>
+        <p>3.2. Data e horário de início da locação: ${v('gov-prazo-inicio', '____/____/________')}, às ${v('gov-prazo-hora', '______')} horas.</p>
         <p>3.3. Prazo da locação: ${v('gov-prazo-duracao', '__________________________________________')}.</p>
         <p>3.4. A renovação poderá ocorrer mediante concordância entre as partes, inclusive por escrito ou por meio eletrônico que permita comprovar a manifestação de vontade.</p>
-        <p>3.5. O LOCATÁRIO declara que utilizará a motocicleta de acordo com a legislação vigente, as condições deste contrato e a finalidade autorizada pelo LOCADOR.</p>
-        <p>3.6. A motocicleta deverá ser conduzida por pessoa legalmente habilitada e autorizada, observadas as disposições deste instrumento.</p>
+        <p>3.5. A motocicleta deverá ser utilizada de acordo com a legislação vigente, as condições deste contrato e a finalidade autorizada pelo LOCADOR.</p>
+        <p>3.6. O LOCATÁRIO declara possuir habilitação válida e categoria compatível com a motocicleta.</p>
 
         <h4>CLÁUSULA 4ª — VALOR DO ALUGUEL, VENCIMENTO E CAUÇÃO</h4>
         <p>4.1. O valor do aluguel será de R$ ${v('gov-fin-semanal', '__________')} (${v('gov-fin-semanal-extenso', '________________________________')}), por semana.</p>
         <p>4.2. O vencimento ocorrerá toda ${v('gov-fin-dia-venc', '__________________')}, até as ${v('gov-fin-hora-venc', '______')} horas.</p>
-        <p>4.3. A forma de pagamento será: ${v('gov-fin-forma-pag', '__________________________________')}.</p>
+        <p>4.3. Forma de pagamento: ${v('gov-fin-forma-pag', '_________________________________________')}.</p>
         <p>4.4. O valor da caução será de R$ ${v('gov-fin-caucao', '__________')} (${v('gov-fin-caucao-extenso', '__________________________')}), pago pelo LOCATÁRIO como garantia das obrigações contratuais.</p>
         <p>4.5. A caução poderá ser utilizada para compensar valores legitimamente devidos pelo LOCATÁRIO, incluindo aluguéis vencidos, multas atribuíveis ao período da locação, danos comprovados e despesas de reparação pelas quais seja responsável.</p>
         <p>4.6. Qualquer desconto deverá ser discriminado e justificado, com apresentação dos comprovantes disponíveis.</p>
@@ -2482,92 +2580,105 @@ function gerarHtmlContratoPadraoCompleto(d) {
         f) Não autorizar reparos relevantes sem comunicar o LOCADOR, exceto medidas emergenciais necessárias à segurança.</p>
         <p>5.5. É proibido omitir ou esconder acidentes, quedas, danos, furtos, roubos ou outras ocorrências relevantes envolvendo a motocicleta.</p>
         <p>5.6. O LOCATÁRIO responderá pelos prejuízos que lhe sejam legalmente atribuíveis, inclusive os causados a terceiros, sem prejuízo dos direitos das pessoas envolvidas e das responsabilidades previstas em lei.</p>
-        <p>5.7. A responsabilidade não será automaticamente atribuída ao LOCATÁRIO por todo e qualquer acidente, independentemente das circunstâncias. A apuração observará a legislação aplicável, as provas disponíveis e a responsabilidade de cada envolvido.</p>
-        <p>5.8. Caso o LOCADOR possua seguro, a cobertura e as eventuais franquias serão observadas conforme as condições da apólice. O LOCATÁRIO não será responsável por valores que não lhe sejam legal ou contratualmente atribuíveis.</p>
+        <p>5.7. A responsabilidade será apurada conforme as circunstâncias do evento, as provas disponíveis e a legislação aplicável, sem atribuição automática de culpa em qualquer acidente.</p>
 
-        <h4>CLÁUSULA 6ª — PROIBIÇÃO DE EMPRÉSTIMO, CESSÃO OU SUBLOCAÇÃO</h4>
-        <p>6.1. A motocicleta será disponibilizada exclusivamente para uso do LOCATÁRIO identificado neste contrato.</p>
-        <p>6.2. É expressamente proibido emprestar, ceder, transferir a posse ou sublocar a motocicleta a qualquer outra pessoa, gratuitamente ou mediante pagamento, sem autorização prévia e expressa por escrito do LOCADOR.</p>
-        <p>6.3. O LOCATÁRIO não poderá permitir que terceiros conduzam a motocicleta, mesmo que sejam familiares, amigos, colegas de trabalho ou pessoas de sua confiança.</p>
-        <p>6.4. O descumprimento desta cláusula constituirá infração contratual grave e poderá resultar na rescisão do contrato, na exigência de devolução da motocicleta e na cobrança dos prejuízos comprovadamente decorrentes da infração.</p>
-        <p>6.5. A devolução deverá ocorrer voluntariamente ou pelos meios legalmente permitidos, não sendo autorizada a retomada mediante violência, ameaça ou exercício arbitrário das próprias razões.</p>
+        <h4>CLÁUSULA 6ª — FURTO, ROUBO, ACIDENTE GRAVE E PERDA TOTAL</h4>
+        <p>6.1. Durante o período em que a motocicleta estiver sob a posse, guarda ou responsabilidade do LOCATÁRIO, este deverá zelar por sua conservação, segurança e utilização adequada, respondendo pelos prejuízos que lhe sejam legalmente atribuíveis.</p>
+        <p>6.2. Em caso de furto, roubo, desaparecimento, acidente grave, incêndio ou qualquer evento que provoque danos graves ou perda total da motocicleta, o LOCATÁRIO deverá comunicar imediatamente o LOCADOR e as autoridades competentes, quando cabível, além de fornecer as informações e os documentos necessários à apuração do ocorrido.</p>
+        <p>6.3. <strong>Quando for comprovada a responsabilidade do LOCATÁRIO pelo evento ou pelo agravamento do prejuízo, este deverá indenizar o LOCADOR pelos danos materiais efetivamente sofridos</strong>, incluindo custos de reparação, despesas necessárias à recuperação do veículo e o valor da motocicleta em caso de perda total ou impossibilidade de recuperação.</p>
+        <p>6.4. Para fins de indenização por perda total, o valor será apurado considerando o valor de mercado da motocicleta imediatamente antes do evento, utilizando como referência a Tabela FIPE, quando aplicável, ou outra avaliação objetiva e documentada, levando em consideração o estado de conservação e as características do veículo.</p>
+        <p>6.5. Nos casos de furto ou roubo, a responsabilidade financeira do LOCATÁRIO será apurada conforme as circunstâncias concretas, especialmente a existência de culpa, dolo, descumprimento das obrigações de segurança ou outras situações que, nos termos da legislação aplicável, justifiquem sua responsabilização.</p>
+        <p>6.6. A simples ocorrência de furto ou roubo não implicará, por si só, responsabilidade automática e ilimitada do LOCATÁRIO. Quando houver responsabilidade legalmente atribuível ao LOCATÁRIO, a indenização poderá corresponder à totalidade do prejuízo comprovado, observados os critérios desta cláusula.</p>
+        <p>6.7. Se o LOCADOR possuir seguro para a motocicleta, a indenização observará a cobertura contratada, a franquia aplicável e os valores efetivamente recebidos. Os valores de seguro recebidos para cobrir o mesmo prejuízo deverão ser considerados na apuração, evitando duplicidade de ressarcimento.</p>
+        <p>6.8. O LOCATÁRIO responderá pelos valores não cobertos pelo seguro quando esses valores forem legalmente atribuíveis à sua conduta ou ao descumprimento contratual.</p>
+        <p>6.9. O LOCATÁRIO não poderá abandonar a motocicleta após acidente, deixar de comunicar seu desaparecimento ou omitir informações relevantes sobre o ocorrido. Poderá responder pelos prejuízos adicionais comprovadamente decorrentes dessa conduta.</p>
+        <p>6.10. A indenização prevista nesta cláusula não afasta a responsabilidade por aluguéis vencidos, multas atribuíveis ao LOCATÁRIO ou outras obrigações contratuais legítimas, desde que não haja cobrança duplicada do mesmo prejuízo.</p>
+        <p>6.11. O pagamento da indenização deverá ocorrer mediante acordo escrito entre as partes ou conforme determinação judicial, quando necessária, podendo ser ajustado parcelamento por escrito.</p>
+        <p>6.12. A caução poderá ser utilizada para abater parte dos valores efetivamente devidos, não limitando a indenização quando os prejuízos comprovados forem superiores ao seu montante.</p>
 
-        <h4>CLÁUSULA 7ª — MULTAS DE TRÂNSITO E RESPONSABILIDADE DO LOCATÁRIO</h4>
-        <p>7.1. O LOCATÁRIO será responsável pelas infrações de trânsito decorrentes de sua conduta durante o período da locação, incluindo o pagamento das multas e dos encargos legalmente atribuíveis à sua responsabilidade.</p>
-        <p>7.2. Caso uma multa referente ao período da locação seja encaminhada diretamente ao LOCADOR, este poderá solicitar o reembolso do valor devido pelo LOCATÁRIO, mediante apresentação da notificação ou de documentação comprobatória da infração.</p>
-        <p>7.3. O LOCATÁRIO deverá fornecer os dados, assinar os formulários e apresentar os documentos necessários à identificação do condutor infrator, observados os prazos e procedimentos legais.</p>
-        <p>7.4. A pontuação decorrente da infração deverá ser atribuída conforme a legislação de trânsito. Este contrato não autoriza compra, venda ou transferência irregular de pontos na CNH.</p>
-        <p>7.5. <strong>Taxa administrativa por ponto:</strong> quando uma infração praticada pelo LOCATÁRIO exigir providências administrativas do LOCADOR, as partes estabelecem uma taxa contratual de referência de R$ 120,00 (cento e vinte reais) por ponto relacionado à infração, destinada a cobrir os custos administrativos de tratamento da ocorrência, quando juridicamente admissível.</p>
-        <p>7.6. A cobrança prevista na cláusula anterior deverá observar os limites legais aplicáveis, a proporcionalidade, a transparência e a efetiva justificativa da despesa. Ela não representa compra ou transferência de pontuação, nem substitui o pagamento da multa ao órgão de trânsito. Se a cobrança integral não for juridicamente admissível, somente poderá ser exigido o valor permitido por lei.</p>
-        <p>7.7. O LOCATÁRIO deverá pagar os valores devidos no prazo de ${v('gov-multa-prazo-dias', '______')} dias após receber a documentação e a solicitação de pagamento.</p>
-        <p>7.8. O não pagamento de valores vencidos poderá caracterizar inadimplemento contratual, autorizando a cobrança do débito e, quando cabível, a rescisão e a solicitação de devolução da motocicleta, observados os procedimentos legais.</p>
+        <h4>CLÁUSULA 7ª — PROIBIÇÃO DE EMPRÉSTIMO, CESSÃO OU SUBLOCAÇÃO</h4>
+        <p>7.1. A motocicleta será disponibilizada exclusivamente para uso do LOCATÁRIO identificado neste contrato.</p>
+        <p>7.2. É expressamente proibido emprestar, ceder, transferir a posse ou sublocar a motocicleta a qualquer outra pessoa, gratuitamente ou mediante pagamento, sem autorização prévia e expressa por escrito do LOCADOR.</p>
+        <p>7.3. O LOCATÁRIO não poderá permitir que terceiros conduzam a motocicleta, mesmo que sejam familiares, amigos, colegas de trabalho ou pessoas de sua confiança.</p>
+        <p>7.4. O descumprimento desta cláusula constituirá infração contratual grave e poderá resultar na rescisão do contrato, na exigência de devolução da motocicleta e na cobrança dos prejuízos comprovadamente decorrentes da infração.</p>
+        <p>7.5. Caso a entrega não ocorra voluntariamente, o LOCADOR poderá utilizar os meios legalmente permitidos para recuperar o veículo.</p>
 
-        <h4>CLÁUSULA 8ª — RETENÇÃO DA CAUÇÃO POR ATÉ 40 DIAS PARA VERIFICAÇÃO DE MULTAS</h4>
-        <p>8.1. O LOCATÁRIO declara estar ciente de que determinadas infrações cometidas durante a locação podem não estar disponíveis nos sistemas oficiais de trânsito no momento da devolução da motocicleta.</p>
-        <p>8.2. Para permitir a conferência de possíveis multas ainda não identificadas, as partes estabelecem um período contratual de retenção preventiva da caução de <strong>até 40 (quarenta) dias corridos, contados da data da devolução da motocicleta.</strong></p>
-        <p>8.3. Durante esse período, o LOCADOR poderá manter retida a caução, no limite necessário à finalidade prevista nesta cláusula, para consultar os sistemas oficiais de trânsito e verificar a existência de infrações referentes ao período em que a motocicleta esteve sob responsabilidade do LOCATÁRIO.</p>
-        <p>8.4. Se forem identificadas multas referentes ao período da locação e atribuíveis ao LOCATÁRIO, o LOCADOR poderá descontar da caução os valores legalmente devidos, mediante apresentação dos documentos disponíveis e demonstrativo dos descontos.</p>
-        <p>8.5. <strong>Se não houver multas identificadas nem outros débitos pendentes que justifiquem legalmente a retenção, o valor integral da caução deverá ser devolvido ao LOCATÁRIO</strong> após o período de verificação, em até 2 (dois) dias úteis para processamento da transferência.</p>
-        <p>8.6. Se, ao término dos 40 dias, existir infração comprovadamente relacionada ao período da locação cuja notificação ou valor ainda esteja pendente, as partes poderão ajustar por escrito uma retenção proporcional e justificada, limitada ao montante razoavelmente necessário para cobrir o débito.</p>
-        <p>8.7. A retenção não poderá ser indefinida nem exceder o valor justificável. O LOCADOR deverá apresentar as informações disponíveis que fundamentem a continuidade da retenção.</p>
-        <p>8.8. O prazo de 40 dias é uma condição contratual de verificação, e não um prazo legal universal do DETRAN para lançamento ou aplicação de multas. A ausência de registro nesse período não garante que nenhuma multa possa ser comunicada posteriormente.</p>
-        <p>8.9. Caso uma multa válida seja comunicada após a devolução da caução, o LOCATÁRIO continuará responsável pelos valores legalmente atribuíveis a infrações praticadas durante o período da locação, mediante comprovação e observância dos procedimentos legais aplicáveis.</p>
+        <h4>CLÁUSULA 8ª — MULTAS DE TRÂNSITO E RESPONSABILIDADE DO LOCATÁRIO</h4>
+        <p>8.1. O LOCATÁRIO será responsável pelas infrações de trânsito decorrentes de sua conduta durante o período da locação, incluindo o pagamento das multas e dos encargos legalmente atribuíveis à sua responsabilidade.</p>
+        <p>8.2. Caso uma multa referente ao período da locação seja encaminhada diretamente ao LOCADOR, este poderá solicitar o reembolso do valor devido pelo LOCATÁRIO, mediante apresentação da notificação ou de documentação comprobatória da infração.</p>
+        <p>8.3. O LOCATÁRIO deverá fornecer os dados, assinar os formulários e apresentar os documentos necessários à identificação do condutor infrator, observados os prazos e procedimentos legais.</p>
+        <p>8.4. A pontuação decorrente da infração deverá ser atribuída conforme a legislação de trânsito. Este contrato não autoriza compra, venda ou transferência irregular de pontos na CNH.</p>
+        <p>8.5. <strong>Taxa administrativa por infração:</strong> quando uma infração praticada pelo LOCATÁRIO exigir providências administrativas do LOCADOR, as partes estabelecem uma taxa de referência de R$ 120,00 (cento e vinte reais) por ponto relacionado à infração, destinada a cobrir custos administrativos de tratamento da ocorrência, quando juridicamente admissível.</p>
+        <p>8.6. A cobrança deverá observar os limites legais aplicáveis, a proporcionalidade, a transparência e a justificativa da despesa. Não representa compra ou transferência de pontuação, nem substitui o pagamento da multa ao órgão de trânsito. Se a cobrança integral não for juridicamente admissível, somente poderá ser exigido o valor permitido por lei.</p>
+        <p>8.7. O LOCATÁRIO deverá pagar os valores devidos no prazo de ${v('gov-multa-prazo-dias', '______')} dias após receber a documentação e a solicitação de pagamento.</p>
+        <p>8.8. O não pagamento de valores vencidos poderá caracterizar inadimplemento contratual, autorizando a cobrança do débito e, quando cabível, a rescisão e a solicitação de devolução da motocicleta, observados os procedimentos legais.</p>
 
-        <h4>CLÁUSULA 9ª — ATRASO NO ALUGUEL SEMANAL</h4>
-        <p>9.1. O não pagamento do aluguel na data e no horário estabelecidos caracterizará atraso contratual.</p>
-        <p>9.2. Em caso de atraso, o LOCADOR poderá notificar o LOCATÁRIO e, se houver dispositivo de bloqueio instalado e previamente informado, adotar o bloqueio remoto da motocicleta, desde que tecnicamente seguro e sem colocar o condutor ou terceiros em risco.</p>
-        <p>9.3. O bloqueio nunca deverá interromper o funcionamento do motor durante a circulação da motocicleta ou em situação que possa causar acidente.</p>
-        <p>9.4. <strong>Após 3 (três) dias consecutivos de atraso</strong>, o LOCADOR poderá rescindir o contrato por inadimplemento, exigir a devolução da motocicleta e iniciar os procedimentos legalmente permitidos para sua recuperação.</p>
-        <p>9.5. A devolução deverá ser solicitada por meio de comunicação ao LOCATÁRIO, com indicação do local e das condições para entrega, respeitados os procedimentos legais aplicáveis.</p>
-        <p>9.6. O LOCADOR poderá utilizar a caução para compensar aluguéis vencidos e demais valores legitimamente devidos, mediante demonstrativo dos descontos.</p>
-        <p>9.7. O atraso não implica perda automática e integral da caução independentemente dos débitos existentes. A caução será aplicada aos valores efetivamente devidos, e eventual saldo remanescente deverá ser devolvido.</p>
-        <p>9.8. Caso a motocicleta não seja devolvida voluntariamente, o LOCADOR poderá buscar as medidas extrajudiciais ou judiciais cabíveis, não sendo autorizada a apreensão forçada fora dos meios legais.</p>
+        <h4>CLÁUSULA 9ª — RETENÇÃO DA CAUÇÃO POR ATÉ 40 DIAS PARA VERIFICAÇÃO DE MULTAS</h4>
+        <p>9.1. O LOCATÁRIO declara estar ciente de que determinadas infrações cometidas durante a locação podem não estar disponíveis nos sistemas oficiais de trânsito no momento da devolução da motocicleta.</p>
+        <p>9.2. Para permitir a conferência de possíveis multas ainda não identificadas, as partes estabelecem um período contratual de retenção preventiva da caução de <strong>até 40 (quarenta) dias corridos, contados da data da devolução da motocicleta</strong>.</p>
+        <p>9.3. Durante esse período, o LOCADOR poderá manter retida a caução, no limite necessário à finalidade prevista nesta cláusula, para consultar os sistemas oficiais de trânsito e verificar a existência de infrações referentes ao período em que a motocicleta esteve sob responsabilidade do LOCATÁRIO.</p>
+        <p>9.4. Se forem identificadas multas referentes ao período da locação e atribuíveis ao LOCATÁRIO, o LOCADOR poderá descontar da caução os valores legalmente devidos, mediante apresentação dos documentos disponíveis e demonstrativo dos descontos.</p>
+        <p>9.5. Se não houver multas identificadas nem outros débitos pendentes que justifiquem legalmente a retenção, o valor integral da caução deverá ser devolvido após o período de verificação, em até 2 (dois) dias úteis para processamento da transferência.</p>
+        <p>9.6. Se, ao término dos 40 dias, existir infração comprovadamente relacionada ao período da locação cuja notificação ou valor ainda esteja pendente, as partes poderão ajustar por escrito uma retenção proporcional e justificada, limitada ao montante razoavelmente necessário para cobrir o débito.</p>
+        <p>9.7. A retenção não poderá ser indefinida nem exceder o valor justificável. O LOCADOR deverá apresentar as informações disponíveis que fundamentem a continuidade da retenção.</p>
+        <p>9.8. O prazo de 40 dias é uma condição contratual de verificação, e não um prazo legal universal do DETRAN para lançamento ou aplicação de multas. A ausência de registro nesse período não garante que nenhuma multa possa ser comunicada posteriormente.</p>
+        <p>9.9. Caso uma multa válida seja comunicada após a devolução da caução, o LOCATÁRIO continuará responsável pelos valores legalmente atribuíveis a infrações praticadas durante o período da locação, mediante comprovação e observância dos procedimentos legais aplicáveis.</p>
 
-        <h4>CLÁUSULA 10ª — BLOQUEIO E RASTREAMENTO DA MOTOCICLETA</h4>
-        <p>10.1. O LOCATÁRIO declara estar ciente de que a motocicleta possui ou poderá possuir sistema de rastreamento e/ou bloqueio remoto, conforme informado pelo LOCADOR.</p>
-        <p>10.2. O sistema será utilizado para proteção patrimonial, localização do veículo e cumprimento das condições contratuais, respeitados os direitos das partes e a legislação aplicável.</p>
-        <p>10.3. O bloqueio remoto somente poderá ocorrer em condições tecnicamente seguras. É proibido desligar o motor durante a circulação ou executar qualquer comando que possa provocar acidente.</p>
-        <p>10.4. O bloqueio não autoriza a retomada coercitiva do veículo, o ingresso não autorizado em imóvel ou qualquer outra medida que dependa de procedimento legal ou ordem judicial.</p>
-        <p>10.5. O LOCATÁRIO não poderá remover, adulterar, danificar ou desativar deliberadamente o rastreador ou qualquer dispositivo de segurança instalado na motocicleta.</p>
-        <p>10.6. A utilização do sistema deverá respeitar a finalidade informada, os direitos do LOCATÁRIO e as normas aplicáveis à proteção de dados pessoais.</p>
+        <h4>CLÁUSULA 10ª — ATRASO NO ALUGUEL SEMANAL</h4>
+        <p>10.1. O não pagamento do aluguel na data e no horário estabelecidos caracterizará atraso contratual.</p>
+        <p>10.2. Em caso de atraso, o LOCADOR poderá notificar o LOCATÁRIO e, se houver dispositivo de bloqueio instalado e previamente informado, adotar o bloqueio remoto da motocicleta, desde que tecnicamente seguro e sem colocar o condutor ou terceiros em risco.</p>
+        <p>10.3. O bloqueio nunca deverá interromper o funcionamento do motor durante a circulação da motocicleta ou em situação que possa causar acidente.</p>
+        <p>10.4. <strong>Após 3 (três) dias consecutivos de atraso</strong>, o LOCADOR poderá rescindir o contrato por inadimplemento, exigir a devolução da motocicleta e iniciar os procedimentos legalmente permitidos para sua recuperação.</p>
+        <p>10.5. A devolução deverá ser solicitada ao LOCATÁRIO, com indicação do local e das condições para entrega, respeitados os procedimentos legais aplicáveis.</p>
+        <p>10.6. O LOCADOR poderá utilizar a caução para compensar aluguéis vencidos e demais valores legitimamente devidos, mediante demonstrativo dos descontos.</p>
+        <p>10.7. O atraso não implica perda automática e integral da caução independentemente dos débitos existentes. A caução será aplicada aos valores efetivamente devidos, e eventual saldo remanescente deverá ser devolvido.</p>
+        <p>10.8. Caso a motocicleta não seja devolvida voluntariamente, o LOCADOR poderá buscar as medidas extrajudiciais ou judiciais cabíveis, não sendo autorizada a apreensão forçada fora dos meios legais.</p>
 
-        <h4>CLÁUSULA 11ª — CONSERVAÇÃO, MANUTENÇÃO E USO ADEQUADO</h4>
-        <p>11.1. O LOCATÁRIO declara receber a motocicleta nas condições descritas no termo de vistoria anexo a este contrato.</p>
-        <p>11.2. O LOCATÁRIO deverá zelar pela motocicleta, utilizá-la de acordo com a legislação de trânsito e comunicar imediatamente qualquer falha mecânica, dano ou condição que possa comprometer a segurança.</p>
-        <p>11.3. O desgaste natural decorrente do uso regular não será considerado dano imputável ao LOCATÁRIO.</p>
-        <p>11.4. Os custos de reparação de danos causados por mau uso, negligência, acidente atribuível ao LOCATÁRIO ou descumprimento contratual serão de responsabilidade deste, mediante comprovação.</p>
-        <p>11.5. As manutenções preventivas e os reparos decorrentes do desgaste normal, bem como os defeitos preexistentes não causados pelo LOCATÁRIO, serão tratados conforme a legislação aplicável e as condições acordadas entre as partes.</p>
-        <p>11.6. O LOCATÁRIO não poderá realizar modificações permanentes na motocicleta sem autorização expressa do LOCADOR.</p>
+        <h4>CLÁUSULA 11ª — BLOQUEIO E RASTREAMENTO DA MOTOCICLETA</h4>
+        <p>11.1. O LOCATÁRIO declara estar ciente de que a motocicleta possui ou poderá possuir sistema de rastreamento e/ou bloqueio remoto, conforme informado pelo LOCADOR.</p>
+        <p>11.2. O sistema será utilizado para proteção patrimonial, localização do veículo e cumprimento das condições contratuais, respeitados os direitos das partes e a legislação aplicável.</p>
+        <p>11.3. O bloqueio remoto somente poderá ocorrer em condições tecnicamente seguras. É proibido desligar o motor durante a circulação ou executar qualquer comando que possa provocar acidente.</p>
+        <p>11.4. O bloqueio não autoriza a retomada coercitiva do veículo, o ingresso não autorizado em imóvel ou qualquer outra medida que dependa de procedimento legal ou ordem judicial.</p>
+        <p>11.5. O LOCATÁRIO não poderá remover, adulterar, danificar ou desativar deliberadamente o rastreador ou qualquer dispositivo de segurança instalado na motocicleta.</p>
+        <p>11.6. A utilização do sistema deverá respeitar a finalidade informada, os direitos do LOCATÁRIO e as normas aplicáveis à proteção de dados pessoais.</p>
 
-        <h4>CLÁUSULA 12ª — DEVOLUÇÃO DA MOTOCICLETA</h4>
-        <p>12.1. Ao término do contrato ou em caso de rescisão, o LOCATÁRIO deverá devolver a motocicleta, suas chaves e os acessórios entregues, no local combinado entre as partes.</p>
-        <p>12.2. Será realizada vistoria de devolução, preferencialmente com registro fotográfico, para comparação com o estado do veículo na entrega.</p>
-        <p>12.3. O LOCATÁRIO deverá informar eventuais danos, falhas ou ocorrências que tenham surgido durante o período da locação.</p>
-        <p>12.4. A devolução da motocicleta não elimina a responsabilidade por obrigações referentes ao período da locação que venham a ser comprovadas posteriormente, respeitados os limites legais.</p>
+        <h4>CLÁUSULA 12ª — CONSERVAÇÃO, MANUTENÇÃO E USO ADEQUADO</h4>
+        <p>12.1. O LOCATÁRIO declara receber a motocicleta nas condições descritas no termo de vistoria anexo a este contrato.</p>
+        <p>12.2. O LOCATÁRIO deverá zelar pela motocicleta, utilizá-la de acordo com a legislação de trânsito e comunicar imediatamente qualquer falha mecânica, dano ou condição que possa comprometer a segurança.</p>
+        <p>12.3. O desgaste natural decorrente do uso regular não será considerado dano imputável ao LOCATÁRIO.</p>
+        <p>12.4. Os custos de reparação de danos causados por mau uso, negligência, acidente atribuível ao LOCATÁRIO ou descumprimento contratual serão de responsabilidade deste, mediante comprovação.</p>
+        <p>12.5. As manutenções preventivas e os reparos decorrentes do desgaste normal, bem como os defeitos preexistentes não causados pelo LOCATÁRIO, serão tratados conforme a legislação aplicável e as condições acordadas entre as partes.</p>
+        <p>12.6. O LOCATÁRIO não poderá realizar modificações permanentes na motocicleta sem autorização expressa do LOCADOR.</p>
 
-        <h4>CLÁUSULA 13ª — DEVOLUÇÃO E UTILIZAÇÃO DA CAUÇÃO AO FINAL DO CONTRATO</h4>
-        <p>13.1. Ao final da locação, a caução será utilizada para compensar débitos vencidos, multas atribuíveis ao LOCATÁRIO, danos comprovados e demais valores legitimamente devidos nos termos deste contrato.</p>
-        <p>13.2. O LOCADOR apresentará demonstrativo dos descontos realizados e, quando aplicável, orçamentos, notas fiscais, recibos ou outros documentos que comprovem as despesas.</p>
-        <p>13.3. Se não houver danos, débitos ou despesas pendentes, o valor integral da caução será devolvido, observada a retenção preventiva para verificação de multas prevista na Cláusula 8ª.</p>
-        <p>13.4. Havendo descontos legítimos, o saldo remanescente será devolvido ao LOCATÁRIO no prazo previsto neste contrato, respeitado o período de verificação de multas e a necessidade de apuração de débitos efetivamente pendentes.</p>
-        <p>13.5. Caso os prejuízos comprovados ultrapassem o valor da caução, o LOCATÁRIO deverá pagar a diferença na medida de sua responsabilidade legal e contratual.</p>
-        <p>13.6. A caução não será automaticamente perdida em sua totalidade por qualquer irregularidade. A compensação deverá corresponder aos valores efetivamente devidos, observados os limites legais.</p>
+        <h4>CLÁUSULA 13ª — DEVOLUÇÃO DA MOTOCICLETA</h4>
+        <p>13.1. Ao término do contrato ou em caso de rescisão, o LOCATÁRIO deverá devolver a motocicleta, suas chaves e os acessórios entregues, no local combinado entre as partes.</p>
+        <p>13.2. Será realizada vistoria de devolução, preferencialmente com registro fotográfico, para comparação com o estado do veículo na entrega.</p>
+        <p>13.3. O LOCATÁRIO deverá informar eventuais danos, falhas ou ocorrências que tenham surgido durante o período da locação.</p>
+        <p>13.4. A devolução da motocicleta não elimina a responsabilidade por obrigações referentes ao período da locação que venham a ser comprovadas posteriormente, respeitados os limites legais.</p>
 
-        <h4>CLÁUSULA 14ª — RESCISÃO CONTRATUAL</h4>
-        <p>14.1. O contrato poderá ser encerrado pelo término do prazo, por acordo entre as partes ou por descumprimento contratual que justifique a rescisão.</p>
-        <p>14.2. Constituem hipóteses de rescisão, entre outras:<br>
-        a) Atraso no aluguel conforme as condições da Cláusula 9ª;<br>
+        <h4>CLÁUSULA 14ª — DEVOLUÇÃO E UTILIZAÇÃO DA CAUÇÃO AO FINAL DO CONTRATO</h4>
+        <p>14.1. Ao final da locação, a caução será utilizada para compensar débitos vencidos, multas atribuíveis ao LOCATÁRIO, danos comprovados e demais valores legitimamente devidos nos termos deste contrato.</p>
+        <p>14.2. O LOCADOR apresentará demonstrativo dos descontos realizados e, quando aplicável, orçamentos, notas fiscais, recibos ou outros documentos que comprovem as despesas.</p>
+        <p>14.3. Se não houver danos, débitos ou despesas pendentes, o valor integral da caução será devolvido, observada a retenção preventiva para verificação de multas prevista na Cláusula 9ª.</p>
+        <p>14.4. Havendo descontos legítimos, o saldo remanescente será devolvido ao LOCATÁRIO no prazo previsto neste contrato, respeitado o período de verificação de multas e a necessidade de apuração de débitos efetivamente pendentes.</p>
+        <p>14.5. Caso os prejuízos comprovados ultrapassem o valor da caução, o LOCATÁRIO deverá pagar a diferença na medida de sua responsabilidade legal e contratual.</p>
+        <p>14.6. A caução não será automaticamente perdida em sua totalidade por qualquer irregularidade. A compensação deverá corresponder aos valores efetivamente devidos, observados os limites legais.</p>
+
+        <h4>CLÁUSULA 15ª — RESCISÃO CONTRATUAL</h4>
+        <p>15.1. O contrato poderá ser encerrado pelo término do prazo, por acordo entre as partes ou por descumprimento contratual que justifique a rescisão.</p>
+        <p>15.2. Constituem hipóteses de rescisão, entre outras:<br>
+        a) Atraso no aluguel conforme as condições da Cláusula 10ª;<br>
         b) Empréstimo, cessão ou sublocação não autorizados;<br>
         c) Utilização ilícita ou contrária à finalidade contratual;<br>
         d) Omissão deliberada de acidente ou dano relevante;<br>
         e) Adulteração de dispositivos de segurança;<br>
         f) Descumprimento grave das obrigações de conservação e utilização;<br>
         g) Falsidade de informações ou documentos relevantes para a contratação.</p>
-        <p>14.3. Rescindido o contrato, o LOCATÁRIO deverá devolver a motocicleta, sem prejuízo da cobrança de aluguéis vencidos, danos comprovados e demais valores legalmente exigíveis.</p>
-        <p>14.4. A retomada da motocicleta, quando não houver entrega voluntária, deverá ocorrer pelos meios legalmente permitidos, sem violência, ameaça, constrangimento ou exercício arbitrário das próprias razões.</p>
-        <p>14.5. A rescisão não autoriza a apropriação automática de valores da caução além dos débitos e prejuízos efetivamente devidos.</p>
+        <p>15.3. Rescindido o contrato, o LOCATÁRIO deverá devolver a motocicleta, sem prejuízo da cobrança de aluguéis vencidos, danos comprovados e demais valores legalmente exigíveis.</p>
+        <p>15.4. A retomada da motocicleta, quando não houver entrega voluntária, deverá ocorrer pelos meios legalmente permitidos, sem violência, ameaça, constrangimento ou exercício arbitrário das próprias razões.</p>
+        <p>15.5. A rescisão não autoriza a apropriação automática de valores da caução além dos débitos e prejuízos efetivamente devidos.</p>
 
-        <h4>CLÁUSULA 15ª — DECLARAÇÕES DO LOCATÁRIO</h4>
+        <h4>CLÁUSULA 16ª — DECLARAÇÕES DO LOCATÁRIO</h4>
         <p>O LOCATÁRIO declara que:<br>
         a) Forneceu informações e documentos verdadeiros;<br>
         b) Possui CNH válida e categoria compatível com a motocicleta;<br>
@@ -2576,37 +2687,43 @@ function gerarHtmlContratoPadraoCompleto(d) {
         e) Compromete-se a não emprestar, ceder ou sublocar a motocicleta, nem permitir que terceiros a conduzam sem autorização expressa do LOCADOR;<br>
         f) Comunicará prontamente acidentes, roubos, furtos, multas e ocorrências relevantes;<br>
         g) Devolverá a motocicleta conforme as condições deste instrumento;<br>
-        h) Está ciente das regras de verificação de multas e retenção preventiva da caução por até 40 dias, nos termos da Cláusula 8ª;<br>
-        i) Está ciente de que o bloqueio remoto somente poderá ocorrer em condições seguras e conforme a legislação aplicável.</p>
+        h) Está ciente das regras de verificação de multas e retenção preventiva da caução por até 40 dias, nos termos da Cláusula 9ª;<br>
+        i) Está ciente de que a responsabilidade por furto, roubo, acidentes e perda total será apurada conforme a Cláusula 6ª e a legislação aplicável;<br>
+        j) Está ciente de que o bloqueio remoto somente poderá ocorrer em condições seguras e conforme a legislação aplicável.</p>
 
-        <h4>CLÁUSULA 16ª — DISPOSIÇÕES GERAIS</h4>
-        <p>16.1. Qualquer alteração deste contrato deverá ser formalizada por escrito e aceita por ambas as partes.</p>
-        <p>16.2. As comunicações contratuais poderão ser realizadas pelos telefones, endereços eletrônicos ou aplicativos de mensagens informados pelas partes, desde que seja possível comprovar seu envio e conteúdo.</p>
-        <p>16.3. A eventual invalidade de uma cláusula não prejudicará as demais disposições válidas deste instrumento.</p>
-        <p>16.4. O presente contrato poderá ser assinado fisicamente ou por meio eletrônico que permita identificar os signatários e demonstrar a integridade do documento.</p>
-        <p>16.5. As partes declaram que tiveram oportunidade de ler o contrato, esclarecer dúvidas e guardar uma cópia assinada.</p>
+        <h4>CLÁUSULA 17ª — DISPOSIÇÕES GERAIS</h4>
+        <p>17.1. Qualquer alteração deste contrato deverá ser formalizada por escrito e aceita por ambas as partes.</p>
+        <p>17.2. As comunicações contratuais poderão ser realizadas pelos telefones, endereços eletrônicos ou aplicativos de mensagens informados pelas partes, desde que seja possível comprovar seu envio e conteúdo.</p>
+        <p>17.3. A eventual invalidade de uma cláusula não prejudicará as demais disposições válidas deste instrumento.</p>
+        <p>17.4. O presente contrato poderá ser assinado fisicamente ou por meio eletrônico que permita identificar os signatários e demonstrar a integridade do documento.</p>
+        <p>17.5. As partes declaram que tiveram oportunidade de ler o contrato, esclarecer dúvidas e guardar uma cópia assinada.</p>
 
-        <h4>CLÁUSULA 17ª — FORO</h4>
-        <p>17.1. As partes elegem o foro legalmente competente para resolver eventuais controvérsias decorrentes deste contrato, respeitadas as regras legais de competência e eventual legislação especial aplicável.</p>
+        <h4>CLÁUSULA 18ª — FORO</h4>
+        <p>18.1. As partes elegem o foro legalmente competente para resolver eventuais controvérsias decorrentes deste contrato, respeitadas as regras legais de competência e eventual legislação especial aplicável.</p>
         <p>E, por estarem de acordo, assinam o presente instrumento em duas vias de igual teor ou por meio eletrônico.</p>
-        <p><strong>Local:</strong> ${v('gov-foro-local', '_________________________________________________')} &nbsp;&nbsp;&nbsp; <strong>Data:</strong> ${v('gov-foro-data', '__/__/____________')}</p>
+        <p><strong>Local:</strong> ${v('gov-foro-local', '_________________________________________________')}<br>
+        <strong>Data:</strong> ${v('gov-foro-data', '______/______/____________')}</p>
 
-        <!-- ESPAÇO RESERVADO PARA ASSINATURA DIGITAL GOV.BR -->
+        <!-- ESPAÇO RESERVADO PARA ASSINATURA DIGITAL GOV.BR / ASSINATURAS DAS PARTES -->
         <div class="govbr-sign-grid">
             <div class="govbr-sign-box">
                 <div class="govbr-sign-badge">ÁREA RESERVADA PARA ASSINATURA GOV.BR / FÍSICA</div>
-                <div style="margin: 12px 0; font-size: 11px; color: #64748b;">Posicione o selo de Assinatura Eletrônica Gov.br aqui</div>
-                <div style="border-top: 1px solid #1e293b; padding-top: 6px; font-size: 12px;">
-                    <strong>LOCADOR:</strong> ${v('gov-locador-nome', 'Henrique Rocha Clavijo')}<br>
-                    CPF/CNPJ: ${v('gov-locador-cpf', '85221619091')}
+                <div style="margin: 10px 0; font-size: 11px; color: #64748b;">Posicione o selo de Assinatura Eletrônica Gov.br aqui</div>
+                <div style="border-top: 1px solid #1e293b; padding-top: 6px; font-size: 12px; text-align: left;">
+                    <strong>LOCADOR</strong><br>
+                    Nome: ${v('gov-locador-nome', 'Henrique Rocha Clavijo')}<br>
+                    CPF/CNPJ: ${v('gov-locador-cpf', '85221619091')}<br>
+                    Assinatura: _______________________________________________
                 </div>
             </div>
             <div class="govbr-sign-box">
                 <div class="govbr-sign-badge">ÁREA RESERVADA PARA ASSINATURA GOV.BR / FÍSICA</div>
-                <div style="margin: 12px 0; font-size: 11px; color: #64748b;">Posicione o selo de Assinatura Eletrônica Gov.br aqui</div>
-                <div style="border-top: 1px solid #1e293b; padding-top: 6px; font-size: 12px;">
-                    <strong>LOCATÁRIO:</strong> ${v('gov-locatario-nome', '____________________________________')}<br>
-                    CPF: ${v('gov-locatario-cpf', '___________________________')}
+                <div style="margin: 10px 0; font-size: 11px; color: #64748b;">Posicione o selo de Assinatura Eletrônica Gov.br aqui</div>
+                <div style="border-top: 1px solid #1e293b; padding-top: 6px; font-size: 12px; text-align: left;">
+                    <strong>LOCATÁRIO</strong><br>
+                    Nome: ${v('gov-locatario-nome', '____________________________________________________')}<br>
+                    CPF: ${v('gov-locatario-cpf', '_____________________________________________________')}<br>
+                    Assinatura: _______________________________________________
                 </div>
             </div>
         </div>
@@ -2614,34 +2731,34 @@ function gerarHtmlContratoPadraoCompleto(d) {
         <div class="govbr-sign-grid" style="margin-top:10px;">
             <div style="font-size:12px;">
                 <strong>TESTEMUNHA 1</strong><br>
-                Nome: ${v('gov-test1-nome', '________________________________________')}<br>
-                CPF: ${v('gov-test1-cpf', '_________________________________________')}<br>
-                Assinatura: _______________________________________
+                Nome: ${v('gov-test1-nome', '____________________________________________________')}<br>
+                CPF: ${v('gov-test1-cpf', '_____________________________________________________')}<br>
+                Assinatura: _______________________________________________
             </div>
             <div style="font-size:12px;">
                 <strong>TESTEMUNHA 2</strong><br>
-                Nome: ${v('gov-test2-nome', '________________________________________')}<br>
-                CPF: ${v('gov-test2-cpf', '_________________________________________')}<br>
-                Assinatura: _______________________________________
+                Nome: ${v('gov-test2-nome', '____________________________________________________')}<br>
+                CPF: ${v('gov-test2-cpf', '_____________________________________________________')}<br>
+                Assinatura: _______________________________________________
             </div>
         </div>
 
         <hr style="margin: 28px 0; border: none; border-top: 2px solid #94a3b8; page-break-before: always;">
 
         <h4>ANEXO I — TERMO DE ENTREGA E VISTORIA DA MOTOCICLETA</h4>
-        <p><strong>Placa:</strong> ${v('gov-moto-placa', '_____________________')}<br>
-        <strong>Data e horário da entrega:</strong> ${v('gov-prazo-inicio', '____________')} às ${v('gov-prazo-hora', '______')} horas<br>
-        <strong>Quilometragem:</strong> ${v('gov-moto-km', '_________________________________________')}<br>
-        <strong>Nível de combustível:</strong> ${v('gov-vist-combustivel', '____________________________________')}<br>
-        <strong>Pneus:</strong> ${v('gov-vist-pneus', '____________________________________________________')}<br>
-        <strong>Freios:</strong> ${v('gov-vist-freios', '___________________________________________________')}<br>
-        <strong>Faróis, lanternas e setas:</strong> ${v('gov-vist-farois', '__________________________________')}<br>
-        <strong>Retrovisores:</strong> ${v('gov-vist-retrovisores', '______________________________________________')}<br>
-        <strong>Carroceria, carenagem e pintura:</strong> ${v('gov-vist-carenagem', '_____________________________')}<br>
-        <strong>Chaves e acessórios entregues:</strong> ${v('gov-vist-chaves', '______________________________')}<br>
-        <strong>Danos preexistentes identificados:</strong> ${v('gov-vist-danos', '___________________________')}</p>
-        <p><strong>Registro fotográfico realizado:</strong> ${fotosCheck}<br>
-        <strong>Observações adicionais:</strong> ${v('gov-vist-obs', '_____________________________________')}</p>
+        <p>Placa: ${v('gov-moto-placa', '_____________________')}<br>
+        Data e horário da entrega: ${v('gov-prazo-inicio', '____________')} às ${v('gov-prazo-hora', '______')} horas<br>
+        Quilometragem: ${v('gov-moto-km', '____________________________________________')}<br>
+        Nível de combustível: ${v('gov-vist-combustivel', '______________________________________')}<br>
+        Pneus: ${v('gov-vist-pneus', '___________________________________________________')}<br>
+        Freios: ${v('gov-vist-freios', '__________________________________________________')}<br>
+        Faróis, lanternas e setas: ${v('gov-vist-farois', '__________________________________')}<br>
+        Retrovisores: ${v('gov-vist-retrovisores', '_____________________________________________')}<br>
+        Carroceria, carenagem e pintura: ${v('gov-vist-carenagem', '____________________________')}<br>
+        Chaves e acessórios entregues: ${v('gov-vist-chaves', '______________________________')}<br>
+        Danos preexistentes identificados: ${v('gov-vist-danos', '__________________________')}</p>
+        <p>Registro fotográfico realizado: ${fotosCheck}<br>
+        Observações adicionais: ${v('gov-vist-obs', '____________________________________')}</p>
         <p>Declaro que recebi a motocicleta nas condições registradas neste termo.</p>
 
         <div class="govbr-sign-grid">
@@ -2654,7 +2771,7 @@ function gerarHtmlContratoPadraoCompleto(d) {
             <div class="govbr-sign-box">
                 <div class="govbr-sign-badge">ASSINATURA GOV.BR — ANEXO I (VISTORIA)</div>
                 <div style="border-top: 1px solid #1e293b; padding-top: 6px; font-size: 12px;">
-                    <strong>Assinatura do LOCATÁRIO:</strong> ${v('gov-locatario-nome', '___________________________')}
+                    <strong>Assinatura do LOCATÁRIO:</strong> ${v('gov-locatario-nome', '__________________________________')}
                 </div>
             </div>
         </div>
@@ -2662,14 +2779,14 @@ function gerarHtmlContratoPadraoCompleto(d) {
         <hr style="margin: 24px 0; border: none; border-top: 1px solid #cbd5e1;">
 
         <h4>ANEXO II — CONDIÇÕES FINANCEIRAS</h4>
-        <p><strong>Valor do aluguel semanal:</strong> R$ ${v('gov-fin-semanal', '________________________________')} (${v('gov-fin-semanal-extenso', '____________________')})<br>
-        <strong>Dia e horário do vencimento:</strong> Toda ${v('gov-fin-dia-venc', '________________')} até as ${v('gov-fin-hora-venc', '______')} horas<br>
-        <strong>Valor da caução:</strong> R$ ${v('gov-fin-caucao', '________________________________________')}<br>
-        <strong>Forma de pagamento:</strong> ${v('gov-fin-forma-pag', '______________________________________')}<br>
-        <strong>Chave PIX ou dados para pagamento:</strong> ${v('gov-anexo2-pix', '_________________________')}<br>
-        <strong>Prazo de devolução da caução após a conferência:</strong> ${v('gov-anexo2-prazo-caucao', '______________')}<br>
-        <strong>Uso autorizado da motocicleta:</strong> ${v('gov-anexo2-uso', '______________________________')}<br>
-        <strong>Outras condições acordadas:</strong> ${v('gov-anexo2-outras', '________________________________')}</p>
+        <p>Valor do aluguel semanal: R$ ${v('gov-fin-semanal', '________________________________')} (${v('gov-fin-semanal-extenso', '____________________')})<br>
+        Dia e horário do vencimento: Toda ${v('gov-fin-dia-venc', '________________')} até as ${v('gov-fin-hora-venc', '______')} horas<br>
+        Valor da caução: R$ ${v('gov-fin-caucao', '________________________________________')}<br>
+        Forma de pagamento: ${v('gov-fin-forma-pag', '______________________________________')}<br>
+        Chave PIX ou dados para pagamento: ${v('gov-anexo2-pix', '_________________________')}<br>
+        Prazo para devolução da caução após a conferência: ${v('gov-anexo2-prazo-caucao', '______________')}<br>
+        Uso autorizado da motocicleta: ${v('gov-anexo2-uso', '______________________________')}<br>
+        Outras condições acordadas: ${v('gov-anexo2-outras', '________________________________')}</p>
 
         <div class="govbr-sign-grid">
             <div class="govbr-sign-box">
@@ -2681,7 +2798,7 @@ function gerarHtmlContratoPadraoCompleto(d) {
             <div class="govbr-sign-box">
                 <div class="govbr-sign-badge">ASSINATURA GOV.BR — ANEXO II (FINANCEIRO)</div>
                 <div style="border-top: 1px solid #1e293b; padding-top: 6px; font-size: 12px;">
-                    <strong>Assinatura do LOCATÁRIO:</strong> ${v('gov-locatario-nome', '___________________________')}
+                    <strong>Assinatura do LOCATÁRIO:</strong> ${v('gov-locatario-nome', '__________________________________')}
                 </div>
             </div>
         </div>
