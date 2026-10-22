@@ -997,3 +997,99 @@ textarea {
     font-size: 0.98rem;
     color: var(--text-main);
 }
+
+/* ==================================================
+   MARCADOR DA MOTO & RADAR CHIP IOT NO MAPA AO VIVO
+===================================================== */
+.leaflet-marker-icon.moto-live-div-icon {
+    background: transparent !important;
+    border: none !important;
+    transition: transform 1.8s linear;
+}
+
+.moto-iot-marker-wrap {
+    position: relative;
+    width: 56px;
+    height: 56px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.moto-iot-pulse-ring {
+    position: absolute;
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background: rgba(16, 185, 129, 0.28);
+    border: 2px solid #10b981;
+    animation: motoRadarPulse 1.8s infinite ease-out;
+    pointer-events: none;
+}
+
+.moto-iot-pulse-ring.blocked {
+    background: rgba(239, 68, 68, 0.28);
+    border-color: #ef4444;
+}
+
+@keyframes motoRadarPulse {
+    0% {
+        transform: scale(0.65);
+        opacity: 1;
+    }
+    100% {
+        transform: scale(1.85);
+        opacity: 0;
+    }
+}
+
+.moto-iot-pin {
+    position: relative;
+    z-index: 3;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #0284c7 0%, #0f172a 100%);
+    border: 3px solid #ffffff;
+    box-shadow: 0 4px 14px rgba(15, 23, 42, 0.55);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #ffffff;
+    font-size: 1.05rem;
+}
+
+.moto-iot-pin.blocked {
+    background: linear-gradient(135deg, #dc2626 0%, #7f1d1d 100%);
+}
+
+.moto-iot-floating-card {
+    position: absolute;
+    bottom: 54px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(15, 23, 42, 0.94);
+    color: #f8fafc;
+    padding: 6px 11px;
+    border-radius: 8px;
+    border: 1.5px solid #38bdf8;
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
+    white-space: nowrap;
+    font-family: 'Inter', sans-serif;
+    font-size: 0.73rem;
+    line-height: 1.35;
+    z-index: 4;
+    pointer-events: none;
+}
+
+.moto-iot-floating-card::after {
+    content: '';
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    border-width: 6px;
+    border-style: solid;
+    border-color: #38bdf8 transparent transparent transparent;
+}
+

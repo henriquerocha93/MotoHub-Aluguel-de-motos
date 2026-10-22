@@ -6,7 +6,9 @@
     <title>FACILITA MOTO CRM - Aluguel de Motos</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="style.css">
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 </head>
 <body>
@@ -1226,13 +1228,38 @@
                     </div>
                 </div>
 
-                <!-- Mapa Pré-Configurado (Porto Alegre / RS) -->
-                <div style="border:1px solid var(--border); border-radius:10px; overflow:hidden; margin-bottom:16px; position:relative; background:#0f172a;">
-                    <iframe id="rast-map-iframe" width="100%" height="250" frameborder="0" style="border:0; display:block;"
-                        src="https://www.openstreetmap.org/export/embed.html?bbox=-51.2600%2C-30.0600%2C-51.1600%2C-29.9900&amp;layer=mapnik&amp;marker=-30.0346%2C-51.2177">
-                    </iframe>
-                    <div style="padding:10px 14px; background:#0f172a; color:#f8fafc; font-size:0.8rem; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
-                        <span id="rast-ultima-sync"><i class="fa-solid fa-sim-card" style="color:#38bdf8;"></i> Telemetria M2M via Chip IoT Ativa • Rastreamento em tempo real</span>
+                <!-- Mapa Interativo em Tempo Real com a Moto & Telemetria Chip IoT -->
+                <div style="border:2px solid #0284c7; border-radius:12px; overflow:hidden; margin-bottom:16px; position:relative; background:#0f172a; box-shadow:0 8px 24px rgba(2,132,199,0.18);">
+                    <!-- HUD Superior de Rastreamento Ao Vivo -->
+                    <div style="padding:8px 14px; background:linear-gradient(90deg, #0f172a 0%, #1e293b 100%); color:#fff; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; border-bottom:1px solid #334155;">
+                        <div style="display:flex; align-items:center; gap:8px; font-size:0.8rem; font-weight:700;">
+                            <span id="rast-live-dot" style="width:10px; height:10px; border-radius:50%; background:#10b981; display:inline-block; box-shadow:0 0 10px #10b981; animation:pulseGps 1.2s infinite;"></span>
+                            <span id="rast-live-badge-text" style="color:#38bdf8; letter-spacing:0.3px;">RASTREAMENTO EM TEMPO REAL ATIVO</span>
+                            <span id="rast-live-velocidade" style="background:#1e293b; border:1px solid #475569; padding:2px 8px; border-radius:999px; font-size:0.75rem; color:#f8fafc;">38 km/h • Ignição ON</span>
+                        </div>
+                        <div style="display:flex; gap:6px; align-items:center;">
+                            <button type="button" class="btn btn-secondary btn-sm" style="padding:3px 9px; font-size:0.73rem; background:#1e293b; color:#38bdf8; border:1px solid #334155;" onclick="centralizarMapaNaMoto()">
+                                <i class="fa-solid fa-location-crosshairs"></i> Centralizar na Moto
+                            </button>
+                            <button type="button" class="btn btn-secondary btn-sm" style="padding:3px 9px; font-size:0.73rem; background:#1e293b; color:#e2e8f0; border:1px solid #334155;" onclick="alternarCamadaMapaRastreador()">
+                                <i class="fa-solid fa-layer-group"></i> Rua / Satélite
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Container do Mapa Interativo com a Moto em Movimento -->
+                    <div id="rast-live-map" style="width:100%; height:310px; position:relative; z-index:1; background:#e2e8f0;"></div>
+
+                    <!-- Barra Inferior de Endereço em Tempo Real e Telemetria M2M -->
+                    <div style="padding:10px 14px; background:#0f172a; color:#f8fafc; font-size:0.8rem; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; border-top:1px solid #334155;">
+                        <div>
+                            <div id="rast-endereco-atual" style="font-weight:700; color:#f8fafc; margin-bottom:2px;">
+                                <i class="fa-solid fa-location-dot" style="color:#10b981;"></i> Localizando motocicleta via Chip IoT...
+                            </div>
+                            <span id="rast-ultima-sync" style="font-size:0.74rem; color:#94a3b8;">
+                                <i class="fa-solid fa-sim-card" style="color:#38bdf8;"></i> Telemetria M2M via Chip IoT Ativa • Rastreamento em tempo real
+                            </span>
+                        </div>
                         <a id="rast-external-link" href="#" target="_blank" style="color:#38bdf8; display:none; font-weight:600;">Abrir Painel da Operadora IoT <i class="fa-solid fa-up-right-from-square"></i></a>
                     </div>
                 </div>

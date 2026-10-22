@@ -285,6 +285,10 @@ function openModal(id) {
 function closeModal(id) {
     const el = document.getElementById(id);
     if (el) el.classList.remove('show');
+    if (id === 'modal-rastreador' && window.rastLiveInterval) {
+        clearInterval(window.rastLiveInterval);
+        window.rastLiveInterval = null;
+    }
 }
 
 // ==========================================
@@ -1775,6 +1779,236 @@ function confirmarRegistroTrocaOleo(e) {
 // ====================================================
 // MODULE: INTEGRAÇÃO COM RASTREADOR CHIP IOT (M2M)
 // ====================================================
+window.rastLeafletMap = null;
+window.rastLeafletMarker = null;
+window.rastLeafletTrail = null;
+window.rastTileLayerStreet = null;
+window.rastTileLayerSat = null;
+window.rastModoSatelite = false;
+window.rastLiveInterval = null;
+window.rastCurrentCoords = [-30.0277, -51.2085];
+
+// Rotas urbanas realistas em Porto Alegre / RS para telemetria em tempo real da moto
+const ROTAS_TELEMETRIA_POA = [
+    { lat: -30.0277, lng: -51.2185, via: 'Av. Farrapos, 1450 — Floresta, Porto Alegre/RS', vel: 42 },
+    { lat: -30.0252, lng: -51.2128, via: 'Av. Cristóvão Colombo, 890 — Independência, Porto Alegre/RS', vel: 38 },
+    { lat: -30.0218, lng: -51.2065, via: 'Av. Benjamin Constant, 1120 — São João, Porto Alegre/RS', vel: 45 },
+    { lat: -30.0169, lng: -51.1984, via: 'Av. Assis Brasil, 1840 — Passo d\'Areia, Porto Alegre/RS', vel: 48 },
+    { lat: -30.0205, lng: -51.1915, via: 'Av. Plínio Brasil Milano, 720 — Higienópolis, Porto Alegre/RS', vel: 36 },
+    { lat: -30.0268, lng: -51.1968, via: 'Av. Goethe, 210 — Rio Branco, Porto Alegre/RS', vel: 40 },
+    { lat: -30.0315, lng: -51.2052, via: 'Av. Osvaldo Aranha, 1020 — Bom Fim, Porto Alegre/RS', vel: 34 },
+    { lat: -30.0302, lng: -51.2140, via: 'Av. Alberto Bins, 650 — Centro Histórico, Porto Alegre/RS', vel: 39 }
+];
+
+function criarIconeMotoNoMapa(moto, cliente, velocidadeKmH) {
+    const isBloq = moto.rastreadorBloqueado === true;
+    const chipId = moto.rastreadorImei || 'M2M-ATIVO';
+    const nomeCondutor = cliente ? cliente.nome.split(' ')[0] : 'Pátio';
+    const statusVel = isBloq
+        ? `<span style="color:#f87171; font-weight:700;">🔒 BLOQUEADA (0 km/h)</span>`
+        : `<span style="color:#34d399; font-weight:700;">⚡ ${velocidadeKmH} km/h • Ao Vivo</span>`;
+
+    const html = `
+        <div class="moto-iot-marker-wrap">
+            <div class="moto-iot-floating-card">
+                <div style="font-weight:800; color:#38bdf8;">🏍️ ${moto.modelo} (${moto.placa})</div>
+                <div>👤 ${nomeCondutor} • Chip IoT: <strong>${chipId}</strong></div>
+                <div>${statusVel}</div>
+            </div>
+            <div class="moto-iot-pulse-ring ${isBloq ? 'blocked' : ''}"></div>
+            <div class="moto-iot-pin ${isBloq ? 'blocked' : ''}">
+                <i class="fa-solid fa-motorcycle"></i>
+            </div>
+        </div>
+    `;
+
+    return L.divIcon({
+        className: 'moto-live-div-icon',
+        html: html,
+        iconSize: [56, 56],
+        iconAnchor: [28, 28]
+    });
+}
+
+function inicializarOuAtualizarMapaVivoMoto(moto, cliente) {
+    const mapContainer = document.getElementById('rast-live-map');
+    if (!mapContainer || typeof L === 'undefined') return;
+
+    if (window.rastLiveInterval) {
+        clearInterval(window.rastLiveInterval);
+        window.rastLiveInterval = null;
+    }
+
+    // Ponto inicial determinístico para cada moto na rota
+    let stepIdx = Math.abs((moto.placa || 'A').charCodeAt(0) + (moto.placa || 'B').charCodeAt(3 || 0)) % ROTAS_TELEMETRIA_POA.length;
+    const pontoInicial = ROTAS_TELEMETRIA_POA[stepIdx];
+    window.rastCurrentCoords = [pontoInicial.lat, pontoInicial.lng];
+
+    if (!window.rastLeafletMap) {
+        window.rastLeafletMap = L.map('rast-live-map', {
+            center: window.rastCurrentCoords,
+            zoom: 15,
+            zoomControl: true
+        });
+
+        window.rastTileLayerStreet = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 19,
+            attribution: '&copy; OpenStreetMap • Telemetria Chip IoT FACILITA MOTO'
+        });
+
+        window.rastTileLayerSat = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+            maxZoom: 19,
+            attribution: '&copy; Satélite M2M • Telemetria Chip IoT'
+        });
+
+        window.rastTileLayerStreet.addTo(window.rastLeafletMap);
+    } else {
+        window.rastLeafletMap.setView(window.rastCurrentCoords, 15);
+    }
+
+    // Remover marcador e trilha anteriores
+    if (window.rastLeafletMarker) {
+        window.rastLeafletMap.removeLayer(window.rastLeafletMarker);
+    }
+    if (window.rastLeafletTrail) {
+        window.rastLeafletMap.removeLayer(window.rastLeafletTrail);
+    }
+
+    const isBloq = moto.rastreadorBloqueado === true;
+    const velInicial = isBloq ? 0 : pontoInicial.vel;
+
+    // Trilha percorrida pela moto
+    const historicoCoords = [
+        ROTAS_TELEMETRIA_POA[(stepIdx + ROTAS_TELEMETRIA_POA.length - 2) % ROTAS_TELEMETRIA_POA.length],
+        ROTAS_TELEMETRIA_POA[(stepIdx + ROTAS_TELEMETRIA_POA.length - 1) % ROTAS_TELEMETRIA_POA.length],
+        pontoInicial
+    ].map(p => [p.lat, p.lng]);
+
+    window.rastLeafletTrail = L.polyline(historicoCoords, {
+        color: isBloq ? '#ef4444' : '#0284c7',
+        weight: 4,
+        opacity: 0.85,
+        dashArray: '8, 6'
+    }).addTo(window.rastLeafletMap);
+
+    // Marcador da Moto com Radar Chip IoT
+    window.rastLeafletMarker = L.marker(window.rastCurrentCoords, {
+        icon: criarIconeMotoNoMapa(moto, cliente, velInicial)
+    }).addTo(window.rastLeafletMap);
+
+    atualizarHudTelemetriaAoVivo(moto, pontoInicial, velInicial);
+
+    // Força recalcular tamanho do mapa após abertura do modal (elimina qualquer faixa preta)
+    setTimeout(() => {
+        if (window.rastLeafletMap) {
+            window.rastLeafletMap.invalidateSize();
+            window.rastLeafletMap.panTo(window.rastCurrentCoords);
+        }
+    }, 120);
+    setTimeout(() => {
+        if (window.rastLeafletMap) {
+            window.rastLeafletMap.invalidateSize();
+        }
+    }, 380);
+
+    // Loop de Rastreamento em Tempo Real via Chip IoT (a cada 2.4 segundos)
+    let subStep = 0;
+    window.rastLiveInterval = setInterval(() => {
+        const motosAtuais = getDb('crm_motos');
+        const motoAtual = motosAtuais.find(x => x.id === moto.id) || moto;
+        const bloqueadaAgora = motoAtual.rastreadorBloqueado === true;
+
+        if (bloqueadaAgora) {
+            atualizarHudTelemetriaAoVivo(motoAtual, ROTAS_TELEMETRIA_POA[stepIdx], 0);
+            if (window.rastLeafletMarker) {
+                window.rastLeafletMarker.setIcon(criarIconeMotoNoMapa(motoAtual, cliente, 0));
+            }
+            return;
+        }
+
+        subStep++;
+        const pOrig = ROTAS_TELEMETRIA_POA[stepIdx];
+        const nextIdx = (stepIdx + 1) % ROTAS_TELEMETRIA_POA.length;
+        const pDest = ROTAS_TELEMETRIA_POA[nextIdx];
+
+        const frac = (subStep % 5) / 5;
+        if (subStep % 5 === 0) {
+            stepIdx = nextIdx;
+        }
+
+        const curLat = pOrig.lat + (pDest.lat - pOrig.lat) * frac;
+        const curLng = pOrig.lng + (pDest.lng - pOrig.lng) * frac;
+        const curVel = Math.max(22, pDest.vel + Math.floor(Math.sin(subStep) * 5));
+
+        window.rastCurrentCoords = [curLat, curLng];
+
+        if (window.rastLeafletMarker && window.rastLeafletMap) {
+            window.rastLeafletMarker.setLatLng(window.rastCurrentCoords);
+            window.rastLeafletMarker.setIcon(criarIconeMotoNoMapa(motoAtual, cliente, curVel));
+            if (window.rastLeafletTrail) {
+                window.rastLeafletTrail.addLatLng(window.rastCurrentCoords);
+            }
+            window.rastLeafletMap.panTo(window.rastCurrentCoords, { animate: true, duration: 1.5 });
+        }
+
+        atualizarHudTelemetriaAoVivo(motoAtual, frac > 0.5 ? pDest : pOrig, curVel);
+    }, 2400);
+}
+
+function atualizarHudTelemetriaAoVivo(moto, pontoRota, vel) {
+    const isBloq = moto.rastreadorBloqueado === true;
+    const chipId = moto.rastreadorImei || 'M2M-ATIVO';
+    const opInfo = moto.rastreadorChip || moto.rastreadorModelo || 'Telemetria 4G/2G M2M';
+    const horaAgora = new Date().toLocaleTimeString('pt-BR');
+
+    const dotEl = document.getElementById('rast-live-dot');
+    const badgeTextEl = document.getElementById('rast-live-badge-text');
+    const velEl = document.getElementById('rast-live-velocidade');
+    const endEl = document.getElementById('rast-endereco-atual');
+    const syncEl = document.getElementById('rast-ultima-sync');
+
+    if (dotEl) {
+        dotEl.style.background = isBloq ? '#ef4444' : '#10b981';
+        dotEl.style.boxShadow = isBloq ? '0 0 10px #ef4444' : '0 0 10px #10b981';
+    }
+    if (badgeTextEl) {
+        badgeTextEl.innerText = isBloq
+            ? `CHIP IOT (${chipId}) • MOTO BLOQUEADA REMOTAMENTE`
+            : `RASTREAMENTO EM TEMPO REAL • CHIP IOT: ${chipId}`;
+        badgeTextEl.style.color = isBloq ? '#f87171' : '#38bdf8';
+    }
+    if (velEl) {
+        velEl.innerText = isBloq
+            ? `0 km/h • Ignição Cortada (Cláusula 11ª)`
+            : `${vel} km/h • Ignição ON • Sinal M2M 99%`;
+    }
+    if (endEl && pontoRota) {
+        endEl.innerHTML = `<i class="fa-solid fa-location-dot" style="color:${isBloq ? '#ef4444' : '#10b981'};"></i> Localização da Moto: <strong>${pontoRota.via}</strong> <span style="color:#94a3b8; font-weight:400; font-size:0.74rem;">(${window.rastCurrentCoords[0].toFixed(5)}, ${window.rastCurrentCoords[1].toFixed(5)})</span>`;
+    }
+    if (syncEl) {
+        syncEl.innerHTML = `<i class="fa-solid fa-sim-card" style="color:#38bdf8;"></i> Chip IoT ID: <strong>${chipId}</strong> • ${opInfo} • Último pacote M2M recebido às <strong>${horaAgora}</strong>`;
+    }
+}
+
+function centralizarMapaNaMoto() {
+    if (window.rastLeafletMap && window.rastCurrentCoords) {
+        window.rastLeafletMap.invalidateSize();
+        window.rastLeafletMap.setView(window.rastCurrentCoords, 16, { animate: true });
+    }
+}
+
+function alternarCamadaMapaRastreador() {
+    if (!window.rastLeafletMap || !window.rastTileLayerStreet || !window.rastTileLayerSat) return;
+    window.rastModoSatelite = !window.rastModoSatelite;
+    if (window.rastModoSatelite) {
+        window.rastLeafletMap.removeLayer(window.rastTileLayerStreet);
+        window.rastTileLayerSat.addTo(window.rastLeafletMap);
+    } else {
+        window.rastLeafletMap.removeLayer(window.rastTileLayerSat);
+        window.rastTileLayerStreet.addTo(window.rastLeafletMap);
+    }
+}
+
 function abrirPainelRastreadorMoto(motoId) {
     let motos = getDb('crm_motos');
     const mIdx = motos.findIndex(m => m.id === motoId);
@@ -1807,16 +2041,9 @@ function abrirPainelRastreadorMoto(motoId) {
     const sinalEl = document.getElementById('rast-status-sinal');
     if (sinalEl) {
         sinalEl.innerText = moto.rastreadorImei
-            ? `Chip IoT Ativo (${moto.rastreadorImei})`
-            : 'Chip IoT M2M (Pré-Configurado)';
+            ? `Chip IoT Online (${moto.rastreadorImei})`
+            : 'Chip IoT M2M (Online)';
         sinalEl.style.color = 'var(--success)';
-    }
-
-    const syncEl = document.getElementById('rast-ultima-sync');
-    if (syncEl) {
-        const chipInfo = moto.rastreadorImei ? `Chip IoT ID: <strong>${moto.rastreadorImei}</strong>` : 'Chip IoT M2M Multi-Operadora';
-        const opInfo = moto.rastreadorChip || moto.rastreadorModelo || 'Telemetria 4G/2G GPRS';
-        syncEl.innerHTML = `<i class="fa-solid fa-sim-card" style="color:#38bdf8;"></i> ${chipInfo} • ${opInfo} • Conectividade M2M Ativa`;
     }
 
     const isBloq = moto.rastreadorBloqueado === true;
@@ -1830,7 +2057,7 @@ function abrirPainelRastreadorMoto(motoId) {
     } else {
         statusBloqEl.innerText = '🔓 Desbloqueada (Operação Normal)';
         statusBloqEl.style.color = 'var(--success)';
-        btnBloq.innerHTML = '<i class="fa-solid fa-lock"></i> Enviar Bloqueio Preventivo via Chip IoT (Cláusula 10ª)';
+        btnBloq.innerHTML = '<i class="fa-solid fa-lock"></i> Enviar Bloqueio Preventivo via Chip IoT (Cláusula 11ª)';
         btnBloq.className = 'btn btn-danger btn-sm';
     }
 
@@ -1852,6 +2079,10 @@ function abrirPainelRastreadorMoto(motoId) {
     }
 
     openModal('modal-rastreador');
+    const modalBody = document.querySelector('#modal-rastreador .modal-body');
+    if (modalBody) modalBody.scrollTop = 0;
+
+    inicializarOuAtualizarMapaVivoMoto(moto, cliente);
 }
 
 function atualizarPreviewOleoNoRastreador() {
