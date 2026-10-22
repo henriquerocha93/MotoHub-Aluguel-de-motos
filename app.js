@@ -243,6 +243,12 @@ function openModal(id) {
         document.getElementById('moto-km-atual').value = '0';
         document.getElementById('moto-km-ultima-troca').value = '0';
         document.getElementById('moto-km-proxima-troca').value = '1000';
+        popularSelectClienteModalMoto('');
+        const nextWeek = new Date();
+        nextWeek.setDate(nextWeek.getDate() + 7);
+        if (document.getElementById('moto-vencimento-aluguel')) {
+            document.getElementById('moto-vencimento-aluguel').value = nextWeek.toISOString().split('T')[0];
+        }
     }
     if (id === 'modal-contrato') {
         document.getElementById('form-contrato').reset();
@@ -517,14 +523,31 @@ function renderDashboard() {
                     const linkW = numW ? `<a href="https://wa.me/55${numW}" target="_blank" title="Falar no WhatsApp" style="color:#25d366; margin-left:6px; font-size:1rem;"><i class="fa-brands fa-whatsapp"></i></a>` : '';
                     locatarioHtml = `
                         <div>
-                            <strong style="color:var(--text-main); font-size:0.92rem;"><i class="fa-solid fa-user-check" style="color:var(--primary);"></i> ${cliente.nome}</strong> ${linkW}<br>
+                            <strong style="color:var(--text-main); font-size:0.92rem;"><i class="fa-solid fa-user-check" style="color:var(--primary);"></i> ${cliente.nome}</strong> ${linkW}
+                            <button class="btn btn-secondary btn-sm" style="padding:2px 7px; font-size:0.7rem; margin-left:6px;" onclick="abrirVinculoClienteMoto('${m.id}')" title="Trocar cliente ou devolver moto">
+                                <i class="fa-solid fa-user-pen"></i> Alterar
+                            </button><br>
                             <span style="font-size:0.78rem; color:var(--text-muted);">Tel: ${cliente.telefone || 'S/N'} • <a href="#" onclick="abrirContratoNoEditorGov('${contrato.id}'); return false;" style="color:var(--primary); font-weight:600;">Ver Contrato Gov.br</a></span>
                         </div>
                     `;
                 } else if (m.status === 'manutencao') {
-                    locatarioHtml = `<span class="badge badge-manutencao"><i class="fa-solid fa-screwdriver-wrench"></i> Em Manutenção</span>`;
+                    locatarioHtml = `
+                        <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+                            <span class="badge badge-manutencao"><i class="fa-solid fa-screwdriver-wrench"></i> Em Manutenção</span>
+                            <button class="btn btn-primary btn-sm" style="padding:3px 8px; font-size:0.72rem;" onclick="abrirVinculoClienteMoto('${m.id}')">
+                                <i class="fa-solid fa-user-plus"></i> Apontar Cliente
+                            </button>
+                        </div>
+                    `;
                 } else {
-                    locatarioHtml = `<span class="badge badge-disponivel"><i class="fa-solid fa-circle-check"></i> Disponível na Loja</span>`;
+                    locatarioHtml = `
+                        <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+                            <span class="badge badge-disponivel"><i class="fa-solid fa-circle-check"></i> Disponível</span>
+                            <button class="btn btn-primary btn-sm" style="padding:4px 10px; font-size:0.75rem;" onclick="abrirVinculoClienteMoto('${m.id}')">
+                                <i class="fa-solid fa-user-plus"></i> Apontar Cliente
+                            </button>
+                        </div>
+                    `;
                 }
 
                 // Vencimento do Aluguel
@@ -978,6 +1001,99 @@ function calcularProxTrocaModalMoto() {
     }
 }
 
+function popularSelectClienteModalMoto(selectedClienteId = '') {
+    const sel = document.getElementById('moto-cliente-vinculado');
+    if (!sel) return;
+    const clientes = getDb('crm_clientes');
+    sel.innerHTML = '<option value="">-- Nenhum (Disponível no Pátio) --</option>';
+    clientes.forEach(c => {
+        sel.innerHTML += `<option value="${c.id}" ${c.id === selectedClienteId ? 'selected' : ''}>${c.nome} (${c.telefone || 'S/N'})</option>`;
+    });
+}
+
+function onSelectClienteModalMoto() {
+    const selCli = document.getElementById('moto-cliente-vinculado');
+    const selStatus = document.getElementById('moto-status');
+    const inputSemanal = document.getElementById('moto-valor-semanal');
+    const inputDiaria = document.getElementById('moto-valor');
+    if (!selCli || !selStatus) return;
+
+    if (selCli.value) {
+        selStatus.value = 'alugada';
+        if (inputSemanal && !inputSemanal.value && inputDiaria && inputDiaria.value) {
+            inputSemanal.value = (parseFloat(inputDiaria.value) * 7).toFixed(2);
+        }
+    } else if (selStatus.value === 'alugada') {
+        selStatus.value = 'disponivel';
+    }
+}
+
+function onChangeStatusModalMoto() {
+    const selStatus = document.getElementById('moto-status');
+    const selCli = document.getElementById('moto-cliente-vinculado');
+    if (selStatus && selCli && selStatus.value !== 'alugada') {
+        selCli.value = '';
+    }
+}
+
+function sincronizarContratoVinculoMoto(motoId, clienteId, dataInicio, dataProxVenc, valorSemanal, valorCaucao, diariaVal) {
+    let contratos = getDb('crm_contratos');
+    const cAtivoIdx = contratos.findIndex(c => c.motoId === motoId && c.status === 'ativo');
+
+    if (!clienteId) {
+        if (cAtivoIdx > -1) {
+            contratos[cAtivoIdx].status = 'encerrado';
+            contratos[cAtivoIdx].fim = new Date().toISOString().split('T')[0];
+            saveDb('crm_contratos', contratos);
+        }
+        return null;
+    }
+
+    const hoje = new Date().toISOString().split('T')[0];
+    const dProx = dataProxVenc || (() => {
+        const d = new Date();
+        d.setDate(d.getDate() + 7);
+        return d.toISOString().split('T')[0];
+    })();
+
+    let contratoSalvo = null;
+    if (cAtivoIdx > -1) {
+        contratos[cAtivoIdx].clienteId = clienteId;
+        contratos[cAtivoIdx].dataProxVenc = dProx;
+        if (valorSemanal) contratos[cAtivoIdx].valorSemanal = valorSemanal;
+        if (valorCaucao !== undefined && valorCaucao !== '') contratos[cAtivoIdx].caucao = valorCaucao;
+        contratoSalvo = contratos[cAtivoIdx];
+    } else {
+        contratoSalvo = {
+            id: generateId(),
+            clienteId: clienteId,
+            motoId: motoId,
+            inicio: dataInicio || hoje,
+            fim: '',
+            dataProxVenc: dProx,
+            caucao: valorCaucao || '500.00',
+            valorSemanal: valorSemanal || ((parseFloat(diariaVal) || 0) * 7).toFixed(2),
+            diariaFechada: parseFloat(diariaVal) || 0,
+            formaPagamento: 'PIX',
+            status: 'ativo',
+            dadosContratoGov: null
+        };
+        contratos.push(contratoSalvo);
+    }
+
+    saveDb('crm_contratos', contratos);
+
+    // Garantir que o status do cliente passe para fechado
+    let clientes = getDb('crm_clientes');
+    const cliIdx = clientes.findIndex(c => c.id === clienteId);
+    if (cliIdx > -1 && clientes[cliIdx].status !== 'fechado') {
+        clientes[cliIdx].status = 'fechado';
+        saveDb('crm_clientes', clientes);
+    }
+
+    return contratoSalvo;
+}
+
 document.getElementById('form-moto')?.addEventListener('submit', function(e) {
     e.preventDefault();
     const idObj = document.getElementById('moto-id').value;
@@ -990,6 +1106,15 @@ document.getElementById('form-moto')?.addEventListener('submit', function(e) {
     const kmUltimaTroca = parseInt(document.getElementById('moto-km-ultima-troca')?.value) || 0;
     const kmProximaTroca = kmUltimaTroca + intervalo;
 
+    const clienteVinculadoId = document.getElementById('moto-cliente-vinculado')?.value || '';
+    const vencimentoAluguel = document.getElementById('moto-vencimento-aluguel')?.value || '';
+    const valorSemanalModal = document.getElementById('moto-valor-semanal')?.value || '';
+
+    let statusFinal = document.getElementById('moto-status').value;
+    if (clienteVinculadoId) {
+        statusFinal = 'alugada';
+    }
+
     const moto = {
         id: idObj || generateId(),
         placa: document.getElementById('moto-placa').value.toUpperCase(),
@@ -999,7 +1124,7 @@ document.getElementById('form-moto')?.addEventListener('submit', function(e) {
         renavam: document.getElementById('moto-renavam')?.value || '',
         chassi: document.getElementById('moto-chassi')?.value || '',
         valor: document.getElementById('moto-valor').value,
-        status: document.getElementById('moto-status').value,
+        status: statusFinal,
         foto: document.getElementById('moto-foto-base64').value,
         kmAtual: kmAtual,
         kmUltimaTroca: kmUltimaTroca,
@@ -1015,27 +1140,26 @@ document.getElementById('form-moto')?.addEventListener('submit', function(e) {
 
     if (idObj) {
         motos = motos.map(m => m.id === idObj ? moto : m);
-
-        if (moto.status === 'disponivel') {
-            let contratos = getDb('crm_contratos');
-            let contratoModificado = false;
-            contratos = contratos.map(c => {
-                if (c.motoId === idObj && c.status === 'ativo') {
-                    c.status = 'encerrado';
-                    c.fim = new Date().toISOString().split('T')[0];
-                    contratoModificado = true;
-                }
-                return c;
-            });
-            if (contratoModificado) {
-                saveDb('crm_contratos', contratos);
-            }
-        }
     } else {
         motos.push(moto);
     }
 
     saveDb('crm_motos', motos);
+
+    if (clienteVinculadoId) {
+        sincronizarContratoVinculoMoto(
+            moto.id,
+            clienteVinculadoId,
+            new Date().toISOString().split('T')[0],
+            vencimentoAluguel,
+            valorSemanalModal,
+            undefined,
+            moto.valor
+        );
+    } else if (moto.status !== 'alugada') {
+        sincronizarContratoVinculoMoto(moto.id, '', '', '', '', '', moto.valor);
+    }
+
     closeModal('modal-moto');
     updateViews();
 });
@@ -1055,7 +1179,14 @@ function renderFrota() {
     filtered.forEach(m => {
         let badgeClass = 'badge-disponivel';
         let statusLabel = 'Disponível';
-        let infoLocacao = `<span style="color:var(--text-muted); font-size:0.8rem;">Disponível no pátio</span>`;
+        let infoLocacao = `
+            <div style="margin-top:5px; display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+                <span style="color:var(--text-muted); font-size:0.8rem;">Disponível no pátio</span>
+                <button class="btn btn-primary btn-sm" style="padding:3px 9px; font-size:0.74rem;" onclick="abrirVinculoClienteMoto('${m.id}')">
+                    <i class="fa-solid fa-user-plus"></i> Apontar Cliente
+                </button>
+            </div>
+        `;
 
         const { contrato, cliente } = getCondutorContratoAtivo(m.id, contratos, clientes);
 
@@ -1069,8 +1200,20 @@ function renderFrota() {
                     <div style="margin-top:4px;">
                         <span style="font-size:0.82rem; color:var(--primary); font-weight:700;">
                             <i class="fa-solid fa-user-tag"></i> Com: ${cliente.nome}
-                        </span><br>
+                        </span>
+                        <button class="btn btn-secondary btn-sm" style="padding:2px 7px; font-size:0.7rem; margin-left:6px;" onclick="abrirVinculoClienteMoto('${m.id}')" title="Trocar cliente, mudar vencimento ou devolver moto">
+                            <i class="fa-solid fa-user-pen"></i> Alterar
+                        </button><br>
                         <span style="font-size:0.76rem; color:var(--text-muted);">Vencimento: <strong>${vInfo.texto}</strong></span>
+                    </div>
+                `;
+            } else {
+                infoLocacao = `
+                    <div style="margin-top:5px; display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+                        <span style="color:var(--danger); font-size:0.78rem; font-weight:600;">Sem cliente apontado</span>
+                        <button class="btn btn-primary btn-sm" style="padding:3px 9px; font-size:0.74rem;" onclick="abrirVinculoClienteMoto('${m.id}')">
+                            <i class="fa-solid fa-user-plus"></i> Apontar Cliente
+                        </button>
                     </div>
                 `;
             }
@@ -1078,7 +1221,14 @@ function renderFrota() {
         if (m.status === 'manutencao') {
             badgeClass = 'badge-manutencao';
             statusLabel = 'Em Manutenção';
-            infoLocacao = `<span style="font-size:0.78rem; color:var(--warning);">Em revisão / oficina</span>`;
+            infoLocacao = `
+                <div style="margin-top:5px; display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+                    <span style="font-size:0.78rem; color:var(--warning);">Em revisão / oficina</span>
+                    <button class="btn btn-secondary btn-sm" style="padding:3px 9px; font-size:0.74rem;" onclick="abrirVinculoClienteMoto('${m.id}')">
+                        <i class="fa-solid fa-user-plus"></i> Apontar Cliente
+                    </button>
+                </div>
+            `;
         }
 
         const oleo = getMotoOleoInfo(m);
@@ -1120,6 +1270,7 @@ function renderFrota() {
             <td><span class="badge ${badgeClass}">${statusLabel}</span></td>
             <td>
                 <div style="display:flex; gap:5px;">
+                    <button class="btn btn-primary btn-sm" onclick="abrirVinculoClienteMoto('${m.id}')" title="Apontar / Trocar Cliente nesta Moto" style="background:var(--primary);"><i class="fa-solid fa-user-check"></i></button>
                     <button class="btn btn-primary btn-sm" onclick="abrirPainelRastreadorMoto('${m.id}')" title="Rastreador GPS / Bloqueio" style="background:#0284c7;"><i class="fa-solid fa-satellite-dish"></i></button>
                     <button class="btn btn-secondary btn-sm" onclick="abrirModalTrocaOleo('${m.id}')" title="Troca de Óleo (1.000 km)"><i class="fa-solid fa-oil-can"></i></button>
                     <button class="btn btn-secondary btn-sm" onclick="abrirEdicaoMoto('${m.id}')" title="Editar Moto"><i class="fa-solid fa-pen"></i></button>
@@ -1146,6 +1297,10 @@ function abrirEdicaoMoto(id) {
     const moto = getDb('crm_motos').find(m => m.id === id);
     if (!moto) return;
 
+    const contratos = getDb('crm_contratos');
+    const clientes = getDb('crm_clientes');
+    const { contrato, cliente } = getCondutorContratoAtivo(moto.id, contratos, clientes);
+
     document.getElementById('moto-id').value = moto.id;
     document.getElementById('moto-placa').value = moto.placa || '';
     document.getElementById('moto-cor').value = moto.cor || '';
@@ -1155,6 +1310,22 @@ function abrirEdicaoMoto(id) {
     if (document.getElementById('moto-chassi')) document.getElementById('moto-chassi').value = moto.chassi || '';
     document.getElementById('moto-status').value = moto.status || 'disponivel';
     document.getElementById('moto-valor').value = moto.valor || '';
+
+    popularSelectClienteModalMoto(cliente ? cliente.id : '');
+    if (document.getElementById('moto-vencimento-aluguel')) {
+        if (contrato && contrato.dataProxVenc) {
+            document.getElementById('moto-vencimento-aluguel').value = contrato.dataProxVenc;
+        } else {
+            const nextWeek = new Date();
+            nextWeek.setDate(nextWeek.getDate() + 7);
+            document.getElementById('moto-vencimento-aluguel').value = nextWeek.toISOString().split('T')[0];
+        }
+    }
+    if (document.getElementById('moto-valor-semanal')) {
+        document.getElementById('moto-valor-semanal').value = (contrato && contrato.valorSemanal)
+            ? contrato.valorSemanal
+            : ((parseFloat(moto.valor) || 0) * 7).toFixed(2);
+    }
 
     const oleo = getMotoOleoInfo(moto);
     if (document.getElementById('moto-km-atual')) document.getElementById('moto-km-atual').value = oleo.kmAtual;
@@ -1174,7 +1345,167 @@ function abrirEdicaoMoto(id) {
         document.getElementById('btn-remover-foto-moto').style.display = 'inline-block';
     }
 
-    document.getElementById('modal-moto-title').innerText = 'Editar Moto, KM & Rastreador';
+    document.getElementById('modal-moto-title').innerText = 'Editar Moto, Cliente & Rastreador';
+}
+
+// ====================================================
+// MODAL RÁPIDO: APONTAR CLIENTE NA MOTO ESCOLHIDA
+// ====================================================
+function abrirVinculoClienteMoto(motoId) {
+    const moto = getDb('crm_motos').find(m => m.id === motoId);
+    if (!moto) return;
+
+    const contratos = getDb('crm_contratos');
+    const clientes = getDb('crm_clientes');
+    const { contrato, cliente } = getCondutorContratoAtivo(moto.id, contratos, clientes);
+
+    document.getElementById('vinc-moto-id').value = moto.id;
+    document.getElementById('vinc-moto-titulo').innerText = `${moto.modelo} (${moto.placa})`;
+    document.getElementById('vinc-moto-subtitulo').innerText = `Cor: ${moto.cor || 'Padrão'} • Ano: ${moto.ano} • Diária: R$ ${parseFloat(moto.valor || 0).toFixed(2)}`;
+
+    const sel = document.getElementById('vinc-cliente-select');
+    sel.innerHTML = '<option value="">-- Selecione um Cliente Cadastrado --</option>';
+    clientes.forEach(c => {
+        sel.innerHTML += `<option value="${c.id}" ${cliente && cliente.id === c.id ? 'selected' : ''}>${c.nome} — ${c.telefone || 'Sem telefone'}</option>`;
+    });
+    sel.innerHTML += '<option value="__novo__">+ Cadastrar Novo Cliente Agora...</option>';
+
+    document.getElementById('vinc-novo-cliente-box').style.display = 'none';
+    document.getElementById('vinc-novo-nome').value = '';
+    document.getElementById('vinc-novo-telefone').value = '';
+    document.getElementById('vinc-novo-cpf').value = '';
+
+    const hoje = new Date().toISOString().split('T')[0];
+    document.getElementById('vinc-data-inicio').value = contrato && contrato.inicio ? contrato.inicio : hoje;
+
+    if (contrato && contrato.dataProxVenc) {
+        document.getElementById('vinc-data-vencimento').value = contrato.dataProxVenc;
+    } else {
+        const nextWeek = new Date();
+        nextWeek.setDate(nextWeek.getDate() + 7);
+        document.getElementById('vinc-data-vencimento').value = nextWeek.toISOString().split('T')[0];
+    }
+
+    document.getElementById('vinc-valor-semanal').value = contrato && contrato.valorSemanal
+        ? contrato.valorSemanal
+        : ((parseFloat(moto.valor) || 0) * 7).toFixed(2);
+    document.getElementById('vinc-valor-caucao').value = contrato && contrato.caucao ? contrato.caucao : '500.00';
+
+    const btnDesvincular = document.getElementById('btn-desvincular-cliente-moto');
+    if (btnDesvincular) {
+        btnDesvincular.style.display = (moto.status === 'alugada' || contrato) ? 'block' : 'none';
+    }
+
+    openModal('modal-vincular-cliente-moto');
+}
+
+function toggleNovoClienteRapidoVinculo() {
+    const sel = document.getElementById('vinc-cliente-select');
+    const box = document.getElementById('vinc-novo-cliente-box');
+    if (sel && box) {
+        box.style.display = sel.value === '__novo__' ? 'block' : 'none';
+    }
+}
+
+function calcularVencimentoVinculoRapido() {
+    const inicioStr = document.getElementById('vinc-data-inicio')?.value;
+    const vencInput = document.getElementById('vinc-data-vencimento');
+    if (inicioStr && vencInput) {
+        const d = new Date(inicioStr + 'T00:00:00');
+        d.setDate(d.getDate() + 7);
+        vencInput.value = d.toISOString().split('T')[0];
+    }
+}
+
+function executarSalvamentoVinculoRapido() {
+    const motoId = document.getElementById('vinc-moto-id').value;
+    let clienteId = document.getElementById('vinc-cliente-select').value;
+
+    if (!clienteId) {
+        alert('Selecione um cliente cadastrado ou escolha "+ Cadastrar Novo Cliente Agora...".');
+        return null;
+    }
+
+    if (clienteId === '__novo__') {
+        const novoNome = document.getElementById('vinc-novo-nome').value.trim();
+        const novoTel = document.getElementById('vinc-novo-telefone').value.trim();
+        const novoCpf = document.getElementById('vinc-novo-cpf').value.trim();
+        if (!novoNome || !novoTel) {
+            alert('Informe o Nome e Telefone do novo cliente.');
+            return null;
+        }
+        const novoCli = {
+            id: generateId(),
+            nome: novoNome,
+            telefone: novoTel,
+            cpf: novoCpf,
+            email: '',
+            rg: '',
+            cnh: '',
+            cnhCat: 'A',
+            cnhValidade: '',
+            endereco: '',
+            fotoCnh: '',
+            status: 'fechado',
+            notas: []
+        };
+        let clientes = getDb('crm_clientes');
+        clientes.push(novoCli);
+        saveDb('crm_clientes', clientes);
+        clienteId = novoCli.id;
+    }
+
+    const dataInicio = document.getElementById('vinc-data-inicio').value;
+    const dataVenc = document.getElementById('vinc-data-vencimento').value;
+    const valSemanal = document.getElementById('vinc-valor-semanal').value;
+    const valCaucao = document.getElementById('vinc-valor-caucao').value;
+
+    let motos = getDb('crm_motos');
+    const mIdx = motos.findIndex(m => m.id === motoId);
+    if (mIdx === -1) return null;
+
+    motos[mIdx].status = 'alugada';
+    saveDb('crm_motos', motos);
+
+    const contrato = sincronizarContratoVinculoMoto(
+        motoId,
+        clienteId,
+        dataInicio,
+        dataVenc,
+        valSemanal,
+        valCaucao,
+        motos[mIdx].valor
+    );
+
+    closeModal('modal-vincular-cliente-moto');
+    updateViews();
+    return contrato;
+}
+
+function salvarVinculoRapidoClienteMoto(e) {
+    e.preventDefault();
+    executarSalvamentoVinculoRapido();
+}
+
+function salvarVinculoEAbrirContratoGov() {
+    const contrato = executarSalvamentoVinculoRapido();
+    if (contrato && contrato.id) {
+        abrirContratoNoEditorGov(contrato.id);
+    }
+}
+
+function desvincularClienteDaMotoAtual() {
+    if (!confirm('Deseja desvincular o cliente atual e colocar esta moto como Disponível no pátio?')) return;
+    const motoId = document.getElementById('vinc-moto-id').value;
+    let motos = getDb('crm_motos');
+    const mIdx = motos.findIndex(m => m.id === motoId);
+    if (mIdx > -1) {
+        motos[mIdx].status = 'disponivel';
+        saveDb('crm_motos', motos);
+    }
+    sincronizarContratoVinculoMoto(motoId, '', '', '', '', '', 0);
+    closeModal('modal-vincular-cliente-moto');
+    updateViews();
 }
 
 // ====================================================
