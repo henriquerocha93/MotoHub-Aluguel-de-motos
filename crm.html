@@ -460,11 +460,47 @@
 
                     <div id="pagamentos-alert-box"></div>
 
+                    <!-- BARRA DE AUTOMAÇÃO: API MERCADO PAGO PIX + NOTIFICAÇÃO 08:00H + BLOQUEIO AUTOMÁTICO 18:00H -->
+                    <div class="card" style="margin-bottom:22px; border:1px solid #bae6fd; border-left:5px solid #009ee3; background:linear-gradient(90deg, #f0f9ff 0%, #f8fafc 100%); padding:16px 20px;">
+                        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:14px;">
+                            <div style="flex:1; min-width:280px;">
+                                <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:6px;">
+                                    <span style="background:#009ee3; color:#fff; font-weight:800; font-size:0.75rem; padding:3px 10px; border-radius:999px; display:inline-flex; align-items:center; gap:5px;">
+                                        <i class="fa-solid fa-qrcode"></i> API MERCADO PAGO PIX ATIVA
+                                    </span>
+                                    <span style="background:#fef3c7; color:#92400e; font-weight:700; font-size:0.74rem; padding:3px 9px; border-radius:999px;">
+                                        ☀️ 08:00h: Notificação Individual + Aviso Bloqueio
+                                    </span>
+                                    <span style="background:#fee2e2; color:#991b1b; font-weight:700; font-size:0.74rem; padding:3px 9px; border-radius:999px;">
+                                        🛑 18:00h: Bloqueio Automático s/ PIX
+                                    </span>
+                                    <span style="background:#d1fae5; color:#065f46; font-weight:700; font-size:0.74rem; padding:3px 9px; border-radius:999px;">
+                                        🔓 Liberação Automática Pós-PIX
+                                    </span>
+                                </div>
+                                <h3 style="font-size:0.98rem; color:#0f172a; margin-bottom:4px;">
+                                    Régua Automática: Cobrança Semanal PIX (08:00h), Bloqueio no Rastreador (18:00h) &amp; Troca de Óleo Individual
+                                </h3>
+                                <p id="mp-regua-resumo-status" style="font-size:0.8rem; color:#334155; margin:0; line-height:1.4;">
+                                    O sistema notifica individualmente cada locatário às <strong>08:00h da manhã</strong> do dia do vencimento com a cobrança PIX do Mercado Pago e aviso de bloqueio até as <strong>18:00h</strong>. Se o PIX não for confirmado até as <strong>18:00h</strong>, o sistema envia automaticamente o comando de <strong>BLOQUEIO</strong> para o bloqueador da moto e só libera após confirmação do PIX.
+                                </p>
+                            </div>
+                            <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
+                                <button type="button" class="btn btn-primary btn-sm" style="background:#009ee3; border:none;" onclick="openModal('modal-config-mercadopago')">
+                                    <i class="fa-solid fa-sliders"></i> Configurar API Mercado Pago &amp; Horários (08h / 18h)
+                                </button>
+                                <button type="button" class="btn btn-secondary btn-sm" style="background:#0f172a; color:#fff; border:none;" onclick="executarReguaCompletaManual()" title="Verifica todos os contratos e motos agora: dispara avisos das 08:00h, troca de óleo e aplica bloqueio automático das 18:00h nos inadimplentes">
+                                    <i class="fa-solid fa-bolt" style="color:#fbbf24;"></i> Rodar Automação 08h / 18h Agora
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
                     <div class="card table-card" style="margin-bottom:26px; border-top:4px solid #10b981;">
                         <div class="section-card-header">
                             <div>
-                                <h3><i class="fa-solid fa-hand-holding-dollar" style="color:#10b981;"></i> Controle de Pagamentos Semanais Ativos (Por Moto & Locatário)</h3>
-                                <span style="font-size:0.8rem; color:var(--text-muted);">Confirme pagamentos semanais (+7 dias), envie cobranças ou lembretes automáticos via WhatsApp e acompanhe os vencimentos.</span>
+                                <h3><i class="fa-solid fa-hand-holding-dollar" style="color:#10b981;"></i> Controle de Pagamentos Semanais, PIX Mercado Pago &amp; Bloqueio Automático (18:00h)</h3>
+                                <span style="font-size:0.8rem; color:var(--text-muted);">Gere cobranças PIX via Mercado Pago, envie a notificação individual das 08:00h (com aviso de bloqueio às 18:00h) e acompanhe o bloqueio/desbloqueio automático de cada moto.</span>
                             </div>
                             <div class="search-box" style="max-width:280px;">
                                 <i class="fa-solid fa-search"></i>
@@ -475,15 +511,40 @@
                             <thead>
                                 <tr>
                                     <th>Locatário (Condutor)</th>
-                                    <th>Motocicleta & Placa</th>
-                                    <th>Valor Semanal</th>
+                                    <th>Motocicleta &amp; Bloqueador</th>
+                                    <th>Valor Semanal &amp; PIX MP</th>
                                     <th>Próximo Vencimento</th>
-                                    <th>Status do Pagamento</th>
-                                    <th>Troca de Óleo (1.000 km)</th>
-                                    <th>Ações de Recebimento & Cobrança</th>
+                                    <th>Status &amp; Regra 08h / 18h</th>
+                                    <th>Troca de Óleo (1.000 / 1.100 km)</th>
+                                    <th>Ações (PIX Mercado Pago, Notificação &amp; Baixa)</th>
                                 </tr>
                             </thead>
                             <tbody id="table-pagamentos-ativos">
+                                <!-- Populado pelo JS -->
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- CENTRAL DE NOTIFICAÇÕES INDIVIDUAIS POR USUÁRIO (COBRANÇA 08:00H, BLOQUEIO 18:00H & TROCA DE ÓLEO) -->
+                    <div class="card table-card" style="margin-bottom:26px; border-top:4px solid #009ee3;">
+                        <div class="section-card-header">
+                            <div>
+                                <h3><i class="fa-solid fa-bell" style="color:#009ee3;"></i> Notificações Individuais por Locatário (Cobrança Semanal 08:00h, Bloqueio 18:00h &amp; Troca de Óleo)</h3>
+                                <span style="font-size:0.8rem; color:var(--text-muted);">Controle individual de notificações automáticas enviadas a cada usuário sobre Troca de Óleo (1.000 km / Bloqueio 1.100 km) e Cobrança Semanal PIX Mercado Pago (08:00h com bloqueio automático às 18:00h).</span>
+                            </div>
+                        </div>
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Usuário (Locatário)</th>
+                                    <th>Motocicleta</th>
+                                    <th>Notificação Cobrança Semanal (08:00h / Bloqueio 18:00h)</th>
+                                    <th>Notificação Troca de Óleo (1.000 km / Bloqueio 1.100 km)</th>
+                                    <th>Status do Bloqueador da Moto</th>
+                                    <th>Disparo Individual p/ o Usuário</th>
+                                </tr>
+                            </thead>
+                            <tbody id="table-notificacoes-individuais">
                                 <!-- Populado pelo JS -->
                             </tbody>
                         </table>
@@ -1375,7 +1436,23 @@
                             </div>
                         </div>
                         <button type="button" class="btn btn-primary btn-sm" style="background:#10b981; color:#fff; border:none; font-weight:800;" onclick="abrirModalTrocaOleo(document.getElementById('rast-moto-id').value)">
-                            <i class="fa-solid fa-oil-can"></i> Registrar Troca de Óleo & Desbloquear
+                            <i class="fa-solid fa-oil-can"></i> Registrar Troca de Óleo &amp; Desbloquear
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Alerta Crítico Automático se o Aluguel da Semana não for pago até as 18:00h (Bloqueio por Inadimplência c/ Liberação Pós-PIX) -->
+                <div id="rast-alerta-bloqueio-inadimplencia" style="display:none; background:linear-gradient(90deg, #450a0a 0%, #991b1b 100%); border:2px solid #f87171; border-radius:10px; padding:13px 16px; margin-bottom:14px; color:#fff; box-shadow:0 6px 18px rgba(220,38,38,0.32);">
+                    <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+                        <div style="display:flex; align-items:center; gap:12px;">
+                            <i class="fa-solid fa-lock" style="font-size:1.8rem; color:#fca5a5;"></i>
+                            <div>
+                                <strong style="font-size:0.95rem; color:#fff; display:block;">🛑 BLOQUEIO AUTOMÁTICO POR INADIMPLÊNCIA (ALUGUEL NÃO PAGO ATÉ AS 18:00H!)</strong>
+                                <span id="rast-alerta-bloqueio-inadimplencia-desc" style="font-size:0.81rem; color:#fecaca;">O sistema enviou automaticamente o comando de BLOQUEIO ao bloqueador da moto porque o pagamento semanal não foi confirmado até as 18:00h. A moto só volta a liberar após a confirmação do pagamento do PIX (Mercado Pago).</span>
+                            </div>
+                        </div>
+                        <button type="button" class="btn btn-primary btn-sm" style="background:#009ee3; color:#fff; border:none; font-weight:800;" onclick="abrirModalPixDaMotoRastreador()">
+                            <i class="fa-solid fa-qrcode"></i> Abrir PIX Mercado Pago &amp; Liberar Moto
                         </button>
                     </div>
                 </div>
@@ -1783,6 +1860,152 @@
         </div>
     </div>
 
+    <!-- Modal Cobrança PIX Mercado Pago & Automação 08:00h / Bloqueio 18:00h -->
+    <div class="modal" id="modal-cobranca-pix-mp">
+        <div class="modal-content" style="max-width: 680px;">
+            <div class="modal-header" style="background:linear-gradient(90deg, #009ee3 0%, #0284c7 100%); color:#fff; border-radius:12px 12px 0 0;">
+                <h3><i class="fa-solid fa-qrcode"></i> Cobrança PIX Mercado Pago &amp; Bloqueio/Desbloqueio Automático (08h / 18h)</h3>
+                <span class="close-btn" style="color:#fff;" onclick="fecharModalPixMercadoPago()">&times;</span>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="mp-pix-contrato-id">
+                <input type="hidden" id="mp-pix-payment-id">
+
+                <!-- Resumo do Locatário, Moto, Horários e Status do Bloqueador -->
+                <div style="background:#f8fafc; border:1px solid var(--border); border-radius:10px; padding:12px 15px; margin-bottom:14px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+                    <div>
+                        <strong id="mp-pix-resumo-cliente" style="font-size:0.96rem; color:#0f172a; display:block;">👤 Locatário</strong>
+                        <span id="mp-pix-resumo-moto" style="font-size:0.82rem; color:#475569; display:block;">🏍️ Motocicleta</span>
+                        <span id="mp-pix-resumo-regra" style="font-size:0.76rem; color:#0369a1; font-weight:700; display:block; margin-top:3px;">
+                            ☀️ Notificação às 08:00h • 🛑 Bloqueio Automático às 18:00h se não pago • 🔓 Liberação Automática pós-PIX
+                        </span>
+                    </div>
+                    <div style="text-align:right;">
+                        <span id="mp-pix-valor-badge" style="font-size:1.15rem; font-weight:800; color:#059669; display:block;">R$ 0,00</span>
+                        <span id="mp-pix-status-badge" class="badge badge-manutencao" style="font-size:0.75rem;">⏳ Aguardando PIX</span>
+                    </div>
+                </div>
+
+                <!-- Alerta se a moto estiver bloqueada por inadimplência das 18:00h -->
+                <div id="mp-pix-alerta-bloqueada" style="display:none; background:#fef2f2; border:2px solid #dc2626; border-radius:8px; padding:10px 13px; margin-bottom:14px; color:#991b1b; font-size:0.82rem;">
+                    <strong><i class="fa-solid fa-lock"></i> MOTOCICLETA BLOQUEADA AUTOMATICAMENTE (REGRA DAS 18:00H):</strong><br>
+                    O pagamento semanal não foi confirmado até as 18:00h e o sistema enviou o bloqueio para o bloqueador da moto. Assim que o pagamento PIX abaixo for confirmado pelo Mercado Pago, o sistema <strong>desbloqueará a motocicleta automaticamente</strong>!
+                </div>
+
+                <!-- Área do QR Code PIX Dinâmico + Copia e Cola -->
+                <div style="display:grid; grid-template-columns: 200px 1fr; gap:16px; align-items:center; background:#fff; border:1px solid #e2e8f0; border-radius:10px; padding:14px; margin-bottom:14px;">
+                    <div style="text-align:center; border-right:1px solid #f1f5f9; padding-right:12px;">
+                        <img id="mp-pix-qrcode-img" src="" alt="QR Code PIX Mercado Pago" style="width:165px; height:165px; object-fit:contain; border:1px solid #cbd5e1; border-radius:8px; padding:4px; background:#fff;">
+                        <small id="mp-pix-provider-label" style="display:block; font-size:0.7rem; color:#009ee3; font-weight:700; margin-top:4px;">Mercado Pago PIX</small>
+                    </div>
+                    <div>
+                        <label style="font-size:0.78rem; font-weight:700; color:#1e293b; display:block; margin-bottom:4px;">
+                            <i class="fa-solid fa-copy" style="color:#009ee3;"></i> Código PIX Copia e Cola (Mercado Pago):
+                        </label>
+                        <textarea id="mp-pix-copia-cola" rows="3" readonly style="width:100%; font-family:monospace; font-size:0.73rem; padding:8px; border-radius:6px; border:1px solid #cbd5e1; background:#f8fafc; color:#0f172a; resize:none; margin-bottom:8px;"></textarea>
+                        <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                            <button type="button" class="btn btn-primary btn-sm" style="background:#009ee3; border:none;" onclick="copiarCodigoPixMercadoPago()">
+                                <i class="fa-solid fa-copy"></i> Copiar Código PIX
+                            </button>
+                            <button type="button" class="btn btn-secondary btn-sm" onclick="regenerarCobrancaPixModal()">
+                                <i class="fa-solid fa-rotate"></i> Gerar Novo QR Code
+                            </button>
+                        </div>
+                        <div id="mp-pix-polling-info" style="margin-top:8px; font-size:0.73rem; color:#059669; font-weight:600;">
+                            <i class="fa-solid fa-satellite-dish fa-fade"></i> Monitoramento Automático Ativo: Assim que o cliente pagar o PIX, o sistema dará baixa (+7d) e desbloqueará a moto sozinho!
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Botões de Disparo Individual ao Usuário (08:00h e 18:00h) + Confirmação Automática -->
+                <div style="background:#f0f9ff; border:1px solid #bae6fd; border-radius:10px; padding:12px 14px; margin-bottom:12px;">
+                    <h4 style="font-size:0.84rem; color:#0369a1; margin-bottom:8px;">
+                        <i class="fa-solid fa-bell"></i> Disparo de Notificações Individuais p/ o Locatário &amp; Bloqueio Automático:
+                    </h4>
+                    <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                        <button type="button" class="btn btn-primary btn-sm" style="background:#25d366; color:#fff; border:none;" onclick="enviarNotificacao08hWhatsModal()">
+                            <i class="fa-brands fa-whatsapp"></i> Enviar Aviso das 08:00h (c/ PIX + Aviso Bloqueio 18h)
+                        </button>
+                        <button type="button" class="btn btn-danger btn-sm" onclick="aplicarBloqueio18hManualNoModal()">
+                            <i class="fa-solid fa-lock"></i> Aplicar Bloqueio das 18:00h Agora &amp; Avisar Cliente
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Botão de Verificação / Confirmação Imediata do PIX Mercado Pago -->
+                <button type="button" class="btn btn-primary btn-block" style="background:#059669; padding:11px; font-size:0.92rem; font-weight:800;" onclick="confirmarPagamentoPixMercadoPagoAgora()">
+                    <i class="fa-solid fa-bolt"></i> Confirmar Pagamento PIX (Mercado Pago) Agora — Dar Baixa (+7d) &amp; Desbloquear Moto Automaticamente
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Configurar API Mercado Pago PIX & Régua Automática 08:00h / 18:00h -->
+    <div class="modal" id="modal-config-mercadopago">
+        <div class="modal-content" style="max-width: 600px;">
+            <div class="modal-header" style="background:#009ee3; color:#fff; border-radius:12px 12px 0 0;">
+                <h3><i class="fa-solid fa-sliders"></i> Configurar API Mercado Pago PIX &amp; Automação (08:00h / 18:00h)</h3>
+                <span class="close-btn" style="color:#fff;" onclick="closeModal('modal-config-mercadopago')">&times;</span>
+            </div>
+            <div class="modal-body">
+                <div style="background:#f0f9ff; border:1px solid #bae6fd; border-radius:8px; padding:10px 12px; margin-bottom:14px; font-size:0.8rem; color:#0c4a6e;">
+                    <strong><i class="fa-solid fa-circle-info"></i> Como funciona a Automação Completa:</strong><br>
+                    1. Às <strong>08:00h da manhã</strong> do dia do vencimento, cada locatário recebe notificação individual com o PIX do Mercado Pago e aviso de bloqueio até as 18:00h.<br>
+                    2. Se o pagamento não for confirmado até as <strong>18:00h</strong>, o sistema envia o <strong>bloqueio automático</strong> para o bloqueador da moto.<br>
+                    3. Assim que o PIX é pago e confirmado na API do Mercado Pago, a moto é <strong>desbloqueada automaticamente</strong> e o vencimento avança +7 dias!
+                </div>
+                <form id="form-config-mercadopago" onsubmit="salvarConfigMercadoPago(event)">
+                    <div class="form-group">
+                        <label>Access Token do Mercado Pago (Produção ou Teste — <code>APP_USR-...</code>)</label>
+                        <input type="password" id="cfg-mp-access-token" placeholder="APP_USR-0000000000000000-000000-00000000000000000000000000000000-000000000">
+                        <small style="color:var(--text-muted); font-size:0.73rem;">Opcional: Com o Access Token do Mercado Pago, o QR Code é gerado direto na API oficial <code>api.mercadopago.com/v1/payments</code> e a baixa ocorre sozinha via Webhook/Polling. Sem token, o sistema usa o gerador PIX BRCode oficial com sua chave abaixo.</small>
+                    </div>
+                    <div class="form-group row">
+                        <div class="col">
+                            <label>Chave PIX Recebedora (CPF/CNPJ/Celular/E-mail)*</label>
+                            <input type="text" id="cfg-mp-chave-pix" value="85221619091" required placeholder="Ex: 85221619091">
+                        </div>
+                        <div class="col">
+                            <label>Nome do Beneficiário PIX*</label>
+                            <input type="text" id="cfg-mp-beneficiario" value="HENRIQUE ROCHA CLAVIJO" required>
+                        </div>
+                    </div>
+                    <div class="form-group row">
+                        <div class="col">
+                            <label>☀️ Horário Notificação do Dia do Pagamento</label>
+                            <input type="time" id="cfg-mp-hora-notif" value="08:00" required>
+                        </div>
+                        <div class="col">
+                            <label style="color:#dc2626; font-weight:700;">🛑 Horário Limite p/ Bloqueio Automático</label>
+                            <input type="time" id="cfg-mp-hora-bloqueio" value="18:00" required style="border-color:#dc2626; background:#fef2f2; color:#991b1b; font-weight:800;">
+                        </div>
+                    </div>
+                    <div class="form-group" style="margin-bottom:8px;">
+                        <label style="display:flex; align-items:center; gap:8px; cursor:pointer; font-size:0.82rem;">
+                            <input type="checkbox" id="cfg-mp-auto-notif-08h" checked style="width:auto;">
+                            Notificar individualmente cada usuário às <strong>08:00h da manhã</strong> do dia do pagamento (com aviso de bloqueio até as 18:00h) e sobre Troca de Óleo
+                        </label>
+                    </div>
+                    <div class="form-group" style="margin-bottom:8px;">
+                        <label style="display:flex; align-items:center; gap:8px; cursor:pointer; font-size:0.82rem; color:#991b1b; font-weight:700; background:#fef2f2; padding:8px 10px; border-radius:6px; border:1px solid #fecaca;">
+                            <input type="checkbox" id="cfg-mp-auto-bloqueio-18h" checked style="width:auto;">
+                            Bloquear a moto AUTOMATICAMENTE às <strong>18:00h</strong> se o aluguel semanal não for pago (envia comando ao bloqueador da moto)
+                        </label>
+                    </div>
+                    <div class="form-group">
+                        <label style="display:flex; align-items:center; gap:8px; cursor:pointer; font-size:0.82rem; color:#065f46; font-weight:700; background:#ecfdf5; padding:8px 10px; border-radius:6px; border:1px solid #a7f3d0;">
+                            <input type="checkbox" id="cfg-mp-auto-desbloqueio-pix" checked style="width:auto;">
+                            Desbloquear a moto AUTOMATICAMENTE somente após a confirmação do pagamento do PIX
+                        </label>
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-block" style="background:#009ee3; border:none;">
+                        <i class="fa-solid fa-floppy-disk"></i> Salvar Configuração Mercado Pago &amp; Régua Automática (08h / 18h)
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
     <!-- Container de Toasts de Notificação Automática (Pagamentos e Troca de Óleo) -->
     <div id="toast-notif-container" style="position:fixed; bottom:20px; right:20px; z-index:9999; display:flex; flex-direction:column; gap:10px; max-width:370px; pointer-events:none;"></div>
 
@@ -1790,6 +2013,6 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <!-- Firebase Firestore -->
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
-    <script src="app.js?v=20261022_notif_pag_oleo"></script>
+    <script src="app.js?v=20261022_mp_pix_18h"></script>
 </body>
 </html>

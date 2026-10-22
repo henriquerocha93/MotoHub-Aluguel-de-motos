@@ -111,6 +111,26 @@ function getTrackerConfig() {
     }
 }
 
+function getMercadoPagoConfig() {
+    const def = {
+        accessToken: '',
+        chavePix: '85221619091',
+        beneficiario: 'HENRIQUE ROCHA CLAVIJO',
+        horaNotificacao: '08:00',
+        horaBloqueio: '18:00',
+        autoNotificar08h: true,
+        autoBloquear18h: true,
+        autoDesbloquearPix: true
+    };
+    try {
+        const saved = JSON.parse(localStorage.getItem('crm_mercadopago_config'));
+        if (!saved) return def;
+        return Object.assign({}, def, saved);
+    } catch (e) {
+        return def;
+    }
+}
+
 function generateId() {
     return Math.random().toString(36).substr(2, 9);
 }
@@ -299,6 +319,17 @@ function openModal(id) {
             document.getElementById('cfg-gps-auto-bloqueio-oleo').checked = cfg.autoBloqueioOleo !== false;
         }
     }
+    if (id === 'modal-config-mercadopago') {
+        const cfgMp = getMercadoPagoConfig();
+        if (document.getElementById('cfg-mp-access-token')) document.getElementById('cfg-mp-access-token').value = cfgMp.accessToken || '';
+        if (document.getElementById('cfg-mp-chave-pix')) document.getElementById('cfg-mp-chave-pix').value = cfgMp.chavePix || '85221619091';
+        if (document.getElementById('cfg-mp-beneficiario')) document.getElementById('cfg-mp-beneficiario').value = cfgMp.beneficiario || 'HENRIQUE ROCHA CLAVIJO';
+        if (document.getElementById('cfg-mp-hora-notif')) document.getElementById('cfg-mp-hora-notif').value = cfgMp.horaNotificacao || '08:00';
+        if (document.getElementById('cfg-mp-hora-bloqueio')) document.getElementById('cfg-mp-hora-bloqueio').value = cfgMp.horaBloqueio || '18:00';
+        if (document.getElementById('cfg-mp-auto-notif-08h')) document.getElementById('cfg-mp-auto-notif-08h').checked = cfgMp.autoNotificar08h !== false;
+        if (document.getElementById('cfg-mp-auto-bloqueio-18h')) document.getElementById('cfg-mp-auto-bloqueio-18h').checked = cfgMp.autoBloquear18h !== false;
+        if (document.getElementById('cfg-mp-auto-desbloqueio-pix')) document.getElementById('cfg-mp-auto-desbloqueio-pix').checked = cfgMp.autoDesbloquearPix !== false;
+    }
 }
 
 function closeModal(id) {
@@ -307,6 +338,10 @@ function closeModal(id) {
     if (id === 'modal-rastreador' && window.rastLiveInterval) {
         clearInterval(window.rastLiveInterval);
         window.rastLiveInterval = null;
+    }
+    if (id === 'modal-cobranca-pix-mp' && window.mpPixModalInterval) {
+        clearInterval(window.mpPixModalInterval);
+        window.mpPixModalInterval = null;
     }
 }
 
@@ -771,11 +806,14 @@ function renderDashboard() {
                     vencimentoHtml = `
                         <div style="display:flex; flex-direction:column; gap:4px; align-items:flex-start;">
                             ${vInfo.htmlBadge}
-                            <div style="display:flex; gap:6px; align-items:center;">
+                            <div style="display:flex; gap:6px; align-items:center; flex-wrap:wrap;">
+                                <button class="btn btn-primary btn-sm" style="padding:2px 8px; font-size:0.72rem; background:#009ee3; color:#fff; border:none;" onclick="abrirModalPixMercadoPago('${contrato.id}')" title="Abrir PIX Mercado Pago, Enviar Aviso 08:00h e Desbloquear Automaticamente">
+                                    <i class="fa-solid fa-qrcode"></i> PIX MP
+                                </button>
                                 <button class="btn btn-secondary btn-sm" style="padding:2px 8px; font-size:0.72rem; background:#10b981; color:#fff;" onclick="registrarPagamento('${contrato.id}')" title="Confirmar pagamento semanal (+7 dias)">
                                     <i class="fa-solid fa-sack-dollar"></i> +7 Dias
                                 </button>
-                                <span style="font-size:0.75rem; color:var(--text-muted);">Semanal: R$ ${parseFloat(contrato.valorSemanal || (m.valor * 7) || 0).toFixed(2)}</span>
+                                <span style="font-size:0.75rem; color:var(--text-muted);">R$ ${parseFloat(contrato.valorSemanal || (m.valor * 7) || 0).toFixed(2)}</span>
                             </div>
                         </div>
                     `;
@@ -804,7 +842,7 @@ function renderDashboard() {
 
                 // Rastreador Chip IoT (M2M) — Somente motos com rastreador instalado (ex: IPU2I57)
                 const temRastreador = !!(m.rastreadorImei && m.rastreadorImei.trim() !== '');
-                const isBloqueada = temRastreador && m.rastreadorBloqueado === true;
+                const isBloqueada = (temRastreador && m.rastreadorBloqueado === true) || m.bloqueadoPorInadimplencia === true;
 
                 let rastreadorHtml = '';
                 let btnRastrearHtml = '';
@@ -817,7 +855,9 @@ function renderDashboard() {
                     const gpsPillClass = (isBloqueada || batRemovida) ? 'gps-blocked' : 'gps-online';
                     const gpsText = batRemovida
                         ? '🚨 Bateria Removida!'
-                        : (isBloqueada ? 'Bloqueada (Chip IoT)' : 'Chip IoT Online');
+                        : (isBloqueada
+                            ? (m.bloqueadoPorInadimplencia ? '🛑 Bloqueada (Falta PIX 18h)' : (m.bloqueadoPorKmOleo ? '🛑 Bloqueada (1.100km Óleo)' : '🔒 Bloqueada (Xtrack)'))
+                            : 'Chip IoT Online');
                     const imeiInfo = `ID: <strong>${m.rastreadorImei}</strong>`;
                     const iccidInfo = m.rastreadorChip ? `<br>ICCID (Linha): <strong>${m.rastreadorChip}</strong>` : '';
                     const ignicaoHtml = ignicaoLigada
@@ -2030,14 +2070,16 @@ function confirmarRegistroTrocaOleo(e) {
     const idx = motos.findIndex(m => m.id === motoId);
     if (idx === -1) return;
 
-    const estavaBloqueadaPorKm = motos[idx].bloqueadoPorKmOleo === true || motos[idx].rastreadorBloqueado === true;
+    const estavaBloqueadaPorKm = motos[idx].bloqueadoPorKmOleo === true || (motos[idx].rastreadorBloqueado === true && !motos[idx].bloqueadoPorInadimplencia);
 
     motos[idx].kmAtual = Math.max(parseInt(motos[idx].kmAtual) || 0, kmTroca);
     motos[idx].kmUltimaTroca = kmTroca;
     motos[idx].kmProximaTroca = proxKm;
     motos[idx].bloqueadoPorKmOleo = false;
-    motos[idx].motivoBloqueioAutomatico = '';
-    if (estavaBloqueadaPorKm) {
+    if (!motos[idx].bloqueadoPorInadimplencia) {
+        motos[idx].motivoBloqueioAutomatico = '';
+    }
+    if (estavaBloqueadaPorKm && !motos[idx].bloqueadoPorInadimplencia) {
         motos[idx].rastreadorBloqueado = false;
         fetch('/api/telemetry', {
             method: 'POST',
@@ -2451,6 +2493,15 @@ function atualizarHudTelemetriaAoVivo(moto, enderecoTexto) {
             alertaBloqueioKmDescEl.innerText = `A moto ${moto.modelo} (${moto.placa}) rodou ${oleo.kmRodadosCiclo} km desde a última troca (${oleo.kmUltimaTroca} km -> ${oleo.kmAtual} km), atingindo o limite de proteção de ${oleo.limiteBloqueio} km (${oleo.kmBloqueioMotor} km). Bloqueio enviado ao rastreador App Xtrack para evitar que o motor funda!`;
         }
     }
+    const alertaBloqueioInadEl = document.getElementById('rast-alerta-bloqueio-inadimplencia');
+    const alertaBloqueioInadDescEl = document.getElementById('rast-alerta-bloqueio-inadimplencia-desc');
+    if (alertaBloqueioInadEl) {
+        const mostrarAlertaInad = moto.bloqueadoPorInadimplencia === true;
+        alertaBloqueioInadEl.style.display = mostrarAlertaInad ? 'block' : 'none';
+        if (mostrarAlertaInad && alertaBloqueioInadDescEl) {
+            alertaBloqueioInadDescEl.innerText = `A moto ${moto.modelo} (${moto.placa}) foi bloqueada automaticamente pelo sistema porque o aluguel semanal não foi confirmado até as 18:00h. Pela regra de segurança, ela só volta a liberar após a confirmação do pagamento do PIX (Mercado Pago).`;
+        }
+    }
 
     if (kmAtualEl) kmAtualEl.innerText = `${oleo.kmAtual} km`;
     if (kmOleoEl) kmOleoEl.innerText = `${oleo.kmProximaTroca} km (${oleo.label})`;
@@ -2465,7 +2516,9 @@ function atualizarHudTelemetriaAoVivo(moto, enderecoTexto) {
     }
     if (statusBloqEl && temChip) {
         if (isBloq) {
-            statusBloqEl.innerText = moto.bloqueadoPorKmOleo ? '🛑 BLOQUEADA POR KM (1.100 KM ÓLEO)' : '🔒 BLOQUEADA VIA APP XTRACK';
+            statusBloqEl.innerText = moto.bloqueadoPorInadimplencia
+                ? '🛑 BLOQUEADA (INADIMPLÊNCIA 18:00H • SÓ LIBERA PÓS-PIX)'
+                : (moto.bloqueadoPorKmOleo ? '🛑 BLOQUEADA POR KM (1.100 KM ÓLEO)' : '🔒 BLOQUEADA VIA APP XTRACK');
             statusBloqEl.style.color = 'var(--danger)';
         } else {
             statusBloqEl.innerText = '🔓 Desbloqueada (Operação Normal)';
@@ -2894,12 +2947,16 @@ function abrirPainelRastreadorMoto(motoId) {
         if (btnBloq) btnBloq.style.display = 'none';
     } else if (isBloq) {
         if (statusBloqEl) {
-            statusBloqEl.innerText = moto.bloqueadoPorKmOleo ? '🛑 BLOQUEADA POR KM (1.100 KM ÓLEO)' : '🔒 BLOQUEADA VIA APP XTRACK';
+            statusBloqEl.innerText = moto.bloqueadoPorInadimplencia
+                ? '🛑 BLOQUEADA (INADIMPLÊNCIA 18:00H • SÓ LIBERA PÓS-PIX)'
+                : (moto.bloqueadoPorKmOleo ? '🛑 BLOQUEADA POR KM (1.100 KM ÓLEO)' : '🔒 BLOQUEADA VIA APP XTRACK');
             statusBloqEl.style.color = 'var(--danger)';
         }
         if (btnBloq) {
             btnBloq.style.display = 'inline-flex';
-            btnBloq.innerHTML = '<i class="fa-solid fa-unlock"></i> Desbloquear Motocicleta via App Xtrack';
+            btnBloq.innerHTML = moto.bloqueadoPorInadimplencia
+                ? '<i class="fa-solid fa-qrcode"></i> Liberar Moto via Confirmação do PIX (Mercado Pago)'
+                : '<i class="fa-solid fa-unlock"></i> Desbloquear Motocicleta via App Xtrack';
             btnBloq.className = 'btn btn-primary btn-sm';
         }
     } else {
@@ -3021,6 +3078,19 @@ function salvarTelemetriaRastreadorMoto() {
     }
 }
 
+function abrirModalPixDaMotoRastreador() {
+    const motoId = document.getElementById('rast-moto-id')?.value;
+    if (!motoId) return;
+    const { contrato } = getCondutorContratoAtivo(motoId, getDb('crm_contratos'), getDb('crm_clientes'));
+    if (contrato) {
+        closeModal('modal-rastreador');
+        abrirModalPixMercadoPago(contrato.id);
+    } else {
+        navegarParaView('pagamentos');
+        closeModal('modal-rastreador');
+    }
+}
+
 function alternarBloqueioRemotoMoto() {
     const motoId = document.getElementById('rast-moto-id').value;
     let motos = getDb('crm_motos');
@@ -3029,6 +3099,15 @@ function alternarBloqueioRemotoMoto() {
 
     const cfg = getTrackerConfig();
     const vaiBloquear = !motos[idx].rastreadorBloqueado;
+
+    // Se a moto está bloqueada por inadimplência das 18:00h, só permite liberar após confirmação do pagamento PIX!
+    if (!vaiBloquear && motos[idx].bloqueadoPorInadimplencia === true) {
+        if (confirm(`🛑 BLOQUEIO AUTOMÁTICO POR INADIMPLÊNCIA (REGRA DAS 18:00H):\n\nA motocicleta ${motos[idx].modelo} (${motos[idx].placa}) foi bloqueada automaticamente pelo sistema porque o aluguel da semana não foi pago até as 18:00h.\n\nPela regra de segurança, ela SÓ VOLTA A LIBERAR APÓS A CONFIRMAÇÃO DO PAGAMENTO DO PIX.\n\nDeseja abrir a cobrança PIX do Mercado Pago agora para verificar/confirmar o pagamento e desbloquear a moto automaticamente?`)) {
+            abrirModalPixDaMotoRastreador();
+        }
+        return;
+    }
+
     const msgConfirm = vaiBloquear
         ? `Confirmar envio de COMANDO DE BLOQUEIO REMOTO via App Xtrack para ${motos[idx].modelo} (${motos[idx].placa})?\n\nConforme Cláusula 10.3 e 11.3 do Contrato, certifique-se de que a motocicleta está em condição tecnicamente segura (parada).`
         : `Confirmar DESBLOQUEIO REMOTO via App Xtrack da motocicleta ${motos[idx].modelo} (${motos[idx].placa})?`;
@@ -3038,6 +3117,7 @@ function alternarBloqueioRemotoMoto() {
     motos[idx].rastreadorBloqueado = vaiBloquear;
     if (!vaiBloquear) {
         motos[idx].bloqueadoPorKmOleo = false;
+        motos[idx].bloqueadoPorInadimplencia = false;
         motos[idx].motivoBloqueioAutomatico = '';
     }
     saveDb('crm_motos', motos);
@@ -4234,19 +4314,164 @@ function verFotoMotoCrm(motoId) {
 }
 
 // =========================================================================
-// MODULE: PAGAMENTOS SEMANAIS, COBRANÇAS WHATSAPP & HISTÓRICO DE RECIBOS
+// MODULE: PAGAMENTOS SEMANAIS, API MERCADO PAGO PIX, RÉGUA 08H E BLOQUEIO 18H
 // =========================================================================
+
+// Gerador EMV BRCode PIX Local Instantâneo (compatível com Mercado Pago e qualquer banco)
+function crc16CcittPixLocal(str) {
+    let crc = 0xFFFF;
+    for (let i = 0; i < str.length; i++) {
+        crc ^= (str.charCodeAt(i) << 8);
+        for (let j = 0; j < 8; j++) {
+            if ((crc & 0x8000) !== 0) crc = ((crc << 1) ^ 0x1021) & 0xFFFF;
+            else crc = (crc << 1) & 0xFFFF;
+        }
+    }
+    return crc.toString(16).toUpperCase().padStart(4, '0');
+}
+
+function emvTagLocal(id, val) {
+    const s = String(val || '');
+    return `${id}${s.length.toString().padStart(2, '0')}${s}`;
+}
+
+function gerarCodigoPixBrCodeLocal(valor, motoPlaca, vencimento) {
+    const cfgMp = getMercadoPagoConfig();
+    const chave = String(cfgMp.chavePix || '85221619091').trim();
+    const benef = String(cfgMp.beneficiario || 'HENRIQUE ROCHA CLAVIJO')
+        .normalize('NFD').replace(/[\u0300-\u036f]/g, '').toUpperCase().substring(0, 25);
+    const txid = `FM${String(motoPlaca || 'MOTO').replace(/[^A-Z0-9]/gi, '')}${String(vencimento || '').replace(/\D/g, '')}`.substring(0, 25) || 'FACILITAMOTO';
+    const valStr = (parseFloat(valor) || 0).toFixed(2);
+
+    const gui = emvTagLocal('00', 'br.gov.bcb.pix');
+    const keyTag = emvTagLocal('01', chave);
+    const descTag = emvTagLocal('02', `ALUGUEL ${motoPlaca || ''}`.trim().substring(0, 20));
+    const merchantAcc = emvTagLocal('26', `${gui}${keyTag}${descTag}`);
+
+    const semCrc =
+        emvTagLocal('00', '01') +
+        emvTagLocal('01', '12') +
+        merchantAcc +
+        emvTagLocal('52', '0000') +
+        emvTagLocal('53', '986') +
+        (parseFloat(valStr) > 0 ? emvTagLocal('54', valStr) : '') +
+        emvTagLocal('58', 'BR') +
+        emvTagLocal('59', benef) +
+        emvTagLocal('60', 'PORTO ALEGRE') +
+        emvTagLocal('62', emvTagLocal('05', txid)) +
+        '6304';
+
+    return `${semCrc}${crc16CcittPixLocal(semCrc)}`;
+}
+
+function garantirCobrancaPixLocalNoContrato(contrato, cliente, moto) {
+    if (!contrato) return null;
+    const valSemanal = parseFloat(contrato.valorSemanal || (parseFloat(moto?.valor || 0) * 7) || 350).toFixed(2);
+    const vencRef = contrato.dataProxVenc || new Date().toISOString().split('T')[0];
+
+    if (contrato.pixCobrancaAtual &&
+        contrato.pixCobrancaAtual.vencimento === vencRef &&
+        parseFloat(contrato.pixCobrancaAtual.valor).toFixed(2) === valSemanal &&
+        contrato.pixCobrancaAtual.copiaECola) {
+        return contrato.pixCobrancaAtual;
+    }
+
+    const copiaECola = gerarCodigoPixBrCodeLocal(valSemanal, moto?.placa || 'MOTO', vencRef);
+    const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=280x280&data=${encodeURIComponent(copiaECola)}`;
+    const cobranca = {
+        paymentId: `MP-${contrato.id.substring(0, 4).toUpperCase()}-${vencRef.replace(/\D/g, '')}`,
+        contratoId: contrato.id,
+        clienteNome: cliente?.nome || 'Locatário',
+        motoPlaca: moto?.placa || '-',
+        motoModelo: moto?.modelo || 'Moto',
+        valor: parseFloat(valSemanal),
+        vencimento: vencRef,
+        copiaECola,
+        qrCodeUrl,
+        status: 'pending',
+        provider: 'mercadopago_pix',
+        createdAt: new Date().toISOString()
+    };
+    contrato.pixCobrancaAtual = cobranca;
+    return cobranca;
+}
+
+function montarTextoNotificacao08hUsuario(contrato, cliente, moto) {
+    const cfgMp = getMercadoPagoConfig();
+    const horaBloq = cfgMp.horaBloqueio || '18:00';
+    const valSemanal = parseFloat(contrato.valorSemanal || (parseFloat(moto.valor || 0) * 7) || 0).toFixed(2);
+    const cob = garantirCobrancaPixLocalNoContrato(contrato, cliente, moto);
+    const dataVencBr = formatarDataBr(contrato.dataProxVenc);
+
+    return `☀️ *AVISO DE VENCIMENTO SEMANAL (08:00H) — FACILITA MOTO*\n\n` +
+           `Olá, *${cliente.nome}*! Tudo bem?\n` +
+           `Lembramos que hoje (*${dataVencBr}*) é o dia do pagamento semanal da sua motocicleta *${moto.modelo} (Placa: ${moto.placa})*.\n\n` +
+           `💰 *Valor Semanal:* R$ ${valSemanal}\n` +
+           `⏰ *Horário Limite:* Até as *${horaBloq}h* de hoje\n\n` +
+           `⚠️ *AVISO DE BLOQUEIO AUTOMÁTICO:* Caso o pagamento não seja confirmado pelo sistema até as *${horaBloq}h*, a motocicleta será *BLOQUEADA AUTOMATICAMENTE* pelo rastreador/bloqueador e *só voltará a liberar após a confirmação automática do pagamento PIX*.\n\n` +
+           `💠 *PIX COPIA E COLA (MERCADO PAGO):*\n` +
+           `${cob.copiaECola}\n\n` +
+           `Assim que realizar o pagamento, o sistema reconhecerá automaticamente e manterá sua moto liberada!`;
+}
+
+function montarTextoNotificacaoBloqueio18hUsuario(contrato, cliente, moto) {
+    const cfgMp = getMercadoPagoConfig();
+    const horaBloq = cfgMp.horaBloqueio || '18:00';
+    const valSemanal = parseFloat(contrato.valorSemanal || (parseFloat(moto.valor || 0) * 7) || 0).toFixed(2);
+    const cob = garantirCobrancaPixLocalNoContrato(contrato, cliente, moto);
+    const dataVencBr = formatarDataBr(contrato.dataProxVenc);
+
+    return `🛑 *BLOQUEIO AUTOMÁTICO POR FALTA DE PAGAMENTO (${horaBloq}H) — FACILITA MOTO*\n\n` +
+           `Olá, *${cliente.nome}*.\n` +
+           `Como o pagamento semanal da motocicleta *${moto.modelo} (Placa: ${moto.placa})*, vencido em *${dataVencBr}* no valor de *R$ ${valSemanal}*, não foi confirmado até as *${horaBloq}h*, o sistema enviou automaticamente o *COMANDO DE BLOQUEIO* para o bloqueador da motocicleta.\n\n` +
+           `🔓 *COMO DESBLOQUEAR AUTOMATICAMENTE:*\n` +
+           `A motocicleta só voltará a ser liberada após a confirmação do pagamento do PIX abaixo pelo sistema do Mercado Pago:\n\n` +
+           `💠 *PIX COPIA E COLA (MERCADO PAGO):*\n` +
+           `${cob.copiaECola}`;
+}
+
+function montarTextoNotificacaoOleoIndividualUsuario(moto, cliente) {
+    const oleo = getMotoOleoInfo(moto);
+    const nomeCli = cliente ? cliente.nome : 'Condutor';
+    if (oleo.atingiuBloqueioKm || moto.bloqueadoPorKmOleo) {
+        return `🛑 *BLOQUEIO AUTOMÁTICO DE PROTEÇÃO DO MOTOR (1.100 KM) — FACILITA MOTO*\n\n` +
+               `Olá, *${nomeCli}*!\n` +
+               `O GPS/Hodômetro da sua moto *${moto.modelo} (Placa: ${moto.placa})* registrou *${oleo.kmAtual} km* (*${oleo.kmRodadosCiclo} km rodados* sem troca de óleo, atingindo o limite máximo de segurança de *${oleo.kmBloqueioMotor} km*).\n\n` +
+               `Para evitar que o motor funda, o sistema enviou o *BLOQUEIO AUTOMÁTICO* para o rastreador da moto. Compareça imediatamente para realizar a troca de óleo e desbloquear a motocicleta!`;
+    }
+    return `🛢️ *NOTIFICAÇÃO INDIVIDUAL DE TROCA DE ÓLEO (1.000 KM) — FACILITA MOTO*\n\n` +
+           `Olá, *${nomeCli}*! Tudo bem?\n` +
+           `O sistema da FACILITA MOTO identificou pelo hodômetro/GPS que a sua motocicleta *${moto.modelo} (Placa: ${moto.placa})* está com *${oleo.kmAtual} km*.\n\n` +
+           `📌 *Troca de Óleo Obrigatória:* Aos *${oleo.kmProximaTroca} km* (ciclo de 1.000 km)\n` +
+           `🛑 *Bloqueio Automático de Proteção do Motor:* Aos *${oleo.kmBloqueioMotor} km* (1.100 km rodados)\n\n` +
+           `⚠️ *Importante:* Realize a troca de óleo no prazo para evitar o bloqueio automático da motocicleta pelo rastreador!`;
+}
+
 function renderPagamentosView() {
     const contratos = getDb('crm_contratos');
     const clientes = getDb('crm_clientes');
     const motos = getDb('crm_motos');
     const pagamentos = getDb('crm_pagamentos');
+    const cfgMp = getMercadoPagoConfig();
 
     const tbodyAtivos = document.getElementById('table-pagamentos-ativos');
     const tbodyHist = document.getElementById('table-historico-pagamentos');
+    const tbodyNotifInd = document.getElementById('table-notificacoes-individuais');
     if (!tbodyAtivos || !tbodyHist) return;
 
     const query = (document.getElementById('search-pagamentos')?.value || '').toLowerCase();
+
+    // Atualiza texto de resumo da Régua Mercado Pago
+    const resumoReguaEl = document.getElementById('mp-regua-resumo-status');
+    if (resumoReguaEl) {
+        const horaAgora = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+        resumoReguaEl.innerHTML = `
+            Relógio do Sistema: <strong>${horaAgora}</strong> •
+            ☀️ Notificação Automática no dia do pagamento às <strong>${cfgMp.horaNotificacao || '08:00'}h</strong> •
+            🛑 Bloqueio Automático no bloqueador da moto às <strong>${cfgMp.horaBloqueio || '18:00'}h</strong> se não pago •
+            🔓 Liberação Automática somente após confirmação do PIX (Chave: <strong>${cfgMp.chavePix || '85221619091'}</strong>).
+        `;
+    }
 
     // 1. KPIs Financeiros e de Vencimento
     const totalRecebidoHist = pagamentos.reduce((acc, p) => acc + (parseFloat(p.valor) || 0), 0);
@@ -4254,10 +4479,12 @@ function renderPagamentosView() {
     let countEmDia = 0;
     let countVencendo = 0;
     let countAtrasados = 0;
+    let countMotosBloqueadasInadimplencia = 0;
 
     const contratosAtivos = contratos.filter(c => c.status === 'ativo');
     contratosAtivos.forEach(c => {
         const moto = motos.find(m => m.id === c.motoId) || { valor: 0 };
+        if (moto.bloqueadoPorInadimplencia) countMotosBloqueadasInadimplencia++;
         const valSem = parseFloat(c.valorSemanal || (parseFloat(moto.valor || 0) * 7) || 0);
         receitaSemanalAtiva += valSem;
 
@@ -4295,16 +4522,16 @@ function renderPagamentosView() {
 
     const alertBox = document.getElementById('pagamentos-alert-box');
     if (alertBox) {
-        if (countAtrasados > 0 || countVencendo > 0) {
+        if (countAtrasados > 0 || countVencendo > 0 || countMotosBloqueadasInadimplencia > 0) {
             alertBox.innerHTML = `
-                <div class="alert-banner-oleo ${countAtrasados > 0 ? '' : 'warning-only'}" style="margin-bottom:20px;">
+                <div class="alert-banner-oleo ${countAtrasados > 0 || countMotosBloqueadasInadimplencia > 0 ? '' : 'warning-only'}" style="margin-bottom:20px;">
                     <div>
                         <strong style="font-size:0.95rem; display:block; color:#111827;">
-                            <i class="fa-solid fa-bell"></i> Alertas de Pagamentos Semanais:
-                            ${countAtrasados} aluguel(is) em atraso e ${countVencendo} vencendo hoje / nos próximos 2 dias!
+                            <i class="fa-solid fa-bell"></i> Régua Automática 08:00h / 18:00h (Mercado Pago PIX):
+                            ${countAtrasados} aluguel(is) em atraso ${countMotosBloqueadasInadimplencia > 0 ? `• 🛑 ${countMotosBloqueadasInadimplencia} MOTO(S) BLOQUEADA(S) AUTOMATICAMENTE POR FALTA DE PIX ATÉ AS 18:00H` : ''} e ${countVencendo} vencendo hoje / nos próximos 2 dias!
                         </strong>
                         <span style="font-size:0.82rem; color:#4b5563;">
-                            Clique em <strong>"Confirmar Pagamento (+7d)"</strong> para dar baixa e gerar o recibo, ou em <strong>"Cobrar no WhatsApp"</strong> para enviar aviso direto ao locatário.
+                            Clique em <strong>"PIX Mercado Pago"</strong> para gerar/enviar o QR Code e código PIX Copia e Cola ao usuário, ou confirmar o PIX para <strong>desbloquear a moto automaticamente</strong> e avançar +7 dias.
                         </span>
                     </div>
                 </div>
@@ -4314,7 +4541,7 @@ function renderPagamentosView() {
         }
     }
 
-    // 2. Tabela de Pagamentos Semanais Ativos
+    // 2. Tabela de Pagamentos Semanais Ativos + PIX Mercado Pago + Bloqueio 18h
     tbodyAtivos.innerHTML = '';
     const filtrados = contratosAtivos.filter(c => {
         const cli = clientes.find(x => x.id === c.clienteId) || { nome: '' };
@@ -4327,31 +4554,45 @@ function renderPagamentosView() {
     if (filtrados.length === 0) {
         tbodyAtivos.innerHTML = `<tr><td colspan="7" class="empty-state" style="padding:24px;">Nenhum contrato semanal ativo encontrado.</td></tr>`;
     } else {
+        const agora = new Date();
+        const horaAtual = agora.getHours();
+
         filtrados.forEach(c => {
             const cli = clientes.find(x => x.id === c.clienteId) || { nome: 'Cliente não encontrado', telefone: '' };
             const moto = motos.find(x => x.id === c.motoId) || { modelo: 'Moto', placa: '-', valor: 0 };
             const vInfo = getInfoVencimentoContrato(c);
             const oleo = getMotoOleoInfo(moto);
             const valSemanal = parseFloat(c.valorSemanal || (parseFloat(moto.valor || 0) * 7) || 0).toFixed(2);
+            const cobPix = garantirCobrancaPixLocalNoContrato(c, cli, moto);
 
-            let statusPagBadge = `<span class="badge badge-disponivel">Em Dia</span>`;
+            const isBloqInad = moto.bloqueadoPorInadimplencia === true;
+            const isBloqKm = moto.bloqueadoPorKmOleo === true || oleo.atingiuBloqueioKm;
+            const temRast = !!(moto.rastreadorImei && moto.rastreadorImei.trim() !== '');
+
+            let bloqueadorTag = temRast
+                ? (moto.rastreadorBloqueado
+                    ? `<span class="gps-pill gps-blocked" style="margin-top:3px;"><span class="gps-dot"></span> 🔒 Bloqueada (${isBloqInad ? 'Falta PIX 18h' : (isBloqKm ? '1.100km Óleo' : 'Remoto')})</span>`
+                    : `<span class="gps-pill gps-online" style="margin-top:3px;"><span class="gps-dot"></span> 🔓 Liberada (ID: ${moto.rastreadorImei})</span>`)
+                : `<span style="font-size:0.72rem; color:#64748b;">Sem rastreador instalado</span>`;
+
+            let statusPagBadge = `<span class="badge badge-disponivel">✅ Em Dia</span>`;
+            let subRegraHtml = `<small style="color:var(--text-muted); font-size:0.72rem; display:block; margin-top:3px;">☀️ Aviso 08:00h no vencimento</small>`;
+
             if (vInfo.diffDays !== null) {
                 if (vInfo.diffDays < 0) {
-                    statusPagBadge = `<span class="badge badge-alugada" style="background:#fee2e2; color:#991b1b;">🚨 ATRASADO (${Math.abs(vInfo.diffDays)}d)</span>`;
+                    statusPagBadge = `<span class="badge badge-alugada" style="background:#fee2e2; color:#991b1b;">🛑 ATRASADO (${Math.abs(vInfo.diffDays)}d) • BLOQUEIO 18H ATIVO</span>`;
+                    subRegraHtml = `<small style="color:#dc2626; font-weight:700; font-size:0.72rem; display:block; margin-top:3px;">🔒 Só libera após confirmação do PIX</small>`;
                 } else if (vInfo.diffDays === 0) {
-                    statusPagBadge = `<span class="badge badge-manutencao" style="background:#fef3c7; color:#92400e;">⏰ VENCE HOJE!</span>`;
+                    if (horaAtual >= 18) {
+                        statusPagBadge = `<span class="badge badge-alugada" style="background:#fee2e2; color:#991b1b;">🛑 18:00H EXCEDIDO • BLOQUEADA S/ PIX</span>`;
+                        subRegraHtml = `<small style="color:#dc2626; font-weight:700; font-size:0.72rem; display:block; margin-top:3px;">🔒 Bloqueio 18h enviado ao bloqueador</small>`;
+                    } else {
+                        statusPagBadge = `<span class="badge badge-manutencao" style="background:#fef3c7; color:#92400e;">⏰ VENCE HOJE (Bloqueia às 18:00h)</span>`;
+                        subRegraHtml = `<small style="color:#b45309; font-weight:700; font-size:0.72rem; display:block; margin-top:3px;">☀️ Notificado às 08:00h • Aguardando PIX</small>`;
+                    }
                 } else if (vInfo.diffDays <= 2) {
                     statusPagBadge = `<span class="badge badge-manutencao">⚠️ Vence em ${vInfo.diffDays}d</span>`;
                 }
-            }
-
-            const numWhats = cli.telefone ? cli.telefone.replace(/\D/g, '') : '';
-            let btnCobrarWhats = '';
-            if (numWhats) {
-                const msgCobranca = vInfo.diffDays !== null && vInfo.diffDays < 0
-                    ? `Olá ${cli.nome}, tudo bem? Aqui é da FACILITA MOTO. Consta em aberto o aluguel semanal da moto ${moto.modelo} (${moto.placa}) no valor de R$ ${valSemanal}, vencido em ${vInfo.texto}. Por gentileza, envie o comprovante PIX para regularização.`
-                    : `Olá ${cli.nome}, tudo bem? Aqui é da FACILITA MOTO! Passando para lembrar do vencimento semanal da moto ${moto.modelo} (${moto.placa}) em ${vInfo.texto}, no valor de R$ ${valSemanal}. Qualquer dúvida estamos à disposição!`;
-                btnCobrarWhats = `<a href="https://wa.me/55${numWhats}?text=${encodeURIComponent(msgCobranca)}" target="_blank" class="btn btn-secondary btn-sm" style="background:#25d366; color:#fff; border:none;" title="Enviar cobrança / lembrete no WhatsApp"><i class="fa-brands fa-whatsapp"></i> Cobrar</a>`;
             }
 
             const tr = document.createElement('tr');
@@ -4361,29 +4602,42 @@ function renderPagamentosView() {
                     <small style="color:var(--text-muted);">${cli.telefone || 'Sem telefone'}</small>
                 </td>
                 <td>
-                    <strong>${moto.modelo}</strong><br>
-                    <small style="color:var(--text-muted);">Placa: <strong>${moto.placa}</strong></small>
+                    <strong>${moto.modelo}</strong> <span style="color:var(--text-muted); font-size:0.8rem;">(${moto.placa})</span><br>
+                    ${bloqueadorTag}
                 </td>
                 <td>
                     <strong style="color:#059669; font-size:0.95rem;">R$ ${valSemanal}</strong><br>
-                    <small style="color:var(--text-muted);">${c.formaPagamento || 'PIX'}</small>
+                    <span style="font-size:0.72rem; color:#009ee3; font-weight:700;"><i class="fa-solid fa-qrcode"></i> PIX Mercado Pago (${cobPix ? cobPix.paymentId : 'Ativo'})</span>
                 </td>
                 <td>${vInfo.htmlBadge}</td>
-                <td>${statusPagBadge}</td>
                 <td>
-                    <span style="font-size:0.75rem; font-weight:700; padding:2px 7px; border-radius:4px; background:${oleo.badgeBg}; color:${oleo.badgeColor}; display:inline-block;">
-                        ${oleo.kmAtual} km / ${oleo.kmProximaTroca} km
-                    </span><br>
-                    <button class="btn btn-secondary btn-sm" style="padding:2px 6px; font-size:0.7rem; margin-top:4px;" onclick="abrirModalTrocaOleo('${moto.id}')">
-                        <i class="fa-solid fa-oil-can"></i> Troca Óleo
-                    </button>
+                    ${statusPagBadge}
+                    ${subRegraHtml}
                 </td>
                 <td>
-                    <div style="display:flex; gap:6px; flex-wrap:wrap;">
-                        <button class="btn btn-primary btn-sm" style="background:#059669;" onclick="abrirModalConfirmarPagamento('${c.id}')" title="Confirmar recebimento semanal e avançar +7 dias">
-                            <i class="fa-solid fa-sack-dollar"></i> Confirmar (+7d)
+                    <span style="font-size:0.74rem; font-weight:700; padding:2px 7px; border-radius:4px; background:${oleo.badgeBg}; color:${oleo.badgeColor}; display:inline-block;">
+                        ${oleo.kmAtual} km / ${oleo.kmProximaTroca} km
+                    </span><br>
+                    <div style="display:flex; gap:4px; margin-top:4px; flex-wrap:wrap;">
+                        <button class="btn btn-secondary btn-sm" style="padding:2px 6px; font-size:0.69rem;" onclick="abrirModalTrocaOleo('${moto.id}')" title="Registrar Troca de Óleo">
+                            <i class="fa-solid fa-oil-can"></i> Trocar
                         </button>
-                        ${btnCobrarWhats}
+                        <button class="btn btn-secondary btn-sm" style="padding:2px 6px; font-size:0.69rem; background:#fffbeb; color:#92400e; border:1px solid #fcd34d;" onclick="notificarUsuarioIndividualOleo('${moto.id}')" title="Notificar individualmente este usuário sobre a troca de óleo">
+                            <i class="fa-brands fa-whatsapp"></i> Avisar Óleo
+                        </button>
+                    </div>
+                </td>
+                <td>
+                    <div style="display:flex; gap:5px; flex-wrap:wrap;">
+                        <button class="btn btn-primary btn-sm" style="background:#009ee3; border:none;" onclick="abrirModalPixMercadoPago('${c.id}')" title="Abrir Cobrança PIX Mercado Pago, Enviar Aviso 08:00h e Desbloquear Automaticamente">
+                            <i class="fa-solid fa-qrcode"></i> PIX Mercado Pago
+                        </button>
+                        <button class="btn btn-primary btn-sm" style="background:#059669;" onclick="abrirModalConfirmarPagamento('${c.id}')" title="Confirmar recebimento semanal (+7 dias) e liberar moto">
+                            <i class="fa-solid fa-sack-dollar"></i> +7d
+                        </button>
+                        <button class="btn btn-secondary btn-sm" style="background:#25d366; color:#fff; border:none;" onclick="notificarUsuarioIndividual08h('${c.id}')" title="Enviar Notificação Individual das 08:00h com PIX Mercado Pago e Aviso de Bloqueio às 18:00h">
+                            <i class="fa-brands fa-whatsapp"></i> Aviso 08h/18h
+                        </button>
                         <button class="btn btn-secondary btn-sm" onclick="abrirEdicaoContrato('${c.id}')" title="Editar vencimento / valor">
                             <i class="fa-solid fa-calendar-pen"></i>
                         </button>
@@ -4392,6 +4646,65 @@ function renderPagamentosView() {
             `;
             tbodyAtivos.appendChild(tr);
         });
+    }
+
+    // 2.5. Tabela de Notificações Individuais por Locatário (Cobrança 08:00h, Bloqueio 18:00h & Troca de Óleo)
+    if (tbodyNotifInd) {
+        tbodyNotifInd.innerHTML = '';
+        if (contratosAtivos.length === 0) {
+            tbodyNotifInd.innerHTML = `<tr><td colspan="6" class="empty-state" style="padding:20px;">Nenhum locatário com contrato ativo no momento.</td></tr>`;
+        } else {
+            contratosAtivos.forEach(c => {
+                const cli = clientes.find(x => x.id === c.clienteId) || { nome: 'Locatário', telefone: '' };
+                const moto = motos.find(x => x.id === c.motoId) || { modelo: 'Moto', placa: '-', valor: 0 };
+                const vInfo = getInfoVencimentoContrato(c);
+                const oleo = getMotoOleoInfo(moto);
+                const valSemanal = parseFloat(c.valorSemanal || (parseFloat(moto.valor || 0) * 7) || 0).toFixed(2);
+
+                const jaNotificou08h = c.notificado08hVencRef === c.dataProxVenc;
+                const statusNotifPagHtml = vInfo.diffDays !== null && vInfo.diffDays <= 0
+                    ? `<span class="badge badge-manutencao" style="background:#e0f2fe; color:#0369a1;"><i class="fa-solid fa-check-double"></i> Aviso 08:00h Ativo (Venc: ${vInfo.texto} • R$ ${valSemanal})</span><br><small style="color:#dc2626; font-weight:700;">⚠️ Aviso de bloqueio automático às ${cfgMp.horaBloqueio || '18:00'}h incluído</small>`
+                    : `<span class="badge badge-disponivel">Programado p/ ${vInfo.texto} às ${cfgMp.horaNotificacao || '08:00'}h</span><br><small style="color:var(--text-muted);">${jaNotificou08h ? 'Notificado neste ciclo' : 'Disparo automático às 08:00h do vencimento'}</small>`;
+
+                const statusNotifOleoHtml = oleo.atingiuBloqueioKm
+                    ? `<span class="badge badge-alugada" style="background:#7f1d1d; color:#fff;">🛑 Bloqueio 1.100 km Ativado (${oleo.kmAtual} km)</span>`
+                    : (oleo.status === 'vencido'
+                        ? `<span class="badge badge-alugada" style="background:#fee2e2; color:#991b1b;">🚨 Troca Vencida (${oleo.kmAtual}/${oleo.kmProximaTroca} km) • Bloqueia aos ${oleo.kmBloqueioMotor} km</span>`
+                        : (oleo.status === 'aviso'
+                            ? `<span class="badge badge-manutencao">⚠️ Aviso Preventivo: Faltam ${oleo.kmRestantes} km</span>`
+                            : `<span class="badge badge-disponivel">Em dia (${oleo.kmAtual} / ${oleo.kmProximaTroca} km)</span>`));
+
+                const statusBloqMotoHtml = moto.rastreadorBloqueado
+                    ? `<span class="gps-pill gps-blocked"><span class="gps-dot"></span> 🔒 BLOQUEADA (${moto.bloqueadoPorInadimplencia ? 'Não pagou até 18h' : (moto.bloqueadoPorKmOleo ? 'Limite 1.100 km Óleo' : 'Manual')})</span>`
+                    : `<span class="gps-pill gps-online"><span class="gps-dot"></span> 🔓 Liberada (Desbloqueio Automático Ativo)</span>`;
+
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>
+                        <strong>${cli.nome}</strong><br>
+                        <small style="color:var(--text-muted);">${cli.telefone || 'S/N'}</small>
+                    </td>
+                    <td>
+                        <strong>${moto.modelo}</strong><br>
+                        <small style="color:var(--text-muted);">Placa: <strong>${moto.placa}</strong></small>
+                    </td>
+                    <td>${statusNotifPagHtml}</td>
+                    <td>${statusNotifOleoHtml}</td>
+                    <td>${statusBloqMotoHtml}</td>
+                    <td>
+                        <div style="display:flex; gap:5px; flex-wrap:wrap;">
+                            <button class="btn btn-primary btn-sm" style="background:#009ee3; border:none;" onclick="notificarUsuarioIndividual08h('${c.id}')" title="Enviar Notificação das 08:00h com PIX Mercado Pago e Aviso de Bloqueio às 18:00h">
+                                <i class="fa-solid fa-bell"></i> Notificar Cobrança (08h)
+                            </button>
+                            <button class="btn btn-secondary btn-sm" style="background:#d97706; color:#fff; border:none;" onclick="notificarUsuarioIndividualOleo('${moto.id}')" title="Notificar este usuário sobre a Troca de Óleo (1.000 km / Bloqueio 1.100 km)">
+                                <i class="fa-solid fa-oil-can"></i> Notificar Óleo
+                            </button>
+                        </div>
+                    </td>
+                `;
+                tbodyNotifInd.appendChild(tr);
+            });
+        }
     }
 
     // 3. Tabela de Histórico de Pagamentos Recebidos
@@ -4426,6 +4739,635 @@ function renderPagamentosView() {
             tbodyHist.appendChild(tr);
         });
     }
+}
+
+// =========================================================================
+// FUNÇÕES DE NOTIFICAÇÃO INDIVIDUAL POR USUÁRIO (08:00H, 18:00H E ÓLEO)
+// =========================================================================
+function notificarUsuarioIndividual08h(contratoId) {
+    let contratos = getDb('crm_contratos');
+    const cIdx = contratos.findIndex(c => c.id === contratoId);
+    if (cIdx === -1) return;
+
+    const clientes = getDb('crm_clientes');
+    const motos = getDb('crm_motos');
+    const cli = clientes.find(x => x.id === contratos[cIdx].clienteId) || { nome: 'Locatário', telefone: '' };
+    const moto = motos.find(x => x.id === contratos[cIdx].motoId) || { modelo: 'Moto', placa: '-', valor: 0 };
+
+    garantirCobrancaPixLocalNoContrato(contratos[cIdx], cli, moto);
+    contratos[cIdx].notificado08hVencRef = contratos[cIdx].dataProxVenc;
+    contratos[cIdx].notificado08hEm = new Date().toISOString();
+    saveDb('crm_contratos', contratos);
+
+    const msg = montarTextoNotificacao08hUsuario(contratos[cIdx], cli, moto);
+    const numWhats = (cli.telefone || '').replace(/\D/g, '');
+
+    mostrarToastNotificacao({
+        titulo: `☀️ Notificação 08:00h Enviada — ${cli.nome}`,
+        mensagem: `Cobrança semanal PIX Mercado Pago + Aviso de bloqueio automático às 18:00h gerados para a moto ${moto.placa}.`,
+        cor: '#009ee3',
+        icone: 'fa-bell'
+    });
+
+    updateViews();
+
+    if (numWhats) {
+        window.open(`https://wa.me/55${numWhats}?text=${encodeURIComponent(msg)}`, '_blank');
+    } else {
+        alert(`Notificação individual registrada para ${cli.nome}!\n\nMensagem gerada:\n\n${msg}`);
+    }
+}
+
+function notificarUsuarioIndividualOleo(motoId) {
+    let motos = getDb('crm_motos');
+    const mIdx = motos.findIndex(m => m.id === motoId);
+    if (mIdx === -1) return;
+
+    const contratos = getDb('crm_contratos');
+    const clientes = getDb('crm_clientes');
+    const { cliente } = getCondutorContratoAtivo(motoId, contratos, clientes);
+
+    const msg = montarTextoNotificacaoOleoIndividualUsuario(motos[mIdx], cliente);
+    motos[mIdx].ultimoAvisoOleoData = new Date().toISOString();
+    saveDb('crm_motos', motos);
+
+    mostrarToastNotificacao({
+        titulo: `🛢️ Notificação Individual de Óleo (${motos[mIdx].placa})`,
+        mensagem: `Alerta de revisão de 1.000 km e bloqueio de proteção aos 1.100 km enviado para ${cliente ? cliente.nome : 'Condutor'}.`,
+        cor: '#d97706',
+        icone: 'fa-oil-can'
+    });
+
+    if (cliente && cliente.telefone) {
+        const numWhats = cliente.telefone.replace(/\D/g, '');
+        if (numWhats) {
+            window.open(`https://wa.me/55${numWhats}?text=${encodeURIComponent(msg)}`, '_blank');
+            return;
+        }
+    }
+    alert(`Notificação individual de Troca de Óleo gerada:\n\n${msg}`);
+}
+
+// =========================================================================
+// MODAL E INTEGRAÇÃO COM A API MERCADO PAGO PIX + DESBLOQUEIO AUTOMÁTICO
+// =========================================================================
+function abrirModalPixMercadoPago(contratoId) {
+    let contratos = getDb('crm_contratos');
+    const cIdx = contratos.findIndex(c => c.id === contratoId);
+    if (cIdx === -1) return;
+
+    const clientes = getDb('crm_clientes');
+    const motos = getDb('crm_motos');
+    const cli = clientes.find(x => x.id === contratos[cIdx].clienteId) || { nome: 'Locatário', telefone: '', cpf: '', email: '' };
+    const moto = motos.find(x => x.id === contratos[cIdx].motoId) || { modelo: 'Moto', placa: '-', valor: 0 };
+    const cfgMp = getMercadoPagoConfig();
+
+    const valSemanal = parseFloat(contratos[cIdx].valorSemanal || (parseFloat(moto.valor || 0) * 7) || 350).toFixed(2);
+    const cobLocal = garantirCobrancaPixLocalNoContrato(contratos[cIdx], cli, moto);
+    saveDb('crm_contratos', contratos);
+
+    document.getElementById('mp-pix-contrato-id').value = contratos[cIdx].id;
+    document.getElementById('mp-pix-payment-id').value = cobLocal.paymentId || '';
+    document.getElementById('mp-pix-resumo-cliente').innerText = `👤 Locatário: ${cli.nome} (${cli.telefone || 'Sem telefone'})`;
+    document.getElementById('mp-pix-resumo-moto').innerText = `🏍️ Moto: ${moto.modelo} • Placa: ${moto.placa} • Vencimento: ${formatarDataBr(contratos[cIdx].dataProxVenc)}`;
+    document.getElementById('mp-pix-resumo-regra').innerText = `☀️ Aviso enviado às ${cfgMp.horaNotificacao || '08:00'}h • 🛑 Bloqueio automático às ${cfgMp.horaBloqueio || '18:00'}h • 🔓 Liberação imediata pós-PIX`;
+    document.getElementById('mp-pix-valor-badge').innerText = `R$ ${valSemanal}`;
+
+    const alertaBloqEl = document.getElementById('mp-pix-alerta-bloqueada');
+    if (alertaBloqEl) {
+        alertaBloqEl.style.display = moto.bloqueadoPorInadimplencia ? 'block' : 'none';
+    }
+
+    const statusBadgeEl = document.getElementById('mp-pix-status-badge');
+    if (statusBadgeEl) {
+        statusBadgeEl.className = moto.bloqueadoPorInadimplencia ? 'badge badge-alugada' : 'badge badge-manutencao';
+        statusBadgeEl.innerText = moto.bloqueadoPorInadimplencia ? '🛑 Moto Bloqueada (Aguardando PIX)' : '⏳ Aguardando Confirmação PIX';
+    }
+
+    const qrImg = document.getElementById('mp-pix-qrcode-img');
+    if (qrImg) qrImg.src = cobLocal.qrCodeUrl;
+    const copiaColaEl = document.getElementById('mp-pix-copia-cola');
+    if (copiaColaEl) copiaColaEl.value = cobLocal.copiaECola;
+
+    openModal('modal-cobranca-pix-mp');
+
+    // Sincroniza também com o endpoint Serverless /api/mercadopago para registrar na API oficial / Webhook
+    sincronizarCobrancaPixComServidorMp(contratos[cIdx].id);
+
+    if (window.mpPixModalInterval) clearInterval(window.mpPixModalInterval);
+    window.mpPixModalInterval = setInterval(() => {
+        const cIdAtivo = document.getElementById('mp-pix-contrato-id')?.value;
+        const modalEl = document.getElementById('modal-cobranca-pix-mp');
+        if (modalEl && modalEl.classList.contains('show') && cIdAtivo) {
+            consultarStatusPixNoServidorMp(cIdAtivo);
+        }
+    }, 4000);
+}
+
+function fecharModalPixMercadoPago() {
+    closeModal('modal-cobranca-pix-mp');
+}
+
+function sincronizarCobrancaPixComServidorMp(contratoId, forcarNovo = false) {
+    let contratos = getDb('crm_contratos');
+    const cIdx = contratos.findIndex(c => c.id === contratoId);
+    if (cIdx === -1) return;
+
+    const clientes = getDb('crm_clientes');
+    const motos = getDb('crm_motos');
+    const cli = clientes.find(x => x.id === contratos[cIdx].clienteId) || { nome: 'Locatário', cpf: '', email: '' };
+    const moto = motos.find(x => x.id === contratos[cIdx].motoId) || { modelo: 'Moto', placa: '-', valor: 0 };
+    const cfgMp = getMercadoPagoConfig();
+    const valSemanal = parseFloat(contratos[cIdx].valorSemanal || (parseFloat(moto.valor || 0) * 7) || 350).toFixed(2);
+
+    fetch('/api/mercadopago', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            action: 'create_pix',
+            contratoId: contratos[cIdx].id,
+            clienteNome: cli.nome,
+            clienteCpf: cli.cpf || '',
+            clienteEmail: cli.email || '',
+            motoPlaca: moto.placa,
+            motoModelo: moto.modelo,
+            valor: valSemanal,
+            vencimento: contratos[cIdx].dataProxVenc,
+            accessToken: cfgMp.accessToken || '',
+            chavePix: cfgMp.chavePix || '85221619091',
+            beneficiario: cfgMp.beneficiario || 'HENRIQUE ROCHA CLAVIJO',
+            forcarNovo
+        })
+    })
+    .then(r => r.ok ? r.json() : null)
+    .then(data => {
+        if (!data || !data.charge) return;
+        let contratosAtuais = getDb('crm_contratos');
+        const idx = contratosAtuais.findIndex(x => x.id === contratoId);
+        if (idx > -1) {
+            contratosAtuais[idx].pixCobrancaAtual = data.charge;
+            saveDb('crm_contratos', contratosAtuais);
+        }
+        const modalContratoId = document.getElementById('mp-pix-contrato-id')?.value;
+        if (modalContratoId === contratoId) {
+            if (document.getElementById('mp-pix-payment-id')) document.getElementById('mp-pix-payment-id').value = data.charge.paymentId || '';
+            if (document.getElementById('mp-pix-qrcode-img') && data.charge.qrCodeUrl) document.getElementById('mp-pix-qrcode-img').src = data.charge.qrCodeUrl;
+            if (document.getElementById('mp-pix-copia-cola') && data.charge.copiaECola) document.getElementById('mp-pix-copia-cola').value = data.charge.copiaECola;
+            const provLabel = document.getElementById('mp-pix-provider-label');
+            if (provLabel) {
+                provLabel.innerText = data.provider === 'mercadopago_official'
+                    ? `API Oficial Mercado Pago (#${data.charge.paymentId})`
+                    : `PIX Mercado Pago BRCode (#${data.charge.paymentId})`;
+            }
+        }
+    })
+    .catch(() => {});
+}
+
+function regenerarCobrancaPixModal() {
+    const contratoId = document.getElementById('mp-pix-contrato-id')?.value;
+    if (!contratoId) return;
+    sincronizarCobrancaPixComServidorMp(contratoId, true);
+    mostrarToastNotificacao({
+        titulo: '🔄 QR Code PIX Atualizado',
+        mensagem: 'Nova cobrança PIX gerada para este vencimento semanal.',
+        cor: '#009ee3',
+        icone: 'fa-qrcode'
+    });
+}
+
+function copiarCodigoPixMercadoPago() {
+    const el = document.getElementById('mp-pix-copia-cola');
+    if (!el || !el.value) return;
+    navigator.clipboard?.writeText(el.value).catch(() => {
+        el.select();
+        document.execCommand('copy');
+    });
+    mostrarToastNotificacao({
+        titulo: '✅ PIX Copia e Cola Copiado!',
+        mensagem: 'O código PIX do Mercado Pago foi copiado para a área de transferência.',
+        cor: '#10b981',
+        icone: 'fa-copy'
+    });
+}
+
+function enviarNotificacao08hWhatsModal() {
+    const contratoId = document.getElementById('mp-pix-contrato-id')?.value;
+    if (!contratoId) return;
+    notificarUsuarioIndividual08h(contratoId);
+}
+
+function aplicarBloqueio18hManualNoModal() {
+    const contratoId = document.getElementById('mp-pix-contrato-id')?.value;
+    if (!contratoId) return;
+
+    let contratos = getDb('crm_contratos');
+    const cIdx = contratos.findIndex(c => c.id === contratoId);
+    if (cIdx === -1) return;
+
+    let motos = getDb('crm_motos');
+    const clientes = getDb('crm_clientes');
+    const mIdx = motos.findIndex(m => m.id === contratos[cIdx].motoId);
+    const cli = clientes.find(x => x.id === contratos[cIdx].clienteId) || { nome: 'Locatário', telefone: '' };
+    if (mIdx === -1) return;
+
+    const cfgTracker = getTrackerConfig();
+    motos[mIdx].rastreadorBloqueado = true;
+    motos[mIdx].bloqueadoPorInadimplencia = true;
+    motos[mIdx].contratoBloqueadoId = contratos[cIdx].id;
+    motos[mIdx].motivoBloqueioAutomatico = `BLOQUEIO AUTOMÁTICO 18:00H: Aluguel semanal não pago até as 18:00h (Só libera após confirmação PIX)`;
+    motos[mIdx].rastreadorUltimaSync = new Date().toISOString();
+    saveDb('crm_motos', motos);
+
+    contratos[cIdx].bloqueado18hVencRef = contratos[cIdx].dataProxVenc;
+    contratos[cIdx].bloqueado18hEm = new Date().toISOString();
+    saveDb('crm_contratos', contratos);
+
+    fetch('/api/telemetry', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            action: 'command_block',
+            id: motos[mIdx].rastreadorImei || '00018E1B',
+            placa: motos[mIdx].placa,
+            bloquear: true,
+            motivo: motos[mIdx].motivoBloqueioAutomatico,
+            xtrackEmail: cfgTracker.xtrackEmail || '',
+            xtrackSenha: cfgTracker.xtrackSenha || ''
+        })
+    }).catch(() => {});
+
+    abrirModalPixMercadoPago(contratoId);
+    updateViews();
+
+    mostrarToastNotificacao({
+        titulo: `🛑 Moto Bloqueada por Falta de Pagamento (${motos[mIdx].placa})`,
+        mensagem: `Comando de bloqueio das 18:00h enviado ao bloqueador da moto. Só voltará a liberar após confirmação do PIX!`,
+        cor: '#dc2626',
+        icone: 'fa-lock'
+    });
+
+    const numWhats = (cli.telefone || '').replace(/\D/g, '');
+    const msgBloq = montarTextoNotificacaoBloqueio18hUsuario(contratos[cIdx], cli, motos[mIdx]);
+    if (numWhats && confirm(`A moto ${motos[mIdx].modelo} (${motos[mIdx].placa}) foi BLOQUEADA no rastreador/bloqueador!\n\nDeseja enviar agora o aviso de bloqueio + código PIX para ${cli.nome} no WhatsApp?`)) {
+        window.open(`https://wa.me/55${numWhats}?text=${encodeURIComponent(msgBloq)}`, '_blank');
+    }
+}
+
+function consultarStatusPixNoServidorMp(contratoId) {
+    const contratos = getDb('crm_contratos');
+    const contrato = contratos.find(c => c.id === contratoId);
+    if (!contrato || contrato.status !== 'ativo') return;
+
+    const cfgMp = getMercadoPagoConfig();
+    const payId = contrato.pixCobrancaAtual?.paymentId || '';
+    const url = `/api/mercadopago?contratoId=${encodeURIComponent(contrato.id)}&paymentId=${encodeURIComponent(payId)}&accessToken=${encodeURIComponent(cfgMp.accessToken || '')}`;
+
+    fetch(url)
+        .then(r => r.ok ? r.json() : null)
+        .then(data => {
+            if (data && data.charge && data.charge.status === 'approved') {
+                processarConfirmacaoAutomaticaPixMercadoPago(contrato.id, data.charge);
+            }
+        })
+        .catch(() => {});
+}
+
+function confirmarPagamentoPixMercadoPagoAgora() {
+    const contratoId = document.getElementById('mp-pix-contrato-id')?.value;
+    const paymentId = document.getElementById('mp-pix-payment-id')?.value;
+    if (!contratoId) return;
+
+    const contratos = getDb('crm_contratos');
+    const contrato = contratos.find(c => c.id === contratoId);
+    if (!contrato) return;
+
+    const motos = getDb('crm_motos');
+    const moto = motos.find(m => m.id === contrato.motoId) || { valor: 0 };
+    const valSemanal = parseFloat(contrato.valorSemanal || (parseFloat(moto.valor || 0) * 7) || 350).toFixed(2);
+
+    fetch('/api/mercadopago', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            action: 'confirm_pix',
+            contratoId,
+            paymentId,
+            valor: valSemanal
+        })
+    })
+    .then(r => r.ok ? r.json() : null)
+    .then(data => {
+        processarConfirmacaoAutomaticaPixMercadoPago(contratoId, data?.charge || { paymentId, valor: valSemanal, status: 'approved' });
+    })
+    .catch(() => {
+        processarConfirmacaoAutomaticaPixMercadoPago(contratoId, { paymentId, valor: valSemanal, status: 'approved' });
+    });
+}
+
+function processarConfirmacaoAutomaticaPixMercadoPago(contratoId, chargeData = {}) {
+    let contratos = getDb('crm_contratos');
+    const cIdx = contratos.findIndex(c => c.id === contratoId);
+    if (cIdx === -1) return;
+
+    // Evita processar duas vezes o mesmo pagamento aprovado
+    const payId = chargeData.paymentId || contratos[cIdx].pixCobrancaAtual?.paymentId || `MP-${Date.now()}`;
+    if (contratos[cIdx].ultimoPaymentIdProcessado && contratos[cIdx].ultimoPaymentIdProcessado === payId) {
+        return;
+    }
+
+    const clientes = getDb('crm_clientes');
+    let motos = getDb('crm_motos');
+    const cli = clientes.find(x => x.id === contratos[cIdx].clienteId) || { nome: 'Locatário', telefone: '' };
+    const mIdx = motos.findIndex(x => x.id === contratos[cIdx].motoId);
+    const moto = mIdx > -1 ? motos[mIdx] : { modelo: 'Moto', placa: '-', valor: 0 };
+
+    const hojeIso = new Date().toISOString().split('T')[0];
+    const vencAnterior = contratos[cIdx].dataProxVenc || hojeIso;
+    const proxDate = new Date(vencAnterior + 'T00:00:00');
+    proxDate.setDate(proxDate.getDate() + 7);
+    const novoVencimento = proxDate.toISOString().split('T')[0];
+
+    const valorPago = parseFloat(chargeData.valor || contratos[cIdx].valorSemanal || (parseFloat(moto.valor || 0) * 7) || 0);
+
+    // 1. Atualiza o Contrato (+7 dias) e limpa flags de bloqueio de inadimplência
+    contratos[cIdx].dataProxVenc = novoVencimento;
+    contratos[cIdx].formaPagamento = 'PIX Mercado Pago';
+    contratos[cIdx].ultimoPaymentIdProcessado = payId;
+    contratos[cIdx].pixCobrancaAtual = null;
+    contratos[cIdx].bloqueado18hVencRef = '';
+    saveDb('crm_contratos', contratos);
+
+    // 2. Desbloqueia AUTOMATICAMENTE a motocicleta no Rastreador / Bloqueador se não estiver bloqueada por 1.100 km de óleo
+    let desbloqueouMoto = false;
+    if (mIdx > -1) {
+        const estavaBloqueada = motos[mIdx].rastreadorBloqueado === true || motos[mIdx].bloqueadoPorInadimplencia === true;
+        motos[mIdx].bloqueadoPorInadimplencia = false;
+        motos[mIdx].contratoBloqueadoId = '';
+
+        if (!motos[mIdx].bloqueadoPorKmOleo) {
+            motos[mIdx].rastreadorBloqueado = false;
+            motos[mIdx].motivoBloqueioAutomatico = '';
+            if (estavaBloqueada) {
+                desbloqueouMoto = true;
+                const cfgTracker = getTrackerConfig();
+                fetch('/api/telemetry', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: 'command_block',
+                        id: motos[mIdx].rastreadorImei || '00018E1B',
+                        placa: motos[mIdx].placa,
+                        bloquear: false,
+                        motivo: `PIX Confirmado via Mercado Pago (${payId}) — Desbloqueio Automático`,
+                        xtrackEmail: cfgTracker.xtrackEmail || '',
+                        xtrackSenha: cfgTracker.xtrackSenha || ''
+                    })
+                }).catch(() => {});
+            }
+        }
+        motos[mIdx].rastreadorUltimaSync = new Date().toISOString();
+        saveDb('crm_motos', motos);
+    }
+
+    // 3. Registra no Histórico de Pagamentos
+    const novoPag = {
+        id: generateId(),
+        contratoId: contratoId,
+        clienteId: cli.id || '',
+        clienteNome: cli.nome,
+        clienteTelefone: cli.telefone || '',
+        motoId: moto.id || '',
+        motoModelo: moto.modelo,
+        motoPlaca: moto.placa,
+        valor: valorPago.toFixed(2),
+        formaPagamento: 'PIX Mercado Pago',
+        dataPagamento: hojeIso,
+        vencimentoAnterior: vencAnterior,
+        novoVencimento: novoVencimento,
+        obs: `PIX confirmado automaticamente (${payId})${desbloqueouMoto ? ' • Moto desbloqueada automaticamente' : ''}`,
+        criadoEm: new Date().toISOString()
+    };
+
+    let pagamentos = getDb('crm_pagamentos');
+    pagamentos.push(novoPag);
+    saveDb('crm_pagamentos', pagamentos);
+
+    fecharModalPixMercadoPago();
+    updateViews();
+
+    mostrarToastNotificacao({
+        titulo: desbloqueouMoto
+            ? `🔓 PIX CONFIRMADO & MOTO DESBLOQUEADA (${moto.placa})!`
+            : `✅ PIX Mercado Pago Confirmado (${moto.placa})!`,
+        mensagem: `Recebido R$ ${valorPago.toFixed(2)} de ${cli.nome}. Novo vencimento: ${formatarDataBr(novoVencimento)}.${desbloqueouMoto ? ' Comando de DESBLOQUEIO enviado automaticamente ao bloqueador da moto!' : ''}`,
+        cor: '#10b981',
+        icone: desbloqueouMoto ? 'fa-unlock' : 'fa-circle-check',
+        duracao: 9500
+    });
+}
+
+function salvarConfigMercadoPago(e) {
+    e.preventDefault();
+    const cfg = {
+        accessToken: document.getElementById('cfg-mp-access-token')?.value.trim() || '',
+        chavePix: document.getElementById('cfg-mp-chave-pix')?.value.trim() || '85221619091',
+        beneficiario: document.getElementById('cfg-mp-beneficiario')?.value.trim() || 'HENRIQUE ROCHA CLAVIJO',
+        horaNotificacao: document.getElementById('cfg-mp-hora-notif')?.value || '08:00',
+        horaBloqueio: document.getElementById('cfg-mp-hora-bloqueio')?.value || '18:00',
+        autoNotificar08h: document.getElementById('cfg-mp-auto-notif-08h') ? document.getElementById('cfg-mp-auto-notif-08h').checked : true,
+        autoBloquear18h: document.getElementById('cfg-mp-auto-bloqueio-18h') ? document.getElementById('cfg-mp-auto-bloqueio-18h').checked : true,
+        autoDesbloquearPix: document.getElementById('cfg-mp-auto-desbloqueio-pix') ? document.getElementById('cfg-mp-auto-desbloqueio-pix').checked : true
+    };
+    localStorage.setItem('crm_mercadopago_config', JSON.stringify(cfg));
+    closeModal('modal-config-mercadopago');
+    verificarReguaAutomaticaPagamentosEBloqueio18h(true);
+    updateViews();
+
+    mostrarToastNotificacao({
+        titulo: '⚙️ Automação Mercado Pago PIX Salva!',
+        mensagem: `Notificação configurada para as ${cfg.horaNotificacao}h e bloqueio automático às ${cfg.horaBloqueio}h com liberação pós-PIX.`,
+        cor: '#009ee3',
+        icone: 'fa-check'
+    });
+}
+
+// =========================================================================
+// MOTOR AUTÔNOMO: NOTIFICAÇÃO ÀS 08:00H, BLOQUEIO ÀS 18:00H E LIBERAÇÃO PIX
+// =========================================================================
+function converterHoraParaMinutos(horaStr, fallbackMinutos) {
+    if (!horaStr || !horaStr.includes(':')) return fallbackMinutos;
+    const p = horaStr.split(':');
+    const h = parseInt(p[0]);
+    const m = parseInt(p[1]);
+    if (isNaN(h) || isNaN(m)) return fallbackMinutos;
+    return h * 60 + m;
+}
+
+function verificarReguaAutomaticaPagamentosEBloqueio18h(exibirResumoManual = false) {
+    const cfgMp = getMercadoPagoConfig();
+    const cfgTracker = getTrackerConfig();
+    let contratos = getDb('crm_contratos');
+    let motos = getDb('crm_motos');
+    const clientes = getDb('crm_clientes');
+
+    const agora = new Date();
+    const minutosAgora = agora.getHours() * 60 + agora.getMinutes();
+    const minutos08h = converterHoraParaMinutos(cfgMp.horaNotificacao || '08:00', 8 * 60);
+    const minutos18h = converterHoraParaMinutos(cfgMp.horaBloqueio || '18:00', 18 * 60);
+
+    let mudouContratos = false;
+    let mudouMotos = false;
+    let qtdNotificados08h = 0;
+    let qtdBloqueados18h = 0;
+    let qtdAlertasOleo = 0;
+
+    // 1. Notificação Individual Automática de Troca de Óleo (1.000 km / 1.100 km) por Usuário
+    motos.forEach(m => {
+        const oleo = getMotoOleoInfo(m);
+        if (oleo.status === 'vencido' || oleo.status === 'aviso' || oleo.atingiuBloqueioKm) {
+            qtdAlertasOleo++;
+            const chaveAvisoOleo = `${oleo.kmProximaTroca}_${oleo.atingiuBloqueioKm ? 'bloq' : oleo.status}`;
+            if (cfgMp.autoNotificar08h !== false && m.ultimoAvisoOleoAutoKey !== chaveAvisoOleo) {
+                m.ultimoAvisoOleoAutoKey = chaveAvisoOleo;
+                m.ultimoAvisoOleoData = new Date().toISOString();
+                mudouMotos = true;
+                const { cliente } = getCondutorContratoAtivo(m.id, contratos, clientes);
+                if (cliente) {
+                    mostrarToastNotificacao({
+                        titulo: `🛢️ Notificação Individual de Óleo — ${cliente.nome}`,
+                        mensagem: `Moto ${m.modelo} (${m.placa}) está com ${oleo.kmAtual} km (Troca: ${oleo.kmProximaTroca} km • Bloqueio: ${oleo.kmBloqueioMotor} km).`,
+                        cor: oleo.atingiuBloqueioKm ? '#dc2626' : '#d97706',
+                        icone: 'fa-oil-can'
+                    });
+                }
+            }
+        }
+    });
+
+    // 2. Régua Automática por Contrato Ativo: Notificação às 08:00h e Bloqueio às 18:00h se não pago
+    contratos.forEach(c => {
+        if (c.status !== 'ativo') return;
+        const cli = clientes.find(x => x.id === c.clienteId) || { nome: 'Locatário', telefone: '' };
+        const mIdx = motos.findIndex(x => x.id === c.motoId);
+        if (mIdx === -1) return;
+        const moto = motos[mIdx];
+        const vInfo = getInfoVencimentoContrato(c);
+        const valSemanal = parseFloat(c.valorSemanal || (parseFloat(moto.valor || 0) * 7) || 0).toFixed(2);
+
+        if (vInfo.diffDays === null) return;
+
+        // Se vence hoje ou está atrasado, garante que a cobrança PIX Mercado Pago já esteja pronta
+        if (vInfo.diffDays <= 0) {
+            if (!c.pixCobrancaAtual || c.pixCobrancaAtual.vencimento !== c.dataProxVenc) {
+                garantirCobrancaPixLocalNoContrato(c, cli, moto);
+                mudouContratos = true;
+            }
+            // Consulta automaticamente na API se o PIX já foi aprovado para liberar a moto sozinho
+            if (cfgMp.autoDesbloquearPix !== false) {
+                consultarStatusPixNoServidorMp(c.id);
+            }
+        }
+
+        // REGRA 08:00 DA MANHÃ DO DIA DO PAGAMENTO: Notifica o usuário com aviso de bloqueio até as 18:00h
+        if (cfgMp.autoNotificar08h !== false && ((vInfo.diffDays === 0 && minutosAgora >= minutos08h) || vInfo.diffDays < 0)) {
+            if (c.notificado08hVencRef !== c.dataProxVenc) {
+                c.notificado08hVencRef = c.dataProxVenc;
+                c.notificado08hEm = new Date().toISOString();
+                mudouContratos = true;
+                qtdNotificados08h++;
+
+                mostrarToastNotificacao({
+                    titulo: `☀️ Notificação 08:00h Disparada — ${cli.nome}`,
+                    mensagem: `Cobrança semanal (R$ ${valSemanal}) da moto ${moto.placa} gerada via PIX Mercado Pago com aviso de bloqueio automático às ${cfgMp.horaBloqueio || '18:00'}h!`,
+                    cor: '#009ee3',
+                    icone: 'fa-bell',
+                    duracao: 8500
+                });
+
+                if ('Notification' in window && Notification.permission === 'granted') {
+                    try {
+                        new Notification(`☀️ Cobrança 08:00h — ${cli.nome} (${moto.placa})`, {
+                            body: `Aluguel R$ ${valSemanal} vence hoje. Aviso de bloqueio automático às ${cfgMp.horaBloqueio || '18:00'}h ativo.`
+                        });
+                    } catch (e) {}
+                }
+            }
+        }
+
+        // REGRA 18:00H: Se o aluguel da semana não for pago até as 18:00h (ou estiver vencido), BLOQUEIA A MOTO AUTOMATICAMENTE!
+        const passouDas18hNoVencimento = (vInfo.diffDays === 0 && minutosAgora >= minutos18h) || (vInfo.diffDays < 0);
+        if (cfgMp.autoBloquear18h !== false && passouDas18hNoVencimento) {
+            const jaBloqueadaPorInad = moto.rastreadorBloqueado === true && moto.bloqueadoPorInadimplencia === true;
+            if (!jaBloqueadaPorInad) {
+                moto.rastreadorBloqueado = true;
+                moto.bloqueadoPorInadimplencia = true;
+                moto.contratoBloqueadoId = c.id;
+                moto.motivoBloqueioAutomatico = vInfo.diffDays === 0
+                    ? `BLOQUEIO AUTOMÁTICO 18:00H: Aluguel semanal não pago até as ${cfgMp.horaBloqueio || '18:00'}h (Só libera após confirmação PIX)`
+                    : `BLOQUEIO AUTOMÁTICO POR INADIMPLÊNCIA: Aluguel vencido em ${formatarDataBr(c.dataProxVenc)} (Só libera após confirmação PIX)`;
+                moto.rastreadorUltimaSync = new Date().toISOString();
+                motos[mIdx] = moto;
+                mudouMotos = true;
+
+                c.bloqueado18hVencRef = c.dataProxVenc;
+                c.bloqueado18hEm = new Date().toISOString();
+                mudouContratos = true;
+                qtdBloqueados18h++;
+
+                // Envia comando de bloqueio remoto para o bloqueador da moto (App Xtrack / Chip IoT)
+                fetch('/api/telemetry', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: 'command_block',
+                        id: moto.rastreadorImei || '00018E1B',
+                        placa: moto.placa,
+                        bloquear: true,
+                        motivo: moto.motivoBloqueioAutomatico,
+                        xtrackEmail: cfgTracker.xtrackEmail || '',
+                        xtrackSenha: cfgTracker.xtrackSenha || ''
+                    })
+                }).catch(() => {});
+
+                mostrarToastNotificacao({
+                    titulo: `🛑 BLOQUEIO AUTOMÁTICO 18:00H (${moto.placa} — ${cli.nome})`,
+                    mensagem: `O aluguel semanal (R$ ${valSemanal}) não foi confirmado até as ${cfgMp.horaBloqueio || '18:00'}h. Comando de BLOQUEIO enviado automaticamente ao bloqueador da moto! Só libera após confirmação do PIX.`,
+                    cor: '#dc2626',
+                    icone: 'fa-lock',
+                    duracao: 10000
+                });
+
+                if ('Notification' in window && Notification.permission === 'granted') {
+                    try {
+                        new Notification(`🛑 MOTO BLOQUEADA ÀS 18:00H (${moto.placa})`, {
+                            body: `${cli.nome} não confirmou o PIX até as 18:00h. Bloqueio enviado ao bloqueador da moto!`
+                        });
+                    } catch (e) {}
+                }
+            }
+        }
+    });
+
+    if (mudouContratos) saveDb('crm_contratos', contratos);
+    if (mudouMotos) saveDb('crm_motos', motos);
+    if (mudouContratos || mudouMotos) updateViews();
+
+    if (exibirResumoManual) {
+        const motosBloqInad = motos.filter(m => m.bloqueadoPorInadimplencia).map(m => `${m.modelo} (${m.placa})`);
+        alert(
+            `⚡ Verificação da Régua Automática (08:00h / 18:00h + Óleo) concluída!\n\n` +
+            `• Horário atual do sistema: ${agora.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}\n` +
+            `• Notificações das 08:00h disparadas agora: ${qtdNotificados08h}\n` +
+            `• Novos bloqueios automáticos das 18:00h aplicados agora: ${qtdBloqueados18h}\n` +
+            `• Motos atualmente bloqueadas aguardando confirmação PIX: ${motosBloqInad.length > 0 ? motosBloqInad.join(', ') : 'Nenhuma'}\n` +
+            `• Motos com alerta individual de óleo (1.000/1.100 km): ${qtdAlertasOleo}`
+        );
+    }
+}
+
+function executarReguaCompletaManual() {
+    verificarReguaAutomaticaPagamentosEBloqueio18h(true);
 }
 
 function abrirModalConfirmarPagamento(contratoId) {
@@ -4472,14 +5414,47 @@ function confirmarBaixaPagamentoSemanal(e) {
     if (cIdx === -1) return;
 
     const clientes = getDb('crm_clientes');
-    const motos = getDb('crm_motos');
+    let motos = getDb('crm_motos');
     const cli = clientes.find(x => x.id === contratos[cIdx].clienteId) || { nome: 'Locatário', telefone: '' };
-    const moto = motos.find(x => x.id === contratos[cIdx].motoId) || { modelo: 'Moto', placa: '-' };
+    const mIdx = motos.findIndex(x => x.id === contratos[cIdx].motoId);
+    const moto = mIdx > -1 ? motos[mIdx] : { modelo: 'Moto', placa: '-' };
 
     const vencAnterior = contratos[cIdx].dataProxVenc;
     contratos[cIdx].dataProxVenc = novoVencimento;
     contratos[cIdx].formaPagamento = formaPag;
+    contratos[cIdx].pixCobrancaAtual = null;
+    contratos[cIdx].bloqueado18hVencRef = '';
     saveDb('crm_contratos', contratos);
+
+    // Se a moto estava bloqueada por inadimplência das 18:00h, desbloqueia automaticamente após confirmação do pagamento!
+    let desbloqueouAuto = false;
+    if (mIdx > -1) {
+        const estavaBloq = motos[mIdx].rastreadorBloqueado === true || motos[mIdx].bloqueadoPorInadimplencia === true;
+        motos[mIdx].bloqueadoPorInadimplencia = false;
+        motos[mIdx].contratoBloqueadoId = '';
+        if (!motos[mIdx].bloqueadoPorKmOleo) {
+            motos[mIdx].rastreadorBloqueado = false;
+            motos[mIdx].motivoBloqueioAutomatico = '';
+            if (estavaBloq) {
+                desbloqueouAuto = true;
+                const cfgTracker = getTrackerConfig();
+                fetch('/api/telemetry', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: 'command_block',
+                        id: motos[mIdx].rastreadorImei || '00018E1B',
+                        placa: motos[mIdx].placa,
+                        bloquear: false,
+                        motivo: 'Pagamento Semanal PIX Confirmado — Desbloqueio Automático',
+                        xtrackEmail: cfgTracker.xtrackEmail || '',
+                        xtrackSenha: cfgTracker.xtrackSenha || ''
+                    })
+                }).catch(() => {});
+            }
+        }
+        saveDb('crm_motos', motos);
+    }
 
     const novoPag = {
         id: generateId(),
@@ -4495,7 +5470,7 @@ function confirmarBaixaPagamentoSemanal(e) {
         dataPagamento: dataPagamento,
         vencimentoAnterior: vencAnterior,
         novoVencimento: novoVencimento,
-        obs: obs || 'Pagamento semanal confirmado',
+        obs: (obs || 'Pagamento semanal confirmado') + (desbloqueouAuto ? ' • Moto desbloqueada automaticamente' : ''),
         criadoEm: new Date().toISOString()
     };
 
@@ -4507,10 +5482,12 @@ function confirmarBaixaPagamentoSemanal(e) {
     updateViews();
 
     mostrarToastNotificacao({
-        titulo: `💰 Pagamento Confirmado (${moto.placa})`,
-        mensagem: `Recebido R$ ${valorPago.toFixed(2)} de ${cli.nome}. Próximo vencimento atualizado para ${formatarDataBr(novoVencimento)}.`,
+        titulo: desbloqueouAuto
+            ? `🔓 Pagamento Confirmado & Moto Desbloqueada (${moto.placa})`
+            : `💰 Pagamento Confirmado (${moto.placa})`,
+        mensagem: `Recebido R$ ${valorPago.toFixed(2)} de ${cli.nome}. Próximo vencimento: ${formatarDataBr(novoVencimento)}.${desbloqueouAuto ? ' Comando de DESBLOQUEIO enviado ao bloqueador da moto!' : ''}`,
         cor: '#10b981',
-        icone: 'fa-sack-dollar'
+        icone: desbloqueouAuto ? 'fa-unlock' : 'fa-sack-dollar'
     });
 }
 
@@ -4531,7 +5508,8 @@ function enviarReciboPagamentoWhats(pagamentoId) {
                 `💰 *Valor Pago:* R$ ${parseFloat(p.valor || 0).toFixed(2)}\n` +
                 `💳 *Forma de Pagamento:* ${p.formaPagamento}\n` +
                 `📅 *Data do Recebimento:* ${formatarDataBr(p.dataPagamento)}\n` +
-                `📆 *Próximo Vencimento:* ${formatarDataBr(p.novoVencimento)}\n\n` +
+                `📆 *Próximo Vencimento:* ${formatarDataBr(p.novoVencimento)}\n` +
+                `🔓 *Status Bloqueador:* Motocicleta Liberada\n\n` +
                 `Obrigado pela pontualidade! Bons negócios e pilote com segurança.`;
 
     window.open(`https://wa.me/55${numWhats}?text=${encodeURIComponent(msg)}`, '_blank');
@@ -4549,17 +5527,18 @@ function deletarPagamentoHistorico(pagamentoId) {
 }
 
 // =========================================================================
-// MODULE: CENTRAL DE NOTIFICAÇÕES (PAGAMENTOS, ÓLEO 1.000 KM & BLOQUEIO 1.100 KM)
+// MODULE: CENTRAL DE NOTIFICAÇÕES (PAGAMENTOS 08H/18H, ÓLEO 1.000 KM & BLOQUEIO 1.100 KM)
 // =========================================================================
 function coletarListaNotificacoesAtivas() {
     const notificacoes = [];
     const motos = getDb('crm_motos');
     const contratos = getDb('crm_contratos');
     const clientes = getDb('crm_clientes');
+    const cfgMp = getMercadoPagoConfig();
 
-    // 1. Alertas de Violação da Bateria ou Bloqueio Automático por 1.100 km nas Motos
+    // 1. Alertas de Violação da Bateria, Bloqueio por Inadimplência (18h) ou Bloqueio por 1.100 km nas Motos
     motos.forEach(m => {
-        const { cliente } = getCondutorContratoAtivo(m.id, contratos, clientes);
+        const { contrato, cliente } = getCondutorContratoAtivo(m.id, contratos, clientes);
         const nomeCond = cliente ? cliente.nome : 'No Pátio';
         const oleo = getMotoOleoInfo(m);
 
@@ -4575,6 +5554,21 @@ function coletarListaNotificacoesAtivas() {
                 descricao: `${m.modelo} (${nomeCond}) teve a alimentação 12V cortada! Rastreador operando na bateria backup.`,
                 acaoTexto: 'Abrir Rastreador',
                 acaoFn: `abrirPainelRastreadorMoto('${m.id}')`
+            });
+        }
+
+        if (m.bloqueadoPorInadimplencia) {
+            notificacoes.push({
+                id: `bloq_inad_${m.id}`,
+                prioridade: 1,
+                tipo: 'bloqueio_18h',
+                cor: '#991b1b',
+                bg: '#fef2f2',
+                icone: 'fa-lock',
+                titulo: `🛑 MOTO BLOQUEADA ÀS 18:00H POR FALTA DE PIX (${m.placa})`,
+                descricao: `${m.modelo} (${nomeCond}) foi bloqueada automaticamente porque o aluguel semanal não foi pago até as ${cfgMp.horaBloqueio || '18:00'}h. Só libera após confirmação do PIX!`,
+                acaoTexto: 'Abrir PIX Mercado Pago & Liberar',
+                acaoFn: contrato ? `abrirModalPixMercadoPago('${contrato.id}')` : `navegarParaView('pagamentos')`
             });
         }
 
@@ -4599,9 +5593,9 @@ function coletarListaNotificacoesAtivas() {
                 cor: '#dc2626',
                 bg: '#fff1f2',
                 icone: 'fa-oil-can',
-                titulo: `🛢️ TROCA DE ÓLEO VENCIDA (${m.placa})`,
-                descricao: `${m.modelo} (${nomeCond}) atingiu ${oleo.kmAtual} km (Troca: ${oleo.kmProximaTroca} km). Bloqueio automático em ${Math.max(0, oleo.kmRestantesBloqueio)} km (${oleo.kmBloqueioMotor} km)!`,
-                acaoTexto: 'Registrar Troca (+1.000 km)',
+                titulo: `🛢️ TROCA DE ÓLEO VENCIDA (${m.placa}) — ${nomeCond}`,
+                descricao: `${m.modelo} atingiu ${oleo.kmAtual} km (Troca: ${oleo.kmProximaTroca} km). Bloqueio automático em ${Math.max(0, oleo.kmRestantesBloqueio)} km (${oleo.kmBloqueioMotor} km)!`,
+                acaoTexto: 'Notificar / Registrar Troca',
                 acaoFn: `abrirModalTrocaOleo('${m.id}')`
             });
         } else if (oleo.status === 'aviso') {
@@ -4612,15 +5606,15 @@ function coletarListaNotificacoesAtivas() {
                 cor: '#d97706',
                 bg: '#fffbeb',
                 icone: 'fa-oil-can',
-                titulo: `⚠️ Troca de Óleo Próxima (${m.placa})`,
+                titulo: `⚠️ Troca de Óleo Próxima (${m.placa}) — ${nomeCond}`,
                 descricao: `Faltam ${oleo.kmRestantes} km para a revisão de 1.000 km da moto ${m.modelo} (${nomeCond}).`,
-                acaoTexto: 'Ver Hodômetro',
-                acaoFn: `navegarParaView('oleo')`
+                acaoTexto: 'Notificar Condutor',
+                acaoFn: `notificarUsuarioIndividualOleo('${m.id}')`
             });
         }
     });
 
-    // 2. Alertas de Pagamentos Semanais (Atrasados, Vencendo Hoje ou em até 2 dias)
+    // 2. Alertas de Pagamentos Semanais (Atrasados, Vencendo Hoje c/ Regra 08h/18h ou em até 2 dias)
     contratos.filter(c => c.status === 'ativo').forEach(c => {
         const cli = clientes.find(x => x.id === c.clienteId) || { nome: 'Locatário' };
         const moto = motos.find(x => x.id === c.motoId) || { modelo: 'Moto', placa: '-', valor: 0 };
@@ -4635,24 +5629,24 @@ function coletarListaNotificacoesAtivas() {
                     tipo: 'pagamento',
                     cor: '#dc2626',
                     bg: '#fef2f2',
-                    icone: 'fa-hand-holding-dollar',
+                    icone: 'fa-qrcode',
                     titulo: `💰 PAGAMENTO ATRASADO (${Math.abs(vInfo.diffDays)}d) — ${cli.nome}`,
-                    descricao: `Moto ${moto.modelo} (${moto.placa}) • Valor: R$ ${valSemanal} • Venceu em ${vInfo.texto}.`,
-                    acaoTexto: 'Dar Baixa / Cobrar',
-                    acaoFn: `abrirModalConfirmarPagamento('${c.id}')`
+                    descricao: `Moto ${moto.modelo} (${moto.placa}) • R$ ${valSemanal} • Venceu em ${vInfo.texto}. Bloqueio automático 18h ativo até confirmação do PIX!`,
+                    acaoTexto: 'Abrir PIX Mercado Pago',
+                    acaoFn: `abrirModalPixMercadoPago('${c.id}')`
                 });
             } else if (vInfo.diffDays === 0) {
                 notificacoes.push({
                     id: `pag_hoje_${c.id}`,
                     prioridade: 3,
                     tipo: 'pagamento',
-                    cor: '#d97706',
-                    bg: '#fffbeb',
+                    cor: '#009ee3',
+                    bg: '#f0f9ff',
                     icone: 'fa-clock',
-                    titulo: `⏰ ALUGUEL VENCE HOJE — ${cli.nome}`,
-                    descricao: `Moto ${moto.modelo} (${moto.placa}) • Valor semanal: R$ ${valSemanal} (${vInfo.texto}).`,
-                    acaoTexto: 'Confirmar Pagamento',
-                    acaoFn: `abrirModalConfirmarPagamento('${c.id}')`
+                    titulo: `☀️ VENCE HOJE (Aviso 08:00h / Bloqueio 18:00h) — ${cli.nome}`,
+                    descricao: `Moto ${moto.modelo} (${moto.placa}) • R$ ${valSemanal}. Se não pagar o PIX até as ${cfgMp.horaBloqueio || '18:00'}h, a moto é bloqueada automaticamente!`,
+                    acaoTexto: 'Enviar PIX 08h / Confirmar',
+                    acaoFn: `abrirModalPixMercadoPago('${c.id}')`
                 });
             } else if (vInfo.diffDays <= 2) {
                 notificacoes.push({
@@ -4663,7 +5657,7 @@ function coletarListaNotificacoesAtivas() {
                     bg: '#eff6ff',
                     icone: 'fa-calendar-day',
                     titulo: `📅 Aluguel Vence em ${vInfo.diffDays} dia(s) — ${cli.nome}`,
-                    descricao: `Moto ${moto.modelo} (${moto.placa}) • R$ ${valSemanal} • Vencimento: ${vInfo.texto}.`,
+                    descricao: `Moto ${moto.modelo} (${moto.placa}) • R$ ${valSemanal} • Vencimento: ${vInfo.texto} (Notificação programada p/ 08:00h).`,
                     acaoTexto: 'Ver Pagamentos',
                     acaoFn: `navegarParaView('pagamentos')`
                 });
@@ -4768,12 +5762,12 @@ function ativarNotificacoesNavegador() {
     }
     Notification.requestPermission().then(perm => {
         if (perm === 'granted') {
-            new Notification('🔔 FACILITA MOTO — Alertas Ativados!', {
-                body: 'Você receberá avisos de Pagamentos Semanais, Troca de Óleo (1.000 km) e Bloqueio Automático do Motor (1.100 km).'
+            new Notification('🔔 FACILITA MOTO — Automação 08h / 18h Ativada!', {
+                body: 'Notificações de cobrança semanal PIX Mercado Pago (08:00h), bloqueio automático (18:00h) e troca de óleo (1.000/1.100 km) ativas!'
             });
             mostrarToastNotificacao({
                 titulo: '🔔 Alertas Ativados no Aparelho',
-                mensagem: 'As notificações automáticas de pagamentos, óleo (1.000 km) e bloqueio (1.100 km) estão ativas.',
+                mensagem: 'As notificações automáticas de pagamentos PIX (08:00h/18:00h), óleo (1.000 km) e bloqueio (1.100 km) estão ativas.',
                 cor: '#10b981',
                 icone: 'fa-bell'
             });
@@ -4784,6 +5778,8 @@ function ativarNotificacoesNavegador() {
 function dispararAlertasAutomaticosSessao() {
     if (window._jaDisparouAlertasIniciais) return;
     window._jaDisparouAlertasIniciais = true;
+
+    verificarReguaAutomaticaPagamentosEBloqueio18h(false);
 
     const lista = coletarListaNotificacoesAtivas();
     const criticos = lista.filter(n => n.prioridade <= 3).slice(0, 3);
@@ -4822,6 +5818,9 @@ function iniciarMonitoramentoAutonomoFrotaIot() {
         motos.forEach(m => {
             verificarEAplicarBloqueioAutomaticoPorKm(m, true);
         });
+
+        // Executa de forma autônoma a régua das 08:00h (notificação PIX) e 18:00h (bloqueio automático s/ PIX + desbloqueio pós-PIX)
+        verificarReguaAutomaticaPagamentosEBloqueio18h(false);
 
         const motoIpu = motos.find(m => (m.placa || '').toUpperCase().replace(/[^A-Z0-9]/g, '') === 'IPU2I57' || m.rastreadorImei === '00018E1B');
         if (!motoIpu) return;
