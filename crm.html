@@ -26,6 +26,10 @@
                 <a href="#" data-target="pipeline" class="nav-item"><i class="fa-solid fa-layer-group"></i> Pipeline de Vendas</a>
                 <a href="#" data-target="clientes" class="nav-item"><i class="fa-solid fa-users"></i> Clientes</a>
                 <a href="#" data-target="frota" class="nav-item"><i class="fa-solid fa-motorcycle"></i> Frota & Rastreador</a>
+                <a href="#" data-target="pagamentos" class="nav-item">
+                    <i class="fa-solid fa-sack-dollar"></i> Pagamentos & Cobranças
+                    <span class="badge" id="nav-badge-pagamentos" style="display:none; background:var(--warning); color:#fff; margin-left:auto; font-size:0.7rem; padding:2px 7px;">0</span>
+                </a>
                 <a href="#" data-target="oleo" class="nav-item">
                     <i class="fa-solid fa-oil-can"></i> Troca de Óleo (1.000 km)
                     <span class="badge" id="nav-badge-oleo" style="display:none; background:var(--danger); color:#fff; margin-left:auto; font-size:0.7rem; padding:2px 7px;">0</span>
@@ -45,14 +49,49 @@
 
         <!-- Main Content -->
         <main class="main-content">
-            <header class="topbar">
+            <header class="topbar" style="position:relative;">
                 <button class="menu-toggle" onclick="toggleSidebar()"><i class="fa-solid fa-bars"></i></button>
                 <h1 id="page-title">Dashboard</h1>
-                <div class="user-profile" onclick="abrirMeuPerfil()" style="cursor: pointer; padding: 5px; border-radius: var(--radius-md); transition: var(--transition);" onmouseover="this.style.backgroundColor='#f1f5f9'" onmouseout="this.style.backgroundColor='transparent'">
-                    <img src="https://ui-avatars.com/api/?name=Admin&background=6366f1&color=fff" alt="Admin" class="avatar" id="logged-user-avatar">
-                    <span id="logged-user-name" style="font-weight: 600;">Administrador</span>
-                    <i class="fa-solid fa-chevron-down" style="font-size: 0.7rem; color: var(--text-muted); margin-left: 2px;"></i>
-                    <button class="btn btn-secondary btn-sm" onclick="fazerLogout(); event.stopPropagation();" style="margin-left: 10px;" title="Sair do Sistema"><i class="fa-solid fa-arrow-right-from-bracket"></i> Sair</button>
+                <div style="display:flex; align-items:center; gap:14px;">
+                    <!-- Botão Sino da Central de Notificações (Pagamentos, Troca de Óleo e Rastreador) -->
+                    <div style="position:relative;">
+                        <button type="button" id="btn-sino-notificacoes" onclick="togglePainelNotificacoes(event)" class="btn btn-secondary btn-sm" style="position:relative; padding:8px 12px; border-radius:999px; display:flex; align-items:center; gap:6px; background:#f8fafc; border:1px solid var(--border);" title="Abrir Central de Notificações (Pagamentos e Troca de Óleo)">
+                            <i class="fa-solid fa-bell" id="icone-sino-notif" style="font-size:1.05rem; color:var(--primary);"></i>
+                            <span style="font-size:0.8rem; font-weight:700; color:var(--text-main);">Notificações</span>
+                            <span id="topbar-notif-badge" style="display:none; background:#dc2626; color:#fff; font-size:0.7rem; font-weight:800; padding:1px 7px; border-radius:999px;">0</span>
+                        </button>
+
+                        <!-- Dropdown da Central de Notificações -->
+                        <div id="painel-notificacoes-dropdown" style="display:none; position:absolute; right:0; top:calc(100% + 10px); width:410px; max-width:92vw; background:#ffffff; border:1px solid #cbd5e1; border-radius:12px; box-shadow:0 16px 40px rgba(15,23,42,0.22); z-index:999; overflow:hidden;">
+                            <div style="padding:12px 16px; background:#0f172a; color:#fff; display:flex; justify-content:space-between; align-items:center;">
+                                <div>
+                                    <strong style="font-size:0.92rem; display:block;"><i class="fa-solid fa-bell" style="color:#fbbf24;"></i> Central de Notificações</strong>
+                                    <span style="font-size:0.73rem; color:#94a3b8;">Avisos automáticos de Pagamentos, Troca de Óleo (1.000 km) e Frota</span>
+                                </div>
+                                <button type="button" class="btn btn-secondary btn-sm" style="padding:3px 8px; font-size:0.7rem; background:#1e293b; color:#38bdf8; border:1px solid #334155;" onclick="ativarNotificacoesNavegador()">
+                                    <i class="fa-solid fa-volume-high"></i> Ativar Alerta PC/Celular
+                                </button>
+                            </div>
+                            <div id="lista-notificacoes-container" style="max-height:390px; overflow-y:auto; padding:10px; display:flex; flex-direction:column; gap:8px; background:#f8fafc;">
+                                <!-- Populado dinamicamente pelo JS -->
+                            </div>
+                            <div style="padding:10px 14px; background:#fff; border-top:1px solid var(--border); display:flex; justify-content:space-between; align-items:center; font-size:0.78rem;">
+                                <a href="#" onclick="navegarParaView('pagamentos'); togglePainelNotificacoes(); return false;" style="color:var(--primary); font-weight:700; text-decoration:none;">
+                                    <i class="fa-solid fa-sack-dollar"></i> Ver Pagamentos
+                                </a>
+                                <a href="#" onclick="navegarParaView('oleo'); togglePainelNotificacoes(); return false;" style="color:#d97706; font-weight:700; text-decoration:none;">
+                                    <i class="fa-solid fa-oil-can"></i> Ver Trocas de Óleo (1.000 km)
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="user-profile" onclick="abrirMeuPerfil()" style="cursor: pointer; padding: 5px; border-radius: var(--radius-md); transition: var(--transition);" onmouseover="this.style.backgroundColor='#f1f5f9'" onmouseout="this.style.backgroundColor='transparent'">
+                        <img src="https://ui-avatars.com/api/?name=Admin&background=6366f1&color=fff" alt="Admin" class="avatar" id="logged-user-avatar">
+                        <span id="logged-user-name" style="font-weight: 600;">Administrador</span>
+                        <i class="fa-solid fa-chevron-down" style="font-size: 0.7rem; color: var(--text-muted); margin-left: 2px;"></i>
+                        <button class="btn btn-secondary btn-sm" onclick="fazerLogout(); event.stopPropagation();" style="margin-left: 10px;" title="Sair do Sistema"><i class="fa-solid fa-arrow-right-from-bracket"></i> Sair</button>
+                    </div>
                 </div>
             </header>
 
@@ -320,10 +359,10 @@
                     <!-- Banner de Avisos Críticos na Aba de Óleo -->
                     <div id="oleo-view-alert-box"></div>
 
-                    <!-- Tabela de Controle de KM e Troca de Óleo -->
+                    <!-- Tabela de Controle de KM, Troca de Óleo (1.000 km) e Bloqueio por KM (1.100 km) -->
                     <div class="card table-card">
                         <div class="section-card-header">
-                            <h3><i class="fa-solid fa-gauge-high"></i> Hodômetro por Motocicleta & Ciclo de 1.000 em 1.000 km</h3>
+                            <h3><i class="fa-solid fa-gauge-high"></i> Hodômetro GPS por Motocicleta, Troca de Óleo (1.000 km) & Bloqueio do Motor (1.100 km)</h3>
                             <div class="search-box" style="width:260px;">
                                 <i class="fa-solid fa-search"></i>
                                 <input type="text" id="search-oleo" placeholder="Filtrar moto, placa ou cliente..." oninput="renderOleoView()">
@@ -335,11 +374,11 @@
                                     <tr>
                                         <th>Moto / Placa</th>
                                         <th>Com Quem Está</th>
-                                        <th>Informar / Atualizar KM Atual</th>
+                                        <th>KM Atual (GPS / Painel)</th>
                                         <th>Última Troca</th>
-                                        <th>Próxima Troca (+1.000 km)</th>
-                                        <th>Progresso do Ciclo (1.000 km)</th>
-                                        <th>Integração GPS</th>
+                                        <th>Próx. Troca (+1.000 km) / Bloqueio (+1.100 km)</th>
+                                        <th>Progresso do Ciclo & Proteção do Motor</th>
+                                        <th>Rastreador GPS & Bloqueador</th>
                                         <th>Ações de Manutenção</th>
                                     </tr>
                                 </thead>
@@ -374,6 +413,103 @@
                             </thead>
                             <tbody id="table-usuarios">
                                 <!-- Usuarios dinamicos -->
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+
+                <!-- VIEW: PAGAMENTOS SEMANAIS & COBRANÇAS -->
+                <section id="view-pagamentos" class="view">
+                    <div class="dashboard-cards" style="margin-bottom:20px;">
+                        <div class="card stat-card">
+                            <div class="stat-icon bg-success"><i class="fa-solid fa-sack-dollar"></i></div>
+                            <div class="stat-info">
+                                <h3>Recebido (Histórico)</h3>
+                                <p id="pag-kpi-recebido">R$ 0,00</p>
+                            </div>
+                        </div>
+                        <div class="card stat-card">
+                            <div class="stat-icon" style="background:#e0e7ff; color:var(--primary);"><i class="fa-solid fa-calendar-week"></i></div>
+                            <div class="stat-info">
+                                <h3>Receita Semanal Ativa</h3>
+                                <p id="pag-kpi-semanal">R$ 0,00</p>
+                            </div>
+                        </div>
+                        <div class="card stat-card">
+                            <div class="stat-icon" style="background:#d1fae5; color:#059669;"><i class="fa-solid fa-circle-check"></i></div>
+                            <div class="stat-info">
+                                <h3>Aluguéis em Dia</h3>
+                                <p id="pag-kpi-emdia">0</p>
+                            </div>
+                        </div>
+                        <div class="card stat-card">
+                            <div class="stat-icon bg-warning"><i class="fa-solid fa-clock"></i></div>
+                            <div class="stat-info">
+                                <h3>Vence Hoje / Próx. 2d</h3>
+                                <p id="pag-kpi-vencendo">0</p>
+                            </div>
+                        </div>
+                        <div class="card stat-card">
+                            <div class="stat-icon" style="background:#fee2e2; color:var(--danger);"><i class="fa-solid fa-triangle-exclamation"></i></div>
+                            <div class="stat-info">
+                                <h3>Pagamentos Atrasados</h3>
+                                <p id="pag-kpi-atrasados">0</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="pagamentos-alert-box"></div>
+
+                    <div class="card table-card" style="margin-bottom:26px; border-top:4px solid #10b981;">
+                        <div class="section-card-header">
+                            <div>
+                                <h3><i class="fa-solid fa-hand-holding-dollar" style="color:#10b981;"></i> Controle de Pagamentos Semanais Ativos (Por Moto & Locatário)</h3>
+                                <span style="font-size:0.8rem; color:var(--text-muted);">Confirme pagamentos semanais (+7 dias), envie cobranças ou lembretes automáticos via WhatsApp e acompanhe os vencimentos.</span>
+                            </div>
+                            <div class="search-box" style="max-width:280px;">
+                                <i class="fa-solid fa-search"></i>
+                                <input type="text" id="search-pagamentos" placeholder="Buscar cliente, moto ou placa..." oninput="renderPagamentosView()">
+                            </div>
+                        </div>
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Locatário (Condutor)</th>
+                                    <th>Motocicleta & Placa</th>
+                                    <th>Valor Semanal</th>
+                                    <th>Próximo Vencimento</th>
+                                    <th>Status do Pagamento</th>
+                                    <th>Troca de Óleo (1.000 km)</th>
+                                    <th>Ações de Recebimento & Cobrança</th>
+                                </tr>
+                            </thead>
+                            <tbody id="table-pagamentos-ativos">
+                                <!-- Populado pelo JS -->
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div class="card table-card" style="border-top:4px solid var(--primary);">
+                        <div class="section-card-header">
+                            <div>
+                                <h3><i class="fa-solid fa-receipt" style="color:var(--primary);"></i> Histórico de Pagamentos Recebidos & Recibos</h3>
+                                <span style="font-size:0.8rem; color:var(--text-muted);">Registro completo de todas as baixas semanais realizadas e envio de comprovante/recibo no WhatsApp.</span>
+                            </div>
+                        </div>
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Data do Pagamento</th>
+                                    <th>Locatário</th>
+                                    <th>Motocicleta</th>
+                                    <th>Valor Pago</th>
+                                    <th>Forma de Pagamento</th>
+                                    <th>Próx. Vencimento Gerado</th>
+                                    <th>Observação / Recibo</th>
+                                </tr>
+                            </thead>
+                            <tbody id="table-historico-pagamentos">
+                                <!-- Populado pelo JS -->
                             </tbody>
                         </table>
                     </div>
@@ -982,12 +1118,12 @@
                         </div>
                     </div>
 
-                    <!-- Bloco de Controle de KM e Troca de Óleo (1.000 em 1.000 km) -->
+                    <!-- Bloco de Controle de KM, Troca de Óleo (1.000 km) e Bloqueio Automático de Proteção do Motor (1.100 km) -->
                     <div style="background:#fffbeb; border:1px solid #fde68a; border-radius:8px; padding:14px; margin-bottom:15px;">
-                        <h4 style="font-size:0.88rem; color:#b45309; margin-bottom:10px;"><i class="fa-solid fa-oil-can"></i> Controle de Quilometragem & Troca de Óleo (A cada 1.000 km)</h4>
-                        <div class="form-group row" style="margin-bottom:0;">
+                        <h4 style="font-size:0.88rem; color:#b45309; margin-bottom:10px;"><i class="fa-solid fa-oil-can"></i> Hodômetro GPS, Troca de Óleo (1.000 km) & Bloqueio de Proteção do Motor (1.100 km)</h4>
+                        <div class="form-group row" style="margin-bottom:8px;">
                             <div class="col">
-                                <label>KM Atual da Moto</label>
+                                <label>KM Atual (GPS / Painel)</label>
                                 <input type="number" id="moto-km-atual" placeholder="Ex: 15000" min="0" oninput="calcularProxTrocaModalMoto()">
                             </div>
                             <div class="col">
@@ -998,7 +1134,15 @@
                                 <label>Próxima Troca (+1.000 km)</label>
                                 <input type="number" id="moto-km-proxima-troca" placeholder="Ex: 15500" readonly style="background:#fef3c7; font-weight:700;">
                             </div>
+                            <div class="col">
+                                <label>🛑 Bloqueio Motor (+1.100 km)</label>
+                                <input type="number" id="moto-km-bloqueio-oleo" placeholder="Ex: 15600" readonly style="background:#fee2e2; color:#991b1b; font-weight:800;">
+                            </div>
                         </div>
+                        <label style="display:flex; align-items:center; gap:8px; font-size:0.81rem; color:#92400e; font-weight:600; cursor:pointer; margin:0;">
+                            <input type="checkbox" id="moto-auto-bloqueio-km" checked style="width:auto;">
+                            Bloquear motocicleta automaticamente via GPS/Rastreador ao atingir <strong>1.100 km rodados</strong> sem troca de óleo (Proteção para não fundir o motor)
+                        </label>
                     </div>
 
                     <!-- Bloco de Integração com Chip IoT / Rastreador M2M -->
@@ -1220,6 +1364,22 @@
                     </div>
                 </div>
 
+                <!-- Alerta Crítico Automático se a Moto Atingir 1.100 km sem Troca de Óleo (Proteção para não Fundir o Motor) -->
+                <div id="rast-alerta-bloqueio-km" style="display:none; background:linear-gradient(90deg, #7f1d1d 0%, #991b1b 100%); border:2px solid #ef4444; border-radius:10px; padding:13px 16px; margin-bottom:14px; color:#fff; box-shadow:0 6px 18px rgba(220,38,38,0.28);">
+                    <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+                        <div style="display:flex; align-items:center; gap:12px;">
+                            <i class="fa-solid fa-oil-can" style="font-size:1.8rem; color:#fca5a5;"></i>
+                            <div>
+                                <strong style="font-size:0.95rem; color:#fff; display:block;">🛑 BLOQUEIO AUTOMÁTICO POR KM ATIVADO (LIMITE DE 1.100 KM EXCEDIDO SEM TROCA DE ÓLEO!)</strong>
+                                <span id="rast-alerta-bloqueio-km-desc" style="font-size:0.81rem; color:#fecaca;">O rastreador/bloqueador enviou bloqueio automático à moto para evitar que o motor funda por falta de troca de óleo. Registre a troca de óleo para liberar o motor e iniciar novo ciclo.</span>
+                            </div>
+                        </div>
+                        <button type="button" class="btn btn-primary btn-sm" style="background:#10b981; color:#fff; border:none; font-weight:800;" onclick="abrirModalTrocaOleo(document.getElementById('rast-moto-id').value)">
+                            <i class="fa-solid fa-oil-can"></i> Registrar Troca de Óleo & Desbloquear
+                        </button>
+                    </div>
+                </div>
+
                 <div class="tracker-telemetry-grid">
                     <div class="telemetry-box">
                         <span>Condutor Atual</span>
@@ -1234,23 +1394,23 @@
                         <strong id="rast-status-bateria" style="color:var(--success);">🔋 CONECTADO (12.8V)</strong>
                     </div>
                     <div class="telemetry-box">
-                        <span>Status Sinal Chip IoT</span>
-                        <strong id="rast-status-sinal" style="color:var(--success);">Chip IoT Ativo (4G/2G M2M)</strong>
+                        <span>Status Sinal App Xtrack / Chip IoT</span>
+                        <strong id="rast-status-sinal" style="color:var(--success);">App Xtrack Ativo (4G/2G M2M)</strong>
                     </div>
                     <div class="telemetry-box">
-                        <span>Vencimento Aluguel</span>
-                        <strong id="rast-vencimento">-</strong>
-                    </div>
-                    <div class="telemetry-box">
-                        <span>Hodômetro Telemetria (KM)</span>
+                        <span>Hodômetro GPS + Painel (KM)</span>
                         <strong id="rast-km-atual">0 km</strong>
                     </div>
                     <div class="telemetry-box">
                         <span>Próx. Troca de Óleo (+1.000 km)</span>
                         <strong id="rast-km-oleo">1.000 km</strong>
                     </div>
+                    <div class="telemetry-box" id="box-telemetria-bloqueio-km">
+                        <span>🛑 Bloqueio Motor (+1.100 km)</span>
+                        <strong id="rast-km-bloqueio-motor" style="color:#d97706;">1.100 km (Proteção Ativa)</strong>
+                    </div>
                     <div class="telemetry-box">
-                        <span>Status Bloqueio (Cláusula 11ª)</span>
+                        <span>Status Bloqueador (Xtrack)</span>
                         <strong id="rast-status-bloqueio">Desbloqueada</strong>
                     </div>
                 </div>
@@ -1262,7 +1422,7 @@
                     </div>
                     <h4 style="color:#92400e; font-size:1.02rem; margin-bottom:6px;">Esta motocicleta ainda não possui rastreador instalado</h4>
                     <p id="rast-sem-rastreador-msg" style="color:#78350f; font-size:0.85rem; max-width:560px; margin:0 auto;">
-                        Somente motocicletas com Chip IoT instalado (ex: Placa <strong>IPU2I57</strong>) possuem rastreamento em tempo real no mapa. Caso instale um rastreador nesta moto futuramente, informe o <strong>ID</strong> e o <strong>ICCID</strong> abaixo para ativar.
+                        Somente motocicletas com Chip IoT / App Xtrack instalado (ex: Placa <strong>IPU2I57</strong>) possuem rastreamento em tempo real no mapa. Caso instale um rastreador nesta moto futuramente, informe o <strong>ID</strong> e o <strong>ICCID</strong> abaixo para ativar.
                     </p>
                 </div>
 
@@ -1272,8 +1432,8 @@
                     <div style="padding:8px 14px; background:linear-gradient(90deg, #0f172a 0%, #1e293b 100%); color:#fff; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; border-bottom:1px solid #334155;">
                         <div style="display:flex; align-items:center; gap:8px; font-size:0.79rem; font-weight:700; flex-wrap:wrap;">
                             <span id="rast-live-dot" style="width:10px; height:10px; border-radius:50%; background:#10b981; display:inline-block; box-shadow:0 0 10px #10b981; animation:pulseGps 1.2s infinite;"></span>
-                            <span id="rast-live-badge-text" style="color:#38bdf8; letter-spacing:0.3px;">ID: 00018E1B • ICCID (LINHA): 89555480000080813880</span>
-                            <span id="rast-live-velocidade" style="background:#1e293b; border:1px solid #475569; padding:2px 8px; border-radius:999px; font-size:0.74rem; color:#f8fafc;">Chip IoT Online</span>
+                            <span id="rast-live-badge-text" style="color:#38bdf8; letter-spacing:0.3px;">APP XTRACK • ID: 00018E1B • ICCID: 89555480000080813880</span>
+                            <span id="rast-live-velocidade" style="background:#1e293b; border:1px solid #475569; padding:2px 8px; border-radius:999px; font-size:0.74rem; color:#f8fafc;">Xtrack Online</span>
                         </div>
                         <div style="display:flex; gap:6px; align-items:center;">
                             <button type="button" class="btn btn-secondary btn-sm" style="padding:3px 9px; font-size:0.73rem; background:#1e293b; color:#38bdf8; border:1px solid #334155;" onclick="centralizarMapaNaMoto()">
@@ -1305,69 +1465,76 @@
                     <div style="padding:10px 14px; background:#0f172a; color:#f8fafc; font-size:0.8rem; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; border-top:1px solid #334155;">
                         <div>
                             <div id="rast-endereco-atual" style="font-weight:700; color:#f8fafc; margin-bottom:2px;">
-                                <i class="fa-solid fa-location-dot" style="color:#10b981;"></i> Sincronizando localização autônoma do rastreador...
+                                <i class="fa-solid fa-location-dot" style="color:#10b981;"></i> Sincronizando localização autônoma do App Xtrack...
                             </div>
                             <span id="rast-ultima-sync" style="font-size:0.74rem; color:#94a3b8;">
-                                <i class="fa-solid fa-sim-card" style="color:#38bdf8;"></i> ID: 00018E1B • ICCID (LINHA): 89555480000080813880 • Monitoramento Autônomo Ativo
+                                <i class="fa-solid fa-sim-card" style="color:#38bdf8;"></i> App Xtrack • ID: 00018E1B • ICCID: 89555480000080813880 • Hodômetro GPS + Bloqueio 1.100 km Ativos
                             </span>
                         </div>
-                        <a id="rast-external-link" href="#" target="_blank" style="color:#38bdf8; display:none; font-weight:600;">Abrir Painel da Operadora IoT <i class="fa-solid fa-up-right-from-square"></i></a>
+                        <a id="rast-external-link" href="https://xtrack.com.br" target="_blank" style="color:#38bdf8; font-weight:600;">Abrir App Xtrack <i class="fa-solid fa-up-right-from-square"></i></a>
                     </div>
 
-                    <!-- Barra de Sensores Físicos do Rastreador (Ignição ACC, Cabo da Bateria & Webhook Autônomo) -->
+                    <!-- Barra de Sensores Físicos do Rastreador (Ignição ACC, Cabo da Bateria, Hodômetro GPS & Bloqueio 1.100 km) -->
                     <div style="padding:8px 14px; background:#1e293b; border-top:1px solid #334155; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; font-size:0.75rem; color:#cbd5e1;">
                         <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
-                            <span><i class="fa-solid fa-satellite" style="color:#38bdf8;"></i> <strong>Leitura Autônoma M2M:</strong> Ignição (ACC), Tensão da Bateria (12V) e GPS</span>
+                            <span><i class="fa-solid fa-satellite" style="color:#38bdf8;"></i> <strong>App Xtrack Autônomo:</strong> Ignição, Bateria, Hodômetro GPS e Bloqueio aos 1.100 km</span>
                         </div>
                         <div style="display:flex; gap:6px; flex-wrap:wrap;">
                             <button type="button" class="btn btn-secondary btn-sm" id="btn-simular-ignicao" style="padding:3px 9px; font-size:0.72rem; background:#0f172a; color:#34d399; border:1px solid #334155;" onclick="alternarStatusIgnicaoMoto()">
                                 <i class="fa-solid fa-key"></i> Ignição: Ligada / Desligada
                             </button>
                             <button type="button" class="btn btn-secondary btn-sm" id="btn-simular-bateria" style="padding:3px 9px; font-size:0.72rem; background:#0f172a; color:#f87171; border:1px solid #334155;" onclick="alternarAlertaCaboBateriaMoto()">
-                                <i class="fa-solid fa-car-battery"></i> Testar Sensor Cabo da Bateria
+                                <i class="fa-solid fa-car-battery"></i> Testar Cabo Bateria
+                            </button>
+                            <button type="button" class="btn btn-secondary btn-sm" style="padding:3px 9px; font-size:0.72rem; background:#0f172a; color:#fbbf24; border:1px solid #334155;" onclick="simularRodagemGpsMoto(100)" title="Avança +100 km via GPS para testar o alerta de 1.000 km e o bloqueio automático do motor aos 1.100 km">
+                                <i class="fa-solid fa-gauge-high"></i> +100 km GPS (Testar Bloqueio 1.100 km)
                             </button>
                             <button type="button" class="btn btn-secondary btn-sm" style="padding:3px 9px; font-size:0.72rem; background:#0f172a; color:#38bdf8; border:1px solid #334155;" onclick="forcarLeituraAutonomaRastreador()">
-                                <i class="fa-solid fa-rotate"></i> Sincronizar Agora
+                                <i class="fa-solid fa-rotate"></i> Sincronizar Xtrack
                             </button>
                         </div>
                     </div>
                 </div>
 
-                <!-- Ações de Comando do Chip IoT e Sincronização de KM -->
+                <!-- Ações de Comando do Chip IoT e Sincronização de KM + Bloqueio de 1.100 km -->
                 <div style="background:#f8fafc; border:1px solid var(--border); border-radius:10px; padding:15px;">
-                    <h4 style="font-size:0.9rem; margin-bottom:10px;"><i class="fa-solid fa-sim-card" style="color:#0284c7;"></i> Dados do Rastreador Chip IoT (ID & ICCID da Linha) e Hodômetro (Ciclo 1.000 km)</h4>
+                    <h4 style="font-size:0.9rem; margin-bottom:10px;"><i class="fa-solid fa-sim-card" style="color:#0284c7;"></i> Rastreador App Xtrack (ID & ICCID), Hodômetro GPS (1.000 km) & Bloqueio de Proteção do Motor (1.100 km)</h4>
                     <div class="form-group row" style="align-items:flex-end; margin-bottom:12px;">
                         <div class="col">
-                            <label>ID do Rastreador</label>
+                            <label>ID Rastreador</label>
                             <input type="text" id="rast-input-imei" placeholder="Ex: 00018E1B">
                         </div>
-                        <div class="col" style="flex:1.4;">
+                        <div class="col" style="flex:1.3;">
                             <label>ICCID (LINHA)</label>
                             <input type="text" id="rast-input-chip" placeholder="Ex: 89555480000080813880">
                         </div>
                         <div class="col">
-                            <label>KM Atual da Moto</label>
+                            <label>KM Atual (GPS)</label>
                             <input type="number" id="rast-input-km" placeholder="KM atual" oninput="atualizarPreviewOleoNoRastreador()">
                         </div>
                         <div class="col">
-                            <label>KM Última Troca (Base 1.000 km)</label>
-                            <input type="number" id="rast-input-km-ultima" placeholder="KM base óleo">
+                            <label>KM Última Troca</label>
+                            <input type="number" id="rast-input-km-ultima" placeholder="KM base óleo" oninput="atualizarPreviewOleoNoRastreador()">
+                        </div>
+                        <div class="col">
+                            <label>🛑 Bloqueio (+1.100 km)</label>
+                            <input type="number" id="rast-input-km-bloqueio" readonly style="background:#fee2e2; color:#991b1b; font-weight:800;" title="Quilometragem exata em que o rastreador enviará o bloqueio automático se o óleo não for trocado">
                         </div>
                         <div style="flex:0 0 auto;">
                             <button type="button" class="btn btn-primary" onclick="salvarTelemetriaRastreadorMoto()">
-                                <i class="fa-solid fa-rotate"></i> Salvar Dados do Rastreador
+                                <i class="fa-solid fa-rotate"></i> Salvar & Verificar KM
                             </button>
                         </div>
                     </div>
                     <div style="display:flex; gap:10px; flex-wrap:wrap; padding-top:10px; border-top:1px solid var(--border);">
                         <button type="button" class="btn btn-danger btn-sm" id="btn-toggle-bloqueio-moto" onclick="alternarBloqueioRemotoMoto()">
-                            <i class="fa-solid fa-lock"></i> Enviar Bloqueio Preventivo via Chip IoT (Cláusula 10ª)
+                            <i class="fa-solid fa-lock"></i> Enviar Bloqueio Preventivo via App Xtrack (Cláusula 11ª)
                         </button>
                         <button type="button" class="btn btn-secondary btn-sm" onclick="abrirModalTrocaOleo(document.getElementById('rast-moto-id').value)">
                             <i class="fa-solid fa-oil-can"></i> Registrar Troca de Óleo (+1.000 km)
                         </button>
                         <button type="button" class="btn btn-secondary btn-sm" onclick="openModal('modal-config-rastreador-global')">
-                            <i class="fa-solid fa-sim-card"></i> Configurar Conectividade Chips IoT
+                            <i class="fa-solid fa-satellite-dish"></i> Configurar Conta App Xtrack & Bloqueio 1.100 km
                         </button>
                     </div>
                 </div>
@@ -1375,57 +1542,73 @@
         </div>
     </div>
 
-    <!-- Modal Pré-Configuração Global da Conectividade de Chips IoT (M2M) -->
+    <!-- Modal Pré-Configuração Global do App Xtrack & Bloqueio Automático de 1.100 km -->
     <div class="modal" id="modal-config-rastreador-global">
         <div class="modal-content">
-            <div class="modal-header">
-                <h3><i class="fa-solid fa-sim-card" style="color:var(--primary);"></i> Configuração dos Rastreadores — Chips IoT (M2M)</h3>
-                <span class="close-btn" onclick="closeModal('modal-config-rastreador-global')">&times;</span>
+            <div class="modal-header" style="background:#0f172a; color:#fff; border-radius:12px 12px 0 0;">
+                <h3><i class="fa-solid fa-satellite-dish" style="color:#38bdf8;"></i> Integração App Xtrack & Bloqueio por KM (1.100 km)</h3>
+                <span class="close-btn" style="color:#fff;" onclick="closeModal('modal-config-rastreador-global')">&times;</span>
             </div>
             <div class="modal-body">
                 <div style="background:#ecfdf5; border:1px solid #a7f3d0; border-radius:8px; padding:10px 12px; margin-bottom:14px; font-size:0.82rem; color:#065f46; display:flex; align-items:center; gap:10px;">
-                    <i class="fa-solid fa-circle-check" style="font-size:1.1rem; color:#10b981;"></i>
+                    <i class="fa-solid fa-circle-check" style="font-size:1.2rem; color:#10b981;"></i>
                     <div>
-                        <strong>Módulo de Telemetria via Chips IoT (M2M) Pré-Ativado!</strong><br>
-                        Basta informar o <strong>ID / Serial / ICCID do Chip IoT</strong> (ex: <code>00018E1B</code>) em cada moto para vincular o rastreamento e o controle de óleo de 1.000 em 1.000 km.
+                        <strong>App Xtrack Conectado + Proteção do Motor (1.100 km)!</strong><br>
+                        Moto <strong>IPU2I57</strong> vinculada ao <strong>ID: 00018E1B</strong> e <strong>ICCID: 89555480000080813880</strong>. O GPS contabiliza os KMs automaticamente, avisa a troca de óleo aos <strong>1.000 km</strong> e bloqueia a moto aos <strong>1.100 km</strong> caso o óleo não seja trocado.
                     </div>
                 </div>
                 <form id="form-config-rastreador" onsubmit="salvarConfigRastreadorGlobal(event)">
                     <div class="form-group">
-                        <label>Operadora / Tecnologia dos Chips IoT (M2M)</label>
+                        <label>Aplicativo / Plataforma de Rastreamento</label>
                         <select id="cfg-gps-provedor">
+                            <option value="xtrack">App Xtrack Oficial (xtrack.com.br / GPSRS — ID: 00018E1B)</option>
                             <option value="chip_iot_m2m">Chip IoT M2M Multi-Operadora (Vivo / Claro / TIM / Algar)</option>
-                            <option value="arqia_allcom">Chip IoT Arqia / Allcom / Links Field / Kore Telemetria</option>
-                            <option value="iot_j16_suntech">Rastreador com Chip IoT Embarcado (J16 / Suntech / GT06 / Coban)</option>
-                            <option value="traccar">Gateway M2M / Servidor Traccar / MQTT IoT</option>
-                            <option value="webhook">Portal IoT Externo / API M2M Personalizada</option>
+                            <option value="iot_j16_suntech">Rastreador J16 / Suntech / GT06 / Coban</option>
+                            <option value="traccar">Gateway M2M / Servidor Traccar</option>
                         </select>
-                    </div>
-                    <div class="form-group">
-                        <label>APN M2M / Servidor de Conectividade IoT (Pré-Configurado)</label>
-                        <input type="text" id="cfg-gps-url" value="m2m.iot.br (Telemetria 4G/2G GPRS Ativa)" placeholder="Ex: m2m.iot.br ou URL do Portal IoT">
-                    </div>
-                    <div class="form-group">
-                        <label>Conta M2M / Chave de Integração IoT (Opcional)</label>
-                        <input type="text" id="cfg-gps-token" placeholder="Opcional — Os Chips IoT já funcionam diretamente pelo ID/ICCID na moto">
                     </div>
                     <div class="form-group row">
                         <div class="col">
-                            <label>Ciclo de Troca de Óleo (KM)</label>
-                            <input type="number" id="cfg-gps-intervalo-oleo" value="1000" min="100">
+                            <label>Login / E-mail do App Xtrack (Opcional para Sync Direto)</label>
+                            <input type="text" id="cfg-xtrack-email" placeholder="Seu e-mail ou login no App Xtrack">
                         </div>
                         <div class="col">
-                            <label>Aviso Antecipado de Manutenção (KM)</label>
-                            <input type="number" id="cfg-gps-aviso-antecipado" value="150" min="10">
+                            <label>Senha do App Xtrack</label>
+                            <input type="password" id="cfg-xtrack-senha" placeholder="Sua senha no App Xtrack">
                         </div>
                     </div>
                     <div class="form-group">
-                        <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
+                        <label>Servidor / APN de Telemetria Xtrack</label>
+                        <input type="text" id="cfg-gps-url" value="https://xtrack.com.br/api/v1 (App Xtrack M2M Ativo)" placeholder="https://xtrack.com.br/api/v1">
+                    </div>
+                    <input type="hidden" id="cfg-gps-token" value="">
+                    <div class="form-group row">
+                        <div class="col">
+                            <label>Ciclo Troca de Óleo (KM)</label>
+                            <input type="number" id="cfg-gps-intervalo-oleo" value="1000" min="100">
+                        </div>
+                        <div class="col">
+                            <label>Aviso Antecipado (KM)</label>
+                            <input type="number" id="cfg-gps-aviso-antecipado" value="150" min="10">
+                        </div>
+                        <div class="col">
+                            <label style="color:#dc2626; font-weight:700;">🛑 Bloqueio Motor (KM)</label>
+                            <input type="number" id="cfg-gps-limite-bloqueio-oleo" value="1100" min="100" style="border-color:#dc2626; background:#fef2f2; font-weight:800; color:#991b1b;">
+                        </div>
+                    </div>
+                    <div class="form-group" style="margin-bottom:8px;">
+                        <label style="display:flex; align-items:center; gap:8px; cursor:pointer; font-size:0.83rem;">
                             <input type="checkbox" id="cfg-gps-auto-km" checked style="width:auto;">
-                            Sincronizar hodômetro (KM) dos Chips IoT automaticamente com o alerta de 1.000 km
+                            Sincronizar hodômetro (KM) automaticamente junto com o GPS do rastreador Xtrack
                         </label>
                     </div>
-                    <button type="submit" class="btn btn-primary btn-block"><i class="fa-solid fa-check"></i> Salvar Configuração de Chips IoT</button>
+                    <div class="form-group">
+                        <label style="display:flex; align-items:center; gap:8px; cursor:pointer; font-size:0.83rem; color:#991b1b; font-weight:700; background:#fef2f2; padding:8px 10px; border-radius:6px; border:1px solid #fecaca;">
+                            <input type="checkbox" id="cfg-gps-auto-bloqueio-oleo" checked style="width:auto;">
+                            Enviar BLOQUEIO AUTOMÁTICO no rastreador/bloqueador a cada 1.100 km rodados sem troca de óleo (Evitar que o motor funda)
+                        </label>
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-block"><i class="fa-solid fa-check"></i> Salvar Integração App Xtrack & Proteção 1.100 km</button>
                 </form>
             </div>
         </div>
@@ -1549,10 +1732,64 @@
         </div>
     </div>
 
+    <!-- Modal Confirmar Pagamento Semanal (+7 Dias) & Gerar Recibo -->
+    <div class="modal" id="modal-confirmar-pagamento">
+        <div class="modal-content">
+            <div class="modal-header" style="background:#065f46; color:#fff; border-radius:12px 12px 0 0;">
+                <h3><i class="fa-solid fa-sack-dollar" style="color:#34d399;"></i> Confirmar Pagamento Semanal (+7 Dias)</h3>
+                <span class="close-btn" style="color:#fff;" onclick="closeModal('modal-confirmar-pagamento')">&times;</span>
+            </div>
+            <div class="modal-body">
+                <form id="form-confirmar-pagamento" onsubmit="confirmarBaixaPagamentoSemanal(event)">
+                    <input type="hidden" id="pag-modal-contrato-id">
+                    <div style="background:#ecfdf5; border:1px solid #a7f3d0; border-radius:8px; padding:12px; margin-bottom:15px;">
+                        <strong id="pag-modal-resumo-cliente" style="font-size:0.98rem; color:#065f46; display:block;">Locatário</strong>
+                        <span id="pag-modal-resumo-moto" style="font-size:0.83rem; color:#047857;">Motocicleta</span>
+                    </div>
+                    <div class="form-group row">
+                        <div class="col">
+                            <label>Valor Recebido (R$)*</label>
+                            <input type="number" id="pag-modal-valor" step="0.01" required>
+                        </div>
+                        <div class="col">
+                            <label>Forma de Pagamento*</label>
+                            <select id="pag-modal-forma">
+                                <option value="PIX">PIX</option>
+                                <option value="Dinheiro">Dinheiro</option>
+                                <option value="Cartão de Crédito/Débito">Cartão de Crédito/Débito</option>
+                                <option value="Transferência / Boleto">Transferência / Boleto</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-group row">
+                        <div class="col">
+                            <label>Data do Recebimento*</label>
+                            <input type="date" id="pag-modal-data-pagamento" required>
+                        </div>
+                        <div class="col">
+                            <label>Novo Vencimento (+7 Dias)*</label>
+                            <input type="date" id="pag-modal-novo-vencimento" required style="background:#fef3c7; font-weight:700;">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Observação do Pagamento (Opcional)</label>
+                        <input type="text" id="pag-modal-obs" placeholder="Ex: Pagamento semanal referente à semana atual via PIX">
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-block" style="background:#059669;">
+                        <i class="fa-solid fa-check-double"></i> Confirmar Recebimento e Avançar +7 Dias
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Container de Toasts de Notificação Automática (Pagamentos e Troca de Óleo) -->
+    <div id="toast-notif-container" style="position:fixed; bottom:20px; right:20px; z-index:9999; display:flex; flex-direction:column; gap:10px; max-width:370px; pointer-events:none;"></div>
+
     <!-- Firebase Firebase App (the core Firebase SDK) -->
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <!-- Firebase Firestore -->
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
-    <script src="app.js?v=20261022_autonomo"></script>
+    <script src="app.js?v=20261022_notif_pag_oleo"></script>
 </body>
 </html>

@@ -23,7 +23,7 @@ if (db) {
     if (!localStorage.getItem('crm_cloud_migrated')) {
         let hasData = false;
         const batch = db.batch();
-        ['crm_clientes', 'crm_motos', 'crm_contratos', 'crm_admins'].forEach(col => {
+        ['crm_clientes', 'crm_motos', 'crm_contratos', 'crm_admins', 'crm_pagamentos'].forEach(col => {
             const data = JSON.parse(localStorage.getItem(col)) || [];
             if (data.length > 0) {
                 hasData = true;
@@ -37,7 +37,7 @@ if (db) {
         if (hasData) batch.commit();
         localStorage.setItem('crm_cloud_migrated', 'true');
     }
-    ['crm_clientes', 'crm_motos', 'crm_contratos', 'crm_admins'].forEach(colName => {
+    ['crm_clientes', 'crm_motos', 'crm_contratos', 'crm_admins', 'crm_pagamentos'].forEach(colName => {
         db.collection(colName).onSnapshot((snapshot) => {
             const arr = [];
             snapshot.forEach(doc => arr.push(doc.data()));
@@ -87,19 +87,23 @@ function saveDb(key, data) {
 
 function getTrackerConfig() {
     const def = {
-        provedor: 'chip_iot_m2m',
-        url: 'm2m.iot.br (Telemetria 4G/2G GPRS Ativa)',
+        provedor: 'xtrack',
+        url: 'https://xtrack.com.br/api/v1 (App Xtrack M2M Ativo)',
         token: '',
+        xtrackEmail: '',
+        xtrackSenha: '',
         intervaloOleo: 1000,
         avisoAntecipado: 150,
-        autoKm: true
+        limiteBloqueioOleo: 1100,
+        autoKm: true,
+        autoBloqueioOleo: true
     };
     try {
         const saved = JSON.parse(localStorage.getItem('crm_tracker_config'));
         if (!saved) return def;
-        if (saved.provedor === 'traccar' && (!saved.url || saved.url.includes('facilitamoto.com.br'))) {
-            saved.provedor = 'chip_iot_m2m';
-            saved.url = 'm2m.iot.br (Telemetria 4G/2G GPRS Ativa)';
+        if (!saved.provedor || saved.provedor === 'traccar') {
+            saved.provedor = 'xtrack';
+            saved.url = 'https://xtrack.com.br/api/v1 (App Xtrack M2M Ativo)';
         }
         return Object.assign({}, def, saved);
     } catch (e) {
@@ -115,6 +119,7 @@ function generateId() {
 if (!localStorage.getItem('crm_clientes')) saveDb('crm_clientes', []);
 if (!localStorage.getItem('crm_motos')) saveDb('crm_motos', []);
 if (!localStorage.getItem('crm_contratos')) saveDb('crm_contratos', []);
+if (!localStorage.getItem('crm_pagamentos')) saveDb('crm_pagamentos', []);
 let currentAdmins = [];
 try {
     currentAdmins = JSON.parse(localStorage.getItem('crm_admins'));
@@ -248,6 +253,12 @@ function openModal(id) {
         document.getElementById('moto-km-atual').value = '0';
         document.getElementById('moto-km-ultima-troca').value = '0';
         document.getElementById('moto-km-proxima-troca').value = '1000';
+        if (document.getElementById('moto-km-bloqueio-oleo')) {
+            document.getElementById('moto-km-bloqueio-oleo').value = '1100';
+        }
+        if (document.getElementById('moto-auto-bloqueio-km')) {
+            document.getElementById('moto-auto-bloqueio-km').checked = true;
+        }
         popularSelectClienteModalMoto('');
         const nextWeek = new Date();
         nextWeek.setDate(nextWeek.getDate() + 7);
@@ -273,12 +284,20 @@ function openModal(id) {
     }
     if (id === 'modal-config-rastreador-global') {
         const cfg = getTrackerConfig();
-        document.getElementById('cfg-gps-provedor').value = cfg.provedor || 'chip_iot_m2m';
-        document.getElementById('cfg-gps-url').value = cfg.url || 'm2m.iot.br (Telemetria 4G/2G GPRS Ativa)';
+        document.getElementById('cfg-gps-provedor').value = cfg.provedor || 'xtrack';
+        document.getElementById('cfg-gps-url').value = cfg.url || 'https://xtrack.com.br/api/v1 (App Xtrack M2M Ativo)';
         document.getElementById('cfg-gps-token').value = cfg.token || '';
+        if (document.getElementById('cfg-xtrack-email')) document.getElementById('cfg-xtrack-email').value = cfg.xtrackEmail || '';
+        if (document.getElementById('cfg-xtrack-senha')) document.getElementById('cfg-xtrack-senha').value = cfg.xtrackSenha || '';
         document.getElementById('cfg-gps-intervalo-oleo').value = cfg.intervaloOleo || 1000;
         document.getElementById('cfg-gps-aviso-antecipado').value = cfg.avisoAntecipado || 150;
+        if (document.getElementById('cfg-gps-limite-bloqueio-oleo')) {
+            document.getElementById('cfg-gps-limite-bloqueio-oleo').value = cfg.limiteBloqueioOleo || 1100;
+        }
         document.getElementById('cfg-gps-auto-km').checked = cfg.autoKm !== false;
+        if (document.getElementById('cfg-gps-auto-bloqueio-oleo')) {
+            document.getElementById('cfg-gps-auto-bloqueio-oleo').checked = cfg.autoBloqueioOleo !== false;
+        }
     }
 }
 
@@ -291,13 +310,29 @@ function closeModal(id) {
     }
 }
 
-// ==========================================
-// HELPERS: TROCA DE ÓLEO (1.000 KM) & CHIP IOT
-// ==========================================
+// =========================================================================
+// HELPERS: TROCA DE ÓLEO (1.000 KM), HODÔMETRO GPS & BLOQUEIO MOTOR (1.100 KM)
+// =========================================================================
+function calcularDistanciaGpsHaversineKm(lat1, lon1, lat2, lon2) {
+    if ([lat1, lon1, lat2, lon2].some(v => typeof v !== 'number' || isNaN(v))) return 0;
+    const R = 6371; // Raio da Terra em km
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLon = (lon2 - lon1) * Math.PI / 180;
+    const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+              Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+              Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    const dist = R * c;
+    // Ignora oscilação parado (< 15m) ou salto irreal (> 60 km)
+    if (dist < 0.015 || dist > 60) return 0;
+    return dist;
+}
+
 function getMotoOleoInfo(moto) {
     const cfg = getTrackerConfig();
     const intervalo = parseInt(cfg.intervaloOleo) || 1000;
     const avisoAntecipado = parseInt(cfg.avisoAntecipado) || 150;
+    const limiteBloqueio = parseInt(cfg.limiteBloqueioOleo) || 1100;
 
     const kmAtual = parseInt(moto.kmAtual) || 0;
     let kmUltimaTroca = parseInt(moto.kmUltimaTroca) || 0;
@@ -305,7 +340,7 @@ function getMotoOleoInfo(moto) {
     // Se a moto ainda estava com base 0 (recém cadastrada) e foi informado o KM atual real da moto (ex: 26094 km),
     // usa o KM atual como ponto de partida do ciclo de 1.000 km (Próxima troca = KM atual + 1.000 km)
     const semHistoricoPrevio = !moto.historicoOleo || moto.historicoOleo.length === 0;
-    if (kmUltimaTroca === 0 && kmAtual > intervalo && semHistoricoPrevio) {
+    if (kmUltimaTroca === 0 && kmAtual > limiteBloqueio && semHistoricoPrevio) {
         kmUltimaTroca = kmAtual;
     }
 
@@ -313,20 +348,30 @@ function getMotoOleoInfo(moto) {
         ? parseInt(moto.kmProximaTroca)
         : (kmUltimaTroca + intervalo);
 
+    const kmBloqueioMotor = kmUltimaTroca + limiteBloqueio;
     const kmRodadosCiclo = Math.max(0, kmAtual - kmUltimaTroca);
     const kmRestantes = kmProximaTroca - kmAtual;
+    const kmRestantesBloqueio = kmBloqueioMotor - kmAtual;
     const percentual = Math.min(100, Math.max(0, Math.round((kmRodadosCiclo / intervalo) * 100)));
+    const atingiuBloqueioKm = (kmAtual >= kmBloqueioMotor || kmRodadosCiclo >= limiteBloqueio) && (kmUltimaTroca > 0 || kmAtual >= limiteBloqueio);
 
-    let status = 'ok'; // ok, aviso, vencido
+    let status = 'ok'; // ok, aviso, vencido, bloqueio_km
     let label = `Em dia (Faltam ${kmRestantes} km)`;
     let cor = 'var(--success)';
     let badgeBg = '#d1fae5';
     let badgeColor = '#065f46';
 
-    if (kmAtual >= kmProximaTroca || kmRodadosCiclo >= intervalo) {
+    if (atingiuBloqueioKm) {
         status = 'vencido';
         const excesso = Math.max(0, kmAtual - kmProximaTroca);
-        label = excesso > 0 ? `TROCA VENCIDA (+${excesso} km)` : `TROCA IMEDIATA (1.000 km)`;
+        label = `🛑 BLOQUEIO MOTOR (${kmRodadosCiclo} km rodados • +${excesso} km s/ óleo)`;
+        cor = '#991b1b';
+        badgeBg = '#7f1d1d';
+        badgeColor = '#ffffff';
+    } else if (kmAtual >= kmProximaTroca || kmRodadosCiclo >= intervalo) {
+        status = 'vencido';
+        const excesso = Math.max(0, kmAtual - kmProximaTroca);
+        label = excesso > 0 ? `TROCA VENCIDA (+${excesso} km • Bloqueia em ${Math.max(0, kmRestantesBloqueio)} km)` : `TROCA IMEDIATA (1.000 km • Bloqueia em ${Math.max(0, kmRestantesBloqueio)} km)`;
         cor = 'var(--danger)';
         badgeBg = '#fee2e2';
         badgeColor = '#991b1b';
@@ -342,8 +387,12 @@ function getMotoOleoInfo(moto) {
         kmAtual,
         kmUltimaTroca,
         kmProximaTroca,
+        kmBloqueioMotor,
+        limiteBloqueio,
         kmRodadosCiclo,
         kmRestantes,
+        kmRestantesBloqueio,
+        atingiuBloqueioKm,
         percentual,
         intervalo,
         status,
@@ -352,6 +401,57 @@ function getMotoOleoInfo(moto) {
         badgeBg,
         badgeColor
     };
+}
+
+function verificarEAplicarBloqueioAutomaticoPorKm(moto, salvarNoBanco = true) {
+    if (!moto) return false;
+    const cfg = getTrackerConfig();
+    if (cfg.autoBloqueioOleo === false || moto.autoBloqueioKm === false) return false;
+
+    const oleo = getMotoOleoInfo(moto);
+    if (!oleo.atingiuBloqueioKm) return false;
+
+    const jaEstavaBloqueadaPorKm = moto.rastreadorBloqueado === true && moto.bloqueadoPorKmOleo === true;
+    moto.rastreadorBloqueado = true;
+    moto.bloqueadoPorKmOleo = true;
+    moto.motivoBloqueioAutomatico = `PROTEÇÃO DE MOTOR: ${oleo.kmRodadosCiclo} km rodados sem troca de óleo (Limite: ${oleo.limiteBloqueio} km)`;
+    moto.rastreadorUltimaSync = new Date().toISOString();
+
+    if (salvarNoBanco) {
+        let motos = getDb('crm_motos');
+        const idx = motos.findIndex(m => m.id === moto.id);
+        if (idx > -1) {
+            motos[idx] = moto;
+            saveDb('crm_motos', motos);
+        }
+    }
+
+    // Dispara comando de bloqueio remoto para o rastreador/bloqueador App Xtrack / Chip IoT
+    if (!jaEstavaBloqueadaPorKm) {
+        fetch('/api/telemetry', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                action: 'command_block',
+                id: moto.rastreadorImei || '00018E1B',
+                placa: moto.placa,
+                bloquear: true,
+                motivo: moto.motivoBloqueioAutomatico,
+                xtrackEmail: cfg.xtrackEmail || '',
+                xtrackSenha: cfg.xtrackSenha || ''
+            })
+        }).catch(() => {});
+
+        if (typeof mostrarToastNotificacao === 'function') {
+            mostrarToastNotificacao({
+                titulo: `🛑 BLOQUEIO AUTOMÁTICO DE MOTOR (${moto.placa})`,
+                mensagem: `${moto.modelo} atingiu ${oleo.kmRodadosCiclo} km rodados sem troca de óleo (${oleo.kmAtual} km). Comando de bloqueio enviado ao rastreador para evitar fundir o motor!`,
+                cor: '#dc2626',
+                icone: 'fa-lock'
+            });
+        }
+    }
+    return true;
 }
 
 function getCondutorContratoAtivo(motoId, contratos, clientes) {
@@ -1144,10 +1244,15 @@ function removerFotoMoto() {
 function calcularProxTrocaModalMoto() {
     const cfg = getTrackerConfig();
     const intervalo = parseInt(cfg.intervaloOleo) || 1000;
+    const limiteBloqueio = parseInt(cfg.limiteBloqueioOleo) || 1100;
     const kmUltima = parseInt(document.getElementById('moto-km-ultima-troca')?.value) || 0;
     const proxInput = document.getElementById('moto-km-proxima-troca');
     if (proxInput) {
         proxInput.value = kmUltima + intervalo;
+    }
+    const bloqInput = document.getElementById('moto-km-bloqueio-oleo');
+    if (bloqInput) {
+        bloqInput.value = kmUltima + limiteBloqueio;
     }
 }
 
@@ -1279,6 +1384,9 @@ document.getElementById('form-moto')?.addEventListener('submit', function(e) {
         kmAtual: kmAtual,
         kmUltimaTroca: kmUltimaTroca,
         kmProximaTroca: kmProximaTroca,
+        autoBloqueioKm: document.getElementById('moto-auto-bloqueio-km') ? document.getElementById('moto-auto-bloqueio-km').checked : true,
+        bloqueadoPorKmOleo: oldMoto ? !!oldMoto.bloqueadoPorKmOleo : false,
+        motivoBloqueioAutomatico: oldMoto ? (oldMoto.motivoBloqueioAutomatico || '') : '',
         historicoOleo: oldMoto && oldMoto.historicoOleo ? oldMoto.historicoOleo : [],
         rastreadorImei: document.getElementById('moto-rastreador-imei')?.value.trim() || '',
         rastreadorChip: document.getElementById('moto-rastreador-chip')?.value.trim() || '',
@@ -1292,6 +1400,8 @@ document.getElementById('form-moto')?.addEventListener('submit', function(e) {
         rastreadorBloqueado: oldMoto ? !!oldMoto.rastreadorBloqueado : false,
         rastreadorUltimaSync: oldMoto ? oldMoto.rastreadorUltimaSync : new Date().toISOString()
     };
+
+    verificarEAplicarBloqueioAutomaticoPorKm(moto, false);
 
     if (idObj) {
         motos = motos.map(m => m.id === idObj ? moto : m);
@@ -1492,6 +1602,8 @@ function abrirEdicaoMoto(id) {
     if (document.getElementById('moto-km-atual')) document.getElementById('moto-km-atual').value = oleo.kmAtual;
     if (document.getElementById('moto-km-ultima-troca')) document.getElementById('moto-km-ultima-troca').value = oleo.kmUltimaTroca;
     if (document.getElementById('moto-km-proxima-troca')) document.getElementById('moto-km-proxima-troca').value = oleo.kmProximaTroca;
+    if (document.getElementById('moto-km-bloqueio-oleo')) document.getElementById('moto-km-bloqueio-oleo').value = oleo.kmBloqueioMotor;
+    if (document.getElementById('moto-auto-bloqueio-km')) document.getElementById('moto-auto-bloqueio-km').checked = moto.autoBloqueioKm !== false;
 
     if (document.getElementById('moto-rastreador-imei')) document.getElementById('moto-rastreador-imei').value = moto.rastreadorImei || '';
     if (document.getElementById('moto-rastreador-chip')) document.getElementById('moto-rastreador-chip').value = moto.rastreadorChip || '';
@@ -1669,9 +1781,9 @@ function desvincularClienteDaMotoAtual() {
     updateViews();
 }
 
-// ====================================================
-// MODULE: ÁREA EXCLUSIVA DE TROCA DE ÓLEO (1.000 KM)
-// ====================================================
+// =========================================================================
+// MODULE: ÁREA EXCLUSIVA DE TROCA DE ÓLEO (1.000 KM) & BLOQUEIO (1.100 KM)
+// =========================================================================
 function renderOleoView() {
     const motos = getDb('crm_motos');
     const contratos = getDb('crm_contratos');
@@ -1686,9 +1798,11 @@ function renderOleoView() {
     let countOk = 0;
     let countAviso = 0;
     let countVencido = 0;
+    let countBloqueadoKm = 0;
 
     motos.forEach(m => {
         const info = getMotoOleoInfo(m);
+        if (info.atingiuBloqueioKm) countBloqueadoKm++;
         if (info.status === 'vencido') countVencido++;
         else if (info.status === 'aviso') countAviso++;
         else countOk++;
@@ -1707,11 +1821,11 @@ function renderOleoView() {
                 <div class="alert-banner-oleo ${countVencido > 0 ? '' : 'warning-only'}">
                     <div>
                         <strong style="font-size:0.95rem; display:block; color:#111827;">
-                            <i class="fa-solid fa-bell"></i> Controle Automático de 1.000 em 1.000 km Ativo:
-                            ${countVencido} moto(s) com troca vencida e ${countAviso} próxima(s) do limite!
+                            <i class="fa-solid fa-bell"></i> Controle Automático de Óleo (1.000 km) & Bloqueio de Proteção do Motor (1.100 km):
+                            ${countVencido} moto(s) com troca vencida ${countBloqueadoKm > 0 ? `(${countBloqueadoKm} BLOQUEADA(S) AUTOMATICAMENTE POR EXCEDER 1.100 KM)` : ''} e ${countAviso} próxima(s) do limite!
                         </strong>
                         <span style="font-size:0.82rem; color:#4b5563;">
-                            Informe o KM atual no campo abaixo ou clique em "Sincronizar KM com Rastreadores". Ao realizar o serviço na oficina, clique em "Registrar Troca (+1.000 km)".
+                            O hodômetro funciona integrado ao GPS do rastreador App Xtrack. A cada <strong>1.000 km</strong> o sistema alerta a troca de óleo, e ao atingir <strong>1.100 km rodados sem troca</strong> envia o bloqueio automático para evitar que o motor funda.
                         </span>
                     </div>
                 </div>
@@ -1745,8 +1859,10 @@ function renderOleoView() {
         if (cliente) {
             const numW = cliente.telefone ? cliente.telefone.replace(/\D/g, '') : '';
             if (numW) {
-                const msg = `Olá ${cliente.nome}, aqui é da FACILITA MOTO! A sua moto ${m.modelo} (${m.placa}) está com ${oleo.kmAtual} km registrados (a troca de óleo é feita de 1.000 em 1.000 km, programada para ${oleo.kmProximaTroca} km). Por favor, entre em contato para agendarmos a revisão!`;
-                btnWhatsOleo = `<a href="https://wa.me/55${numW}?text=${encodeURIComponent(msg)}" target="_blank" class="btn btn-secondary btn-sm" style="background:#25d366; color:#fff; padding:4px 8px;" title="Chamar condutor no WhatsApp para troca de óleo"><i class="fa-brands fa-whatsapp"></i> Avisar</a>`;
+                const msg = oleo.atingiuBloqueioKm
+                    ? `🚨 Olá ${cliente.nome}, aqui é da FACILITA MOTO! A moto ${m.modelo} (${m.placa}) atingiu ${oleo.kmAtual} km (${oleo.kmRodadosCiclo} km rodados desde a última troca de óleo) e entrou em BLOQUEIO AUTOMÁTICO DE PROTEÇÃO DO MOTOR (limite de 1.100 km). Compareça imediatamente para realizar a troca de óleo e liberar a motocicleta!`
+                    : `Olá ${cliente.nome}, aqui é da FACILITA MOTO! A sua moto ${m.modelo} (${m.placa}) está com ${oleo.kmAtual} km registrados (troca de óleo programada aos ${oleo.kmProximaTroca} km e bloqueio automático de proteção do motor aos ${oleo.kmBloqueioMotor} km). Por favor, entre em contato para agendarmos a troca de óleo!`;
+                btnWhatsOleo = `<a href="https://wa.me/55${numW}?text=${encodeURIComponent(msg)}" target="_blank" class="btn btn-secondary btn-sm" style="background:#25d366; color:#fff; padding:4px 8px;" title="Chamar condutor no WhatsApp sobre troca de óleo / bloqueio 1.100 km"><i class="fa-brands fa-whatsapp"></i> Avisar</a>`;
             }
             condutorHtml = `
                 <div>
@@ -1760,6 +1876,9 @@ function renderOleoView() {
             ? formatarDataBr(m.historicoOleo[m.historicoOleo.length - 1].data)
             : 'Inicial';
 
+        const temRast = !!(m.rastreadorImei && m.rastreadorImei.trim() !== '');
+        const isBloq = temRast && m.rastreadorBloqueado === true;
+
         const tr = document.createElement('tr');
         tr.innerHTML = `
             <td>
@@ -1770,7 +1889,7 @@ function renderOleoView() {
             <td>
                 <div style="display:flex; align-items:center; gap:6px;">
                     <input type="number" id="inline-km-${m.id}" class="km-inline-input" value="${oleo.kmAtual}" min="0" step="1">
-                    <button class="btn btn-primary btn-sm" onclick="salvarKmInlineMoto('${m.id}')" title="Salvar KM Atual">
+                    <button class="btn btn-primary btn-sm" onclick="salvarKmInlineMoto('${m.id}')" title="Salvar KM Atual e Verificar Limite de 1.100 km">
                         <i class="fa-solid fa-check"></i> Salvar KM
                     </button>
                 </div>
@@ -1780,33 +1899,36 @@ function renderOleoView() {
                 <small style="color:var(--text-muted);">${ultimaData}</small>
             </td>
             <td>
-                <strong style="color:var(--primary); font-size:0.95rem;">${oleo.kmProximaTroca} km</strong><br>
-                <small style="color:var(--text-muted);">Ciclo: 1.000 km</small>
+                <strong style="color:var(--primary); font-size:0.92rem;">Óleo: ${oleo.kmProximaTroca} km</strong><br>
+                <small style="color:#dc2626; font-weight:700;">🛑 Bloqueio: ${oleo.kmBloqueioMotor} km (+${oleo.limiteBloqueio} km)</small>
             </td>
             <td>
                 <div class="km-progress-wrap">
                     <div style="display:flex; justify-content:space-between; font-size:0.76rem; font-weight:700;">
-                        <span>Rodados: ${oleo.kmRodadosCiclo} / 1.000 km</span>
+                        <span>Rodados: ${oleo.kmRodadosCiclo} km (Bloqueio: ${oleo.limiteBloqueio} km)</span>
                         <span>${oleo.percentual}%</span>
                     </div>
                     <div class="km-progress-bar">
                         <div class="km-progress-fill" style="width:${oleo.percentual}%; background:${oleo.cor};"></div>
                     </div>
-                    <span style="font-size:0.73rem; padding:2px 7px; border-radius:4px; background:${oleo.badgeBg}; color:${oleo.badgeColor}; font-weight:700; display:inline-block;">
+                    <span style="font-size:0.72rem; padding:2px 7px; border-radius:4px; background:${oleo.badgeBg}; color:${oleo.badgeColor}; font-weight:700; display:inline-block;">
                         ${oleo.label}
                     </span>
                 </div>
             </td>
             <td>
-                ${m.rastreadorImei
-                    ? `<span class="gps-pill gps-online"><span class="gps-dot"></span> Chip IoT (${m.rastreadorImei})</span>`
+                ${temRast
+                    ? (isBloq
+                        ? `<span class="gps-pill gps-blocked"><span class="gps-dot"></span> 🔒 BLOQUEADA (${m.bloqueadoPorKmOleo ? '1.100 km Óleo' : 'Remoto'})</span>`
+                        : `<span class="gps-pill gps-online"><span class="gps-dot"></span> App Xtrack (${m.rastreadorImei})</span>`)
                     : `<span class="gps-pill" style="background:#f1f5f9; color:#64748b; border:1px solid #cbd5e1;"><i class="fa-solid fa-ban" style="font-size:0.65rem;"></i> Sem Rastreador</span>`}
             </td>
             <td>
                 <div style="display:flex; gap:6px; flex-wrap:wrap;">
-                    <button class="btn btn-primary btn-sm" style="background:var(--success);" onclick="abrirModalTrocaOleo('${m.id}')" title="Registrar Troca de Óleo Realizada (+1.000 km)">
+                    <button class="btn btn-primary btn-sm" style="background:var(--success);" onclick="abrirModalTrocaOleo('${m.id}')" title="Registrar Troca de Óleo Realizada (+1.000 km) e Liberar Bloqueio por KM">
                         <i class="fa-solid fa-oil-can"></i> Registrar Troca (+1.000 km)
                     </button>
+                    ${temRast ? `<button class="btn btn-secondary btn-sm" style="background:#0284c7; color:#fff;" onclick="abrirPainelRastreadorMoto('${m.id}')" title="Abrir Mapa GPS & Bloqueador"><i class="fa-solid fa-satellite-dish"></i></button>` : ''}
                     ${btnWhatsOleo}
                 </div>
             </td>
@@ -1839,12 +1961,17 @@ function salvarKmInlineMoto(motoId) {
     }
     motos[idx].rastreadorUltimaSync = new Date().toISOString();
 
+    // Verifica se atingiu 1.100 km rodados sem troca de óleo para enviar bloqueio automático ao rastreador!
+    const bloqueouAutomatico = verificarEAplicarBloqueioAutomaticoPorKm(motos[idx], false);
+
     saveDb('crm_motos', motos);
     updateViews();
 
     const info = getMotoOleoInfo(motos[idx]);
-    if (info.status === 'vencido') {
-        alert(`🚨 AVISO DE MANUTENÇÃO (1.000 KM):\n\nA moto ${motos[idx].modelo} (${motos[idx].placa}) atingiu ${novoKm} km (Troca programada aos ${info.kmProximaTroca} km).\n\nProvidencie a troca de óleo imediatamente!`);
+    if (bloqueouAutomatico || info.atingiuBloqueioKm) {
+        alert(`🛑 BLOQUEIO AUTOMÁTICO DE PROTEÇÃO DO MOTOR ATIVADO (1.100 KM)!\n\nA moto ${motos[idx].modelo} (${motos[idx].placa}) atingiu ${novoKm} km (${info.kmRodadosCiclo} km rodados sem troca de óleo — limite de segurança: ${info.kmBloqueioMotor} km).\n\nO sistema enviou automaticamente o comando de BLOQUEIO para o rastreador/bloqueador da moto para evitar que o motor funda por falta de óleo!\n\nRegistre a troca de óleo para desbloquear a motocicleta.`);
+    } else if (info.status === 'vencido') {
+        alert(`🚨 AVISO DE MANUTENÇÃO (1.000 KM):\n\nA moto ${motos[idx].modelo} (${motos[idx].placa}) atingiu ${novoKm} km (Troca programada aos ${info.kmProximaTroca} km).\n\n⚠️ ATENÇÃO: Restam apenas ${Math.max(0, info.kmRestantesBloqueio)} km até o BLOQUEIO AUTOMÁTICO DE PROTEÇÃO DO MOTOR (${info.kmBloqueioMotor} km)!`);
     } else if (info.status === 'aviso') {
         alert(`⚠️ AVISO PREVENTIVO DE ÓLEO:\n\nFaltam apenas ${info.kmRestantes} km para a troca de óleo de 1.000 km da moto ${motos[idx].modelo} (${motos[idx].placa}).`);
     }
@@ -1896,15 +2023,37 @@ function confirmarRegistroTrocaOleo(e) {
 
     const cfg = getTrackerConfig();
     const intervalo = parseInt(cfg.intervaloOleo) || 1000;
+    const limiteBloqueio = parseInt(cfg.limiteBloqueioOleo) || 1100;
     const proxKm = kmTroca + intervalo;
 
     let motos = getDb('crm_motos');
     const idx = motos.findIndex(m => m.id === motoId);
     if (idx === -1) return;
 
+    const estavaBloqueadaPorKm = motos[idx].bloqueadoPorKmOleo === true || motos[idx].rastreadorBloqueado === true;
+
     motos[idx].kmAtual = Math.max(parseInt(motos[idx].kmAtual) || 0, kmTroca);
     motos[idx].kmUltimaTroca = kmTroca;
     motos[idx].kmProximaTroca = proxKm;
+    motos[idx].bloqueadoPorKmOleo = false;
+    motos[idx].motivoBloqueioAutomatico = '';
+    if (estavaBloqueadaPorKm) {
+        motos[idx].rastreadorBloqueado = false;
+        fetch('/api/telemetry', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                action: 'command_block',
+                id: motos[idx].rastreadorImei || '00018E1B',
+                placa: motos[idx].placa,
+                bloquear: false,
+                motivo: 'Troca de óleo realizada — Motor liberado',
+                xtrackEmail: cfg.xtrackEmail || '',
+                xtrackSenha: cfg.xtrackSenha || ''
+            })
+        }).catch(() => {});
+    }
+
     if (!Array.isArray(motos[idx].historicoOleo)) motos[idx].historicoOleo = [];
     motos[idx].historicoOleo.push({
         data: dataTroca,
@@ -1916,6 +2065,15 @@ function confirmarRegistroTrocaOleo(e) {
     saveDb('crm_motos', motos);
     closeModal('modal-troca-oleo');
     updateViews();
+
+    if (typeof mostrarToastNotificacao === 'function') {
+        mostrarToastNotificacao({
+            titulo: `✅ Troca de Óleo Registrada (${motos[idx].placa})`,
+            mensagem: `Novo ciclo iniciado aos ${kmTroca} km. Próxima troca: ${proxKm} km • Próximo bloqueio de proteção: ${kmTroca + limiteBloqueio} km.${estavaBloqueadaPorKm ? ' Moto desbloqueada automaticamente!' : ''}`,
+            cor: '#10b981',
+            icone: 'fa-oil-can'
+        });
+    }
 }
 
 // ====================================================
@@ -2003,12 +2161,35 @@ function salvarPosicaoRealMotoNoMapa(motoId, lat, lng, enderecoTexto) {
     const idx = motos.findIndex(m => m.id === motoId);
     if (idx === -1) return;
 
+    const cfg = getTrackerConfig();
+    const latAnt = parseFloat(motos[idx].rastreadorLat);
+    const lngAnt = parseFloat(motos[idx].rastreadorLng);
+
+    // Se o hodômetro automático por GPS estiver ativo, soma os KMs percorridos pela variação de coordenadas GPS
+    if (cfg.autoKm !== false && !isNaN(latAnt) && !isNaN(lngAnt)) {
+        const deltaKm = calcularDistanciaGpsHaversineKm(latAnt, lngAnt, lat, lng);
+        if (deltaKm > 0) {
+            const fracaoAcumulada = (parseFloat(motos[idx].kmGpsFracao) || 0) + deltaKm;
+            const kmInteirosGanhos = Math.floor(fracaoAcumulada);
+            motos[idx].kmGpsFracao = fracaoAcumulada - kmInteirosGanhos;
+            if (kmInteirosGanhos > 0) {
+                motos[idx].kmAtual = (parseInt(motos[idx].kmAtual) || 0) + kmInteirosGanhos;
+                const inputKm = document.getElementById('rast-input-km');
+                if (inputKm) inputKm.value = motos[idx].kmAtual;
+            }
+        }
+    }
+
     motos[idx].rastreadorLat = lat;
     motos[idx].rastreadorLng = lng;
     if (enderecoTexto) {
         motos[idx].rastreadorEndereco = enderecoTexto;
     }
     motos[idx].rastreadorUltimaSync = new Date().toISOString();
+
+    // Verifica se o KM atingiu 1.100 km rodados sem troca de óleo para bloquear automaticamente
+    verificarEAplicarBloqueioAutomaticoPorKm(motos[idx], false);
+
     saveDb('crm_motos', motos);
 
     atualizarHudTelemetriaAoVivo(motos[idx], enderecoTexto || motos[idx].rastreadorEndereco || 'Posição demarcada no mapa');
@@ -2243,6 +2424,7 @@ function atualizarHudTelemetriaAoVivo(moto, enderecoTexto) {
     const temChip = !!(moto.rastreadorImei || moto.rastreadorChip);
     const chipId = moto.rastreadorImei || 'Não vinculado';
     const iccid = moto.rastreadorChip || 'Não vinculado';
+    const oleo = getMotoOleoInfo(moto);
 
     const dotEl = document.getElementById('rast-live-dot');
     const badgeTextEl = document.getElementById('rast-live-badge-text');
@@ -2252,9 +2434,43 @@ function atualizarHudTelemetriaAoVivo(moto, enderecoTexto) {
     const ignicaoBoxEl = document.getElementById('rast-status-ignicao');
     const bateriaBoxEl = document.getElementById('rast-status-bateria');
     const alertaViolacaoEl = document.getElementById('rast-alerta-violacao-bateria');
+    const alertaBloqueioKmEl = document.getElementById('rast-alerta-bloqueio-km');
+    const alertaBloqueioKmDescEl = document.getElementById('rast-alerta-bloqueio-km-desc');
+    const kmAtualEl = document.getElementById('rast-km-atual');
+    const kmOleoEl = document.getElementById('rast-km-oleo');
+    const kmBloqueioMotorEl = document.getElementById('rast-km-bloqueio-motor');
+    const statusBloqEl = document.getElementById('rast-status-bloqueio');
 
     if (alertaViolacaoEl) {
         alertaViolacaoEl.style.display = (temChip && batRemovida) ? 'block' : 'none';
+    }
+    if (alertaBloqueioKmEl) {
+        const mostrarAlertaKm = temChip && (oleo.atingiuBloqueioKm || moto.bloqueadoPorKmOleo === true);
+        alertaBloqueioKmEl.style.display = mostrarAlertaKm ? 'block' : 'none';
+        if (mostrarAlertaKm && alertaBloqueioKmDescEl) {
+            alertaBloqueioKmDescEl.innerText = `A moto ${moto.modelo} (${moto.placa}) rodou ${oleo.kmRodadosCiclo} km desde a última troca (${oleo.kmUltimaTroca} km -> ${oleo.kmAtual} km), atingindo o limite de proteção de ${oleo.limiteBloqueio} km (${oleo.kmBloqueioMotor} km). Bloqueio enviado ao rastreador App Xtrack para evitar que o motor funda!`;
+        }
+    }
+
+    if (kmAtualEl) kmAtualEl.innerText = `${oleo.kmAtual} km`;
+    if (kmOleoEl) kmOleoEl.innerText = `${oleo.kmProximaTroca} km (${oleo.label})`;
+    if (kmBloqueioMotorEl) {
+        if (oleo.atingiuBloqueioKm || moto.bloqueadoPorKmOleo) {
+            kmBloqueioMotorEl.innerHTML = `🛑 BLOQUEADO AOS ${oleo.kmBloqueioMotor} KM`;
+            kmBloqueioMotorEl.style.color = '#dc2626';
+        } else {
+            kmBloqueioMotorEl.innerHTML = `${oleo.kmBloqueioMotor} km (Faltam ${Math.max(0, oleo.kmRestantesBloqueio)} km)`;
+            kmBloqueioMotorEl.style.color = oleo.kmRestantesBloqueio <= 150 ? '#dc2626' : '#d97706';
+        }
+    }
+    if (statusBloqEl && temChip) {
+        if (isBloq) {
+            statusBloqEl.innerText = moto.bloqueadoPorKmOleo ? '🛑 BLOQUEADA POR KM (1.100 KM ÓLEO)' : '🔒 BLOQUEADA VIA APP XTRACK';
+            statusBloqEl.style.color = 'var(--danger)';
+        } else {
+            statusBloqEl.innerText = '🔓 Desbloqueada (Operação Normal)';
+            statusBloqEl.style.color = 'var(--success)';
+        }
     }
 
     if (ignicaoBoxEl) {
@@ -2284,30 +2500,30 @@ function atualizarHudTelemetriaAoVivo(moto, enderecoTexto) {
         }
     }
 
-    const isAlertaCritico = isBloq || batRemovida;
+    const isAlertaCritico = isBloq || batRemovida || oleo.atingiuBloqueioKm;
     if (dotEl) {
         dotEl.style.background = !temChip ? '#f59e0b' : (isAlertaCritico ? '#ef4444' : '#10b981');
         dotEl.style.boxShadow = !temChip ? '0 0 10px #f59e0b' : (isAlertaCritico ? '0 0 10px #ef4444' : '0 0 10px #10b981');
     }
     if (badgeTextEl) {
         badgeTextEl.innerText = temChip
-            ? `ID: ${chipId} • ICCID (LINHA): ${iccid}`
-            : `MOTO SEM CHIP IOT VINCULADO (${moto.placa})`;
+            ? `APP XTRACK • ID: ${chipId} • ICCID: ${iccid}`
+            : `MOTO SEM RASTREADOR VINCULADO (${moto.placa})`;
         badgeTextEl.style.color = !temChip ? '#fbbf24' : (isAlertaCritico ? '#f87171' : '#38bdf8');
     }
     if (velEl) {
         if (!temChip) {
-            velEl.innerText = `⚠️ Sem Chip IoT`;
+            velEl.innerText = `⚠️ Sem Rastreador`;
         } else if (batRemovida) {
             velEl.innerText = `🚨 CABO DA BATERIA REMOVIDO!`;
             velEl.style.background = '#7f1d1d';
             velEl.style.borderColor = '#ef4444';
         } else if (isBloq) {
-            velEl.innerText = `🔒 Moto Bloqueada`;
+            velEl.innerText = moto.bloqueadoPorKmOleo ? `🛑 BLOQUEADA POR KM (1.100 KM ÓLEO)` : `🔒 Moto Bloqueada`;
             velEl.style.background = '#7f1d1d';
             velEl.style.borderColor = '#ef4444';
         } else {
-            velEl.innerText = `${ignicaoLigada ? '🔑 Moto Ligada (ACC ON)' : '🔌 Moto Desligada (ACC OFF)'} • 🔋 Bateria OK (${ignicaoLigada ? '13.8V' : '12.6V'})`;
+            velEl.innerText = `${ignicaoLigada ? '🔑 Moto Ligada (ACC ON)' : '🔌 Moto Desligada (ACC OFF)'} • 🔋 Bateria OK • 🛣️ ${oleo.kmAtual} km`;
             velEl.style.background = '#1e293b';
             velEl.style.borderColor = '#475569';
         }
@@ -2316,14 +2532,14 @@ function atualizarHudTelemetriaAoVivo(moto, enderecoTexto) {
         if (enderecoTexto) {
             endEl.innerHTML = `<i class="fa-solid fa-location-dot" style="color:${isAlertaCritico ? '#ef4444' : '#10b981'};"></i> Localização Real (${moto.modelo} • ${moto.placa}): <strong>${enderecoTexto}</strong> <span style="color:#94a3b8; font-weight:400; font-size:0.74rem;">(${window.rastCurrentCoords[0].toFixed(5)}, ${window.rastCurrentCoords[1].toFixed(5)})</span>`;
         } else if (!temChip) {
-            endEl.innerHTML = `<i class="fa-solid fa-triangle-exclamation" style="color:#fbbf24;"></i> <strong>Esta moto (${moto.modelo} • ${moto.placa}) ainda não possui Chip IoT instalado.</strong>`;
+            endEl.innerHTML = `<i class="fa-solid fa-triangle-exclamation" style="color:#fbbf24;"></i> <strong>Esta moto (${moto.modelo} • ${moto.placa}) ainda não possui rastreador instalado.</strong>`;
         } else {
             endEl.innerHTML = `<i class="fa-solid fa-satellite-dish" style="color:#38bdf8;"></i> <strong>Aguardando coordenada GPS da rua ou clique em "Meu GPS Atual" / no mapa para fixar a rua exata da moto ${moto.placa}.</strong>`;
         }
     }
     if (syncEl) {
         const horaSync = new Date().toLocaleTimeString('pt-BR');
-        syncEl.innerHTML = `<i class="fa-solid fa-sim-card" style="color:#38bdf8;"></i> ID: <strong>${chipId}</strong> • ICCID: <strong>${iccid}</strong> • Ignição: <strong>${ignicaoLigada ? 'LIGADA' : 'DESLIGADA'}</strong> • Bateria: <strong>${batRemovida ? '🚨 CABO REMOVIDO' : 'CONECTADA (12V)'}</strong> • Sync Autônomo: ${horaSync}`;
+        syncEl.innerHTML = `<i class="fa-solid fa-sim-card" style="color:#38bdf8;"></i> App Xtrack • ID: <strong>${chipId}</strong> • Ignição: <strong>${ignicaoLigada ? 'LIGADA' : 'DESLIGADA'}</strong> • Bateria: <strong>${batRemovida ? '🚨 CABO REMOVIDO' : '12V OK'}</strong> • Hodômetro GPS: <strong>${oleo.kmAtual} km</strong> (Bloqueio: ${oleo.kmBloqueioMotor} km) • Sync: ${horaSync}`;
     }
 
     // Atualiza o ícone no mapa se já existir marcador
@@ -2340,8 +2556,14 @@ function sincronizarTelemetriaAutonomaMoto(motoId, silencioso = true) {
     const moto = motos[idx];
     if (!moto.rastreadorImei) return;
 
+    const cfg = getTrackerConfig();
     const deviceId = encodeURIComponent(moto.rastreadorImei.trim());
-    fetch(`/api/telemetry?id=${deviceId}`)
+    let queryUrl = `/api/telemetry?id=${deviceId}&placa=${encodeURIComponent(moto.placa || 'IPU2I57')}`;
+    if (cfg.xtrackEmail && cfg.xtrackSenha) {
+        queryUrl += `&xtrackEmail=${encodeURIComponent(cfg.xtrackEmail)}&xtrackSenha=${encodeURIComponent(cfg.xtrackSenha)}`;
+    }
+
+    fetch(queryUrl)
         .then(r => r.ok ? r.json() : null)
         .then(data => {
             if (!data || !data.device) return;
@@ -2368,6 +2590,18 @@ function sincronizarTelemetriaAutonomaMoto(motoId, silencioso = true) {
                 const latAnt = parseFloat(moto.rastreadorLat);
                 const lngAnt = parseFloat(moto.rastreadorLng);
                 if (isNaN(latAnt) || isNaN(lngAnt) || Math.abs(latRec - latAnt) > 0.0001 || Math.abs(lngRec - lngAnt) > 0.0001) {
+                    // Contabiliza KM rodado por GPS automaticamente (Haversine)
+                    if (cfg.autoKm !== false && !isNaN(latAnt) && !isNaN(lngAnt)) {
+                        const deltaKm = calcularDistanciaGpsHaversineKm(latAnt, lngAnt, latRec, lngRec);
+                        if (deltaKm > 0) {
+                            const fracao = (parseFloat(moto.kmGpsFracao) || 0) + deltaKm;
+                            const inteiros = Math.floor(fracao);
+                            moto.kmGpsFracao = fracao - inteiros;
+                            if (inteiros > 0) {
+                                moto.kmAtual = (parseInt(moto.kmAtual) || 0) + inteiros;
+                            }
+                        }
+                    }
                     moto.rastreadorLat = latRec;
                     moto.rastreadorLng = lngRec;
                     alterou = true;
@@ -2375,6 +2609,11 @@ function sincronizarTelemetriaAutonomaMoto(motoId, silencioso = true) {
                     colocarOuMoverPinoMotoNoMapa(moto, cliente, latRec, lngRec, 17);
                     consultarEnderecoReversoNominatim(moto.id, latRec, lngRec);
                 }
+            }
+
+            // Verifica automaticamente se atingiu 1.100 km sem troca de óleo para enviar bloqueio ao rastreador
+            if (verificarEAplicarBloqueioAutomaticoPorKm(moto, false)) {
+                alterou = true;
             }
 
             if (alterou) {
@@ -2389,6 +2628,60 @@ function sincronizarTelemetriaAutonomaMoto(motoId, silencioso = true) {
                 atualizarHudTelemetriaAoVivo(moto, moto.rastreadorEndereco || '');
             }
         });
+}
+
+function simularRodagemGpsMoto(kmIncremento = 100) {
+    const motoId = document.getElementById('rast-moto-id')?.value;
+    if (!motoId) return;
+    let motos = getDb('crm_motos');
+    const idx = motos.findIndex(m => m.id === motoId);
+    if (idx === -1) return;
+
+    const cfg = getTrackerConfig();
+    const intervalo = parseInt(cfg.intervaloOleo) || 1000;
+    const semHistoricoPrevio = !motos[idx].historicoOleo || motos[idx].historicoOleo.length === 0;
+    const kmAtualAntigo = parseInt(motos[idx].kmAtual) || 0;
+    if ((!motos[idx].kmUltimaTroca || parseInt(motos[idx].kmUltimaTroca) === 0) && kmAtualAntigo > 0 && semHistoricoPrevio) {
+        motos[idx].kmUltimaTroca = kmAtualAntigo;
+        motos[idx].kmProximaTroca = kmAtualAntigo + intervalo;
+    }
+
+    const novoKm = kmAtualAntigo + (parseInt(kmIncremento) || 100);
+    motos[idx].kmAtual = novoKm;
+    motos[idx].rastreadorIgnicao = true;
+    motos[idx].rastreadorUltimaSync = new Date().toISOString();
+
+    const bloqueouPorKm = verificarEAplicarBloqueioAutomaticoPorKm(motos[idx], false);
+    saveDb('crm_motos', motos);
+
+    const inputKm = document.getElementById('rast-input-km');
+    if (inputKm) inputKm.value = novoKm;
+
+    fetch('/api/telemetry', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            id: motos[idx].rastreadorImei || '00018E1B',
+            ignicao: motos[idx].rastreadorIgnicao,
+            bateriaRemovida: !!motos[idx].rastreadorBateriaRemovida,
+            kmAtual: novoKm,
+            bloqueado: !!motos[idx].rastreadorBloqueado,
+            motivoBloqueio: motos[idx].motivoBloqueioAutomatico || '',
+            lat: motos[idx].rastreadorLat,
+            lng: motos[idx].rastreadorLng
+        })
+    }).catch(() => {});
+
+    atualizarHudTelemetriaAoVivo(motos[idx], motos[idx].rastreadorEndereco || '');
+    updateViews();
+    abrirPainelRastreadorMoto(motoId);
+
+    const oleo = getMotoOleoInfo(motos[idx]);
+    if (bloqueouPorKm || oleo.atingiuBloqueioKm) {
+        alert(`🛑 BLOQUEIO AUTOMÁTICO DE PROTEÇÃO DO MOTOR ATIVADO (1.100 KM)!\n\nHodômetro GPS avançou para ${novoKm} km (${oleo.kmRodadosCiclo} km rodados desde a última troca de óleo aos ${oleo.kmUltimaTroca} km).\n\nComo atingiu o limite de segurança de ${oleo.limiteBloqueio} km (${oleo.kmBloqueioMotor} km) sem troca de óleo, o sistema enviou automaticamente o comando de BLOQUEIO ao rastreador e bloqueador da moto para evitar que o motor funda!`);
+    } else if (oleo.status === 'vencido') {
+        alert(`🚨 ALERTA DE TROCA DE ÓLEO (1.000 KM)!\n\nHodômetro GPS: ${novoKm} km (${oleo.kmRodadosCiclo} km rodados no ciclo).\nA troca de óleo está vencida (${oleo.kmProximaTroca} km)!\n\n⚠️ ATENÇÃO: Em mais ${Math.max(0, oleo.kmRestantesBloqueio)} km (aos ${oleo.kmBloqueioMotor} km), o sistema enviará o BLOQUEIO AUTOMÁTICO para proteger o motor!`);
+    }
 }
 
 function alternarStatusIgnicaoMoto() {
@@ -2545,13 +2838,17 @@ function abrirPainelRastreadorMoto(motoId) {
     // Se a moto foi cadastrada com kmUltimaTroca = 0 e já tem um KM alto (ex: 26094 km), corrige a base automaticamente
     const cfg = getTrackerConfig();
     const intervalo = parseInt(cfg.intervaloOleo) || 1000;
+    const limiteBloqueio = parseInt(cfg.limiteBloqueioOleo) || 1100;
     const semHistoricoPrevio = !moto.historicoOleo || moto.historicoOleo.length === 0;
-    if ((!moto.kmUltimaTroca || parseInt(moto.kmUltimaTroca) === 0) && parseInt(moto.kmAtual) > intervalo && semHistoricoPrevio) {
+    if ((!moto.kmUltimaTroca || parseInt(moto.kmUltimaTroca) === 0) && parseInt(moto.kmAtual) > limiteBloqueio && semHistoricoPrevio) {
         moto.kmUltimaTroca = parseInt(moto.kmAtual);
         moto.kmProximaTroca = moto.kmUltimaTroca + intervalo;
         motos[mIdx] = moto;
         saveDb('crm_motos', motos);
     }
+
+    // Verifica se já deve aplicar o bloqueio de 1.100 km
+    verificarEAplicarBloqueioAutomaticoPorKm(moto, true);
 
     const contratos = getDb('crm_contratos');
     const clientes = getDb('crm_clientes');
@@ -2561,17 +2858,24 @@ function abrirPainelRastreadorMoto(motoId) {
 
     document.getElementById('rast-moto-id').value = moto.id;
     document.getElementById('modal-rastreador-title').innerHTML = temRastreador
-        ? `<i class="fa-solid fa-sim-card" style="color:#38bdf8;"></i> Rastreador Chip IoT: ${moto.modelo} (${moto.placa} • ${moto.cor || 'Preta'})`
+        ? `<i class="fa-solid fa-satellite-dish" style="color:#38bdf8;"></i> App Xtrack & Bloqueador GPS: ${moto.modelo} (${moto.placa} • ${moto.cor || 'Preta'})`
         : `<i class="fa-solid fa-ban" style="color:#f59e0b;"></i> Sem Rastreador Instalado: ${moto.modelo} (${moto.placa})`;
     document.getElementById('rast-condutor').innerText = cliente ? `${cliente.nome} (${cliente.telefone})` : 'Sem condutor (Pátio)';
-    document.getElementById('rast-vencimento').innerText = contrato && contrato.dataProxVenc ? formatarDataBr(contrato.dataProxVenc) : 'Sem contrato ativo';
+    if (document.getElementById('rast-vencimento')) {
+        document.getElementById('rast-vencimento').innerText = contrato && contrato.dataProxVenc ? formatarDataBr(contrato.dataProxVenc) : 'Sem contrato ativo';
+    }
     document.getElementById('rast-km-atual').innerText = `${oleo.kmAtual} km`;
     document.getElementById('rast-km-oleo').innerText = `${oleo.kmProximaTroca} km (${oleo.label})`;
+    if (document.getElementById('rast-km-bloqueio-motor')) {
+        document.getElementById('rast-km-bloqueio-motor').innerText = oleo.atingiuBloqueioKm
+            ? `🛑 BLOQUEADO AOS ${oleo.kmBloqueioMotor} KM`
+            : `${oleo.kmBloqueioMotor} km (Faltam ${Math.max(0, oleo.kmRestantesBloqueio)} km)`;
+    }
 
     const sinalEl = document.getElementById('rast-status-sinal');
     if (sinalEl) {
         if (temRastreador) {
-            sinalEl.innerText = `ID: ${moto.rastreadorImei} (Ativo)`;
+            sinalEl.innerText = `App Xtrack • ID: ${moto.rastreadorImei} (Online)`;
             sinalEl.style.color = 'var(--success)';
         } else {
             sinalEl.innerText = 'Sem Rastreador Instalado';
@@ -2584,18 +2888,18 @@ function abrirPainelRastreadorMoto(motoId) {
     const btnBloq = document.getElementById('btn-toggle-bloqueio-moto');
     if (!temRastreador) {
         if (statusBloqEl) {
-            statusBloqEl.innerText = 'Indisponível (Sem Chip IoT)';
+            statusBloqEl.innerText = 'Indisponível (Sem Rastreador)';
             statusBloqEl.style.color = '#64748b';
         }
         if (btnBloq) btnBloq.style.display = 'none';
     } else if (isBloq) {
         if (statusBloqEl) {
-            statusBloqEl.innerText = '🔒 BLOQUEADA VIA CHIP IOT';
+            statusBloqEl.innerText = moto.bloqueadoPorKmOleo ? '🛑 BLOQUEADA POR KM (1.100 KM ÓLEO)' : '🔒 BLOQUEADA VIA APP XTRACK';
             statusBloqEl.style.color = 'var(--danger)';
         }
         if (btnBloq) {
             btnBloq.style.display = 'inline-flex';
-            btnBloq.innerHTML = '<i class="fa-solid fa-unlock"></i> Desbloquear Motocicleta via Chip IoT';
+            btnBloq.innerHTML = '<i class="fa-solid fa-unlock"></i> Desbloquear Motocicleta via App Xtrack';
             btnBloq.className = 'btn btn-primary btn-sm';
         }
     } else {
@@ -2605,7 +2909,7 @@ function abrirPainelRastreadorMoto(motoId) {
         }
         if (btnBloq) {
             btnBloq.style.display = 'inline-flex';
-            btnBloq.innerHTML = '<i class="fa-solid fa-lock"></i> Enviar Bloqueio Preventivo via Chip IoT (Cláusula 11ª)';
+            btnBloq.innerHTML = '<i class="fa-solid fa-lock"></i> Enviar Bloqueio Preventivo via App Xtrack (Cláusula 11ª)';
             btnBloq.className = 'btn btn-danger btn-sm';
         }
     }
@@ -2618,13 +2922,14 @@ function abrirPainelRastreadorMoto(motoId) {
     if (document.getElementById('rast-input-km-ultima')) {
         document.getElementById('rast-input-km-ultima').value = oleo.kmUltimaTroca;
     }
+    if (document.getElementById('rast-input-km-bloqueio')) {
+        document.getElementById('rast-input-km-bloqueio').value = oleo.kmBloqueioMotor;
+    }
 
     const extLink = document.getElementById('rast-external-link');
-    if (moto.rastreadorLink) {
-        extLink.href = moto.rastreadorLink;
+    if (extLink) {
+        extLink.href = moto.rastreadorLink || 'https://xtrack.com.br';
         extLink.style.display = 'inline-block';
-    } else {
-        extLink.style.display = 'none';
     }
 
     const mapWrapperCard = document.getElementById('rast-map-wrapper-card');
@@ -2643,7 +2948,7 @@ function abrirPainelRastreadorMoto(motoId) {
         if (mapWrapperCard) mapWrapperCard.style.display = 'none';
         if (semRastCard) semRastCard.style.display = 'block';
         if (semRastMsg) {
-            semRastMsg.innerHTML = `A motocicleta <strong>${moto.modelo} (Placa: ${moto.placa})</strong> ainda não possui rastreador instalado. Atualmente, apenas a moto de placa <strong>IPU2I57</strong> possui Chip IoT ativo na frota. Caso instale um rastreador nesta moto futuramente, preencha o ID e o ICCID abaixo.`;
+            semRastMsg.innerHTML = `A motocicleta <strong>${moto.modelo} (Placa: ${moto.placa})</strong> ainda não possui rastreador instalado. Atualmente, apenas a moto de placa <strong>IPU2I57</strong> possui rastreador App Xtrack ativo na frota. Caso instale um rastreador nesta moto futuramente, preencha o ID e o ICCID abaixo.`;
         }
     }
 }
@@ -2651,12 +2956,19 @@ function abrirPainelRastreadorMoto(motoId) {
 function atualizarPreviewOleoNoRastreador() {
     const kmInput = document.getElementById('rast-input-km');
     const ultimaInput = document.getElementById('rast-input-km-ultima');
+    const bloqInput = document.getElementById('rast-input-km-bloqueio');
     if (!kmInput || !ultimaInput) return;
+    const cfg = getTrackerConfig();
+    const limiteBloqueio = parseInt(cfg.limiteBloqueioOleo) || 1100;
     const novoKm = parseInt(kmInput.value) || 0;
-    const ultimaAtual = parseInt(ultimaInput.value) || 0;
+    let ultimaAtual = parseInt(ultimaInput.value) || 0;
     // Se a base de última troca estava zerada, acompanha automaticamente o KM inicial da moto
     if (ultimaAtual === 0 && novoKm > 0) {
         ultimaInput.value = novoKm;
+        ultimaAtual = novoKm;
+    }
+    if (bloqInput) {
+        bloqInput.value = ultimaAtual + limiteBloqueio;
     }
 }
 
@@ -2677,8 +2989,6 @@ function salvarTelemetriaRastreadorMoto() {
     const intervalo = parseInt(cfg.intervaloOleo) || 1000;
     const semHistoricoPrevio = !motos[idx].historicoOleo || motos[idx].historicoOleo.length === 0;
 
-    // Se a última troca estava em 0 (primeira configuração do KM real da moto, ex: 26094 km),
-    // define a base do ciclo de 1.000 km a partir do KM atual para que a próxima troca seja +1.000 km (27094 km)
     if ((isNaN(kmUltimaInput) || kmUltimaInput === 0) && novoKm > 0 && semHistoricoPrevio) {
         kmUltimaInput = novoKm;
     } else if (isNaN(kmUltimaInput)) {
@@ -2695,15 +3005,19 @@ function salvarTelemetriaRastreadorMoto() {
     motos[idx].kmProximaTroca = kmUltimaInput + intervalo;
     motos[idx].rastreadorUltimaSync = new Date().toISOString();
 
+    const bloqueouAutomatico = verificarEAplicarBloqueioAutomaticoPorKm(motos[idx], false);
+
     saveDb('crm_motos', motos);
     updateViews();
     abrirPainelRastreadorMoto(motoId);
 
     const oleo = getMotoOleoInfo(motos[idx]);
-    if (oleo.status === 'vencido') {
-        alert(`🚨 ALERTA DO CHIP IOT (1.000 KM):\nHodômetro sincronizado em ${novoKm} km! A moto ${motos[idx].modelo} atingiu o limite de troca de óleo (${oleo.kmProximaTroca} km).`);
+    if (bloqueouAutomatico || oleo.atingiuBloqueioKm) {
+        alert(`🛑 BLOQUEIO AUTOMÁTICO DE PROTEÇÃO DO MOTOR ATIVADO (1.100 KM)!\n\nA moto ${motos[idx].modelo} (${motos[idx].placa}) atingiu ${novoKm} km (${oleo.kmRodadosCiclo} km rodados sem troca de óleo — limite de segurança: ${oleo.kmBloqueioMotor} km).\n\nO sistema enviou automaticamente o comando de BLOQUEIO para o rastreador/bloqueador App Xtrack para evitar que o motor funda!`);
+    } else if (oleo.status === 'vencido') {
+        alert(`🚨 ALERTA DE TROCA DE ÓLEO (1.000 KM):\nHodômetro sincronizado em ${novoKm} km! A moto ${motos[idx].modelo} atingiu o limite de troca de óleo (${oleo.kmProximaTroca} km).\n\n⚠️ ATENÇÃO: O bloqueio automático de proteção do motor ocorrerá aos ${oleo.kmBloqueioMotor} km (faltam ${Math.max(0, oleo.kmRestantesBloqueio)} km)!`);
     } else {
-        alert(`✅ Chip IoT (${imei || 'M2M'}) e quilometragem (${novoKm} km • Próx. troca aos ${oleo.kmProximaTroca} km) sincronizados com sucesso!`);
+        alert(`✅ App Xtrack (${imei || 'M2M'}) e hodômetro GPS (${novoKm} km • Próx. troca: ${oleo.kmProximaTroca} km • Bloqueio proteção: ${oleo.kmBloqueioMotor} km) sincronizados com sucesso!`);
     }
 }
 
@@ -2713,15 +3027,35 @@ function alternarBloqueioRemotoMoto() {
     const idx = motos.findIndex(m => m.id === motoId);
     if (idx === -1) return;
 
+    const cfg = getTrackerConfig();
     const vaiBloquear = !motos[idx].rastreadorBloqueado;
     const msgConfirm = vaiBloquear
-        ? `Confirmar envio de COMANDO DE BLOQUEIO REMOTO via Chip IoT para ${motos[idx].modelo} (${motos[idx].placa})?\n\nConforme Cláusula 10.3 do Contrato, certifique-se de que a motocicleta está em condição tecnicamente segura (parada).`
-        : `Confirmar DESBLOQUEIO REMOTO via Chip IoT da motocicleta ${motos[idx].modelo} (${motos[idx].placa})?`;
+        ? `Confirmar envio de COMANDO DE BLOQUEIO REMOTO via App Xtrack para ${motos[idx].modelo} (${motos[idx].placa})?\n\nConforme Cláusula 10.3 e 11.3 do Contrato, certifique-se de que a motocicleta está em condição tecnicamente segura (parada).`
+        : `Confirmar DESBLOQUEIO REMOTO via App Xtrack da motocicleta ${motos[idx].modelo} (${motos[idx].placa})?`;
 
     if (!confirm(msgConfirm)) return;
 
     motos[idx].rastreadorBloqueado = vaiBloquear;
+    if (!vaiBloquear) {
+        motos[idx].bloqueadoPorKmOleo = false;
+        motos[idx].motivoBloqueioAutomatico = '';
+    }
     saveDb('crm_motos', motos);
+
+    fetch('/api/telemetry', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            action: 'command_block',
+            id: motos[idx].rastreadorImei || '00018E1B',
+            placa: motos[idx].placa,
+            bloquear: vaiBloquear,
+            motivo: vaiBloquear ? 'Bloqueio Remoto Manual (Painel CRM)' : 'Desbloqueio Remoto Manual',
+            xtrackEmail: cfg.xtrackEmail || '',
+            xtrackSenha: cfg.xtrackSenha || ''
+        })
+    }).catch(() => {});
+
     updateViews();
     abrirPainelRastreadorMoto(motoId);
 }
@@ -2730,6 +3064,7 @@ function sincronizarTodosRastreadores() {
     sincronizarDadosPadraoRastreadoresFrota();
     const cfg = getTrackerConfig();
     const intervalo = parseInt(cfg.intervaloOleo) || 1000;
+    const limiteBloqueio = parseInt(cfg.limiteBloqueioOleo) || 1100;
     const motos = getDb('crm_motos');
     let alertas = [];
     let comChip = [];
@@ -2738,17 +3073,21 @@ function sincronizarTodosRastreadores() {
         if (m.rastreadorImei && m.rastreadorImei.trim() !== '') {
             m.rastreadorUltimaSync = new Date().toISOString();
             comChip.push(`${m.placa} (ID: ${m.rastreadorImei})`);
+            sincronizarTelemetriaAutonomaMoto(m.id, true);
         }
         const semHistoricoPrevio = !m.historicoOleo || m.historicoOleo.length === 0;
-        if ((!m.kmUltimaTroca || parseInt(m.kmUltimaTroca) === 0) && parseInt(m.kmAtual) > intervalo && semHistoricoPrevio) {
+        if ((!m.kmUltimaTroca || parseInt(m.kmUltimaTroca) === 0) && parseInt(m.kmAtual) > limiteBloqueio && semHistoricoPrevio) {
             m.kmUltimaTroca = parseInt(m.kmAtual);
             m.kmProximaTroca = m.kmUltimaTroca + intervalo;
         }
+        verificarEAplicarBloqueioAutomaticoPorKm(m, false);
         const oleo = getMotoOleoInfo(m);
-        if (oleo.status === 'vencido') {
-            alertas.push(`• ${m.modelo} (${m.placa}): ${oleo.kmAtual} km — TROCA DE ÓLEO VENCIDA!`);
+        if (oleo.atingiuBloqueioKm) {
+            alertas.push(`• 🛑 ${m.modelo} (${m.placa}): ${oleo.kmAtual} km (${oleo.kmRodadosCiclo} km rodados) — BLOQUEIO AUTOMÁTICO DE MOTOR ATIVADO (1.100 KM)!`);
+        } else if (oleo.status === 'vencido') {
+            alertas.push(`• 🚨 ${m.modelo} (${m.placa}): ${oleo.kmAtual} km — TROCA DE ÓLEO VENCIDA! (Bloqueia em ${Math.max(0, oleo.kmRestantesBloqueio)} km)`);
         } else if (oleo.status === 'aviso') {
-            alertas.push(`• ${m.modelo} (${m.placa}): Faltam ${oleo.kmRestantes} km para a troca de 1.000 km.`);
+            alertas.push(`• ⚠️ ${m.modelo} (${m.placa}): Faltam ${oleo.kmRestantes} km para a troca de 1.000 km.`);
         }
     });
 
@@ -2756,30 +3095,34 @@ function sincronizarTodosRastreadores() {
     updateViews();
 
     const resumoChips = comChip.length > 0
-        ? `Motos com Rastreador Instalado (${comChip.length}): ${comChip.join(', ')}`
+        ? `Motos com Rastreador App Xtrack (${comChip.length}): ${comChip.join(', ')}`
         : `Nenhuma moto com rastreador instalado.`;
 
     if (alertas.length > 0) {
-        alert(`📶 Sincronização concluída!\n${resumoChips}\n\nAvisos de Manutenção (Ciclo 1.000 km):\n` + alertas.join('\n'));
+        alert(`📶 Sincronização App Xtrack & Hodômetro GPS concluída!\n${resumoChips}\n\nAvisos de Manutenção & Proteção do Motor (1.000 / 1.100 km):\n` + alertas.join('\n'));
     } else {
-        alert(`📶 Sincronização concluída!\n${resumoChips}\nCiclo de óleo (1.000 km) em dia.`);
+        alert(`📶 Sincronização App Xtrack & Hodômetro GPS concluída!\n${resumoChips}\nCiclo de óleo (1.000 km) e proteção do motor (1.100 km) em dia.`);
     }
 }
 
 function salvarConfigRastreadorGlobal(e) {
     e.preventDefault();
     const cfg = {
-        provedor: document.getElementById('cfg-gps-provedor').value,
+        provedor: document.getElementById('cfg-gps-provedor').value || 'xtrack',
         url: document.getElementById('cfg-gps-url').value.trim(),
-        token: document.getElementById('cfg-gps-token').value.trim(),
+        token: document.getElementById('cfg-gps-token')?.value.trim() || '',
+        xtrackEmail: document.getElementById('cfg-xtrack-email')?.value.trim() || '',
+        xtrackSenha: document.getElementById('cfg-xtrack-senha')?.value || '',
         intervaloOleo: parseInt(document.getElementById('cfg-gps-intervalo-oleo').value) || 1000,
         avisoAntecipado: parseInt(document.getElementById('cfg-gps-aviso-antecipado').value) || 150,
-        autoKm: document.getElementById('cfg-gps-auto-km').checked
+        limiteBloqueioOleo: parseInt(document.getElementById('cfg-gps-limite-bloqueio-oleo')?.value) || 1100,
+        autoKm: document.getElementById('cfg-gps-auto-km').checked,
+        autoBloqueioOleo: document.getElementById('cfg-gps-auto-bloqueio-oleo') ? document.getElementById('cfg-gps-auto-bloqueio-oleo').checked : true
     };
     localStorage.setItem('crm_tracker_config', JSON.stringify(cfg));
     closeModal('modal-config-rastreador-global');
+    sincronizarTodosRastreadores();
     updateViews();
-    alert('✅ Configuração de Conectividade dos Chips IoT (M2M) e ciclo de 1.000 km salva com sucesso!');
 }
 
 // ==========================================
@@ -2993,19 +3336,7 @@ function renderContratos() {
 }
 
 function registrarPagamento(id) {
-    if (!confirm("Confirmar o recebimento semanal? Isso empurrará o próximo vencimento para +7 dias.")) return;
-
-    let contratos = getDb('crm_contratos');
-    let idx = contratos.findIndex(c => c.id === id);
-    if (idx > -1) {
-        const baseDateStr = contratos[idx].dataProxVenc || new Date().toISOString().split('T')[0];
-        let vDate = new Date(baseDateStr + 'T00:00:00');
-        vDate.setDate(vDate.getDate() + 7);
-        contratos[idx].dataProxVenc = vDate.toISOString().split('T')[0];
-
-        saveDb('crm_contratos', contratos);
-        updateViews();
-    }
+    abrirModalConfirmarPagamento(id);
 }
 
 function abrirEdicaoContrato(id) {
@@ -3902,6 +4233,573 @@ function verFotoMotoCrm(motoId) {
     modal.classList.add('show');
 }
 
+// =========================================================================
+// MODULE: PAGAMENTOS SEMANAIS, COBRANÇAS WHATSAPP & HISTÓRICO DE RECIBOS
+// =========================================================================
+function renderPagamentosView() {
+    const contratos = getDb('crm_contratos');
+    const clientes = getDb('crm_clientes');
+    const motos = getDb('crm_motos');
+    const pagamentos = getDb('crm_pagamentos');
+
+    const tbodyAtivos = document.getElementById('table-pagamentos-ativos');
+    const tbodyHist = document.getElementById('table-historico-pagamentos');
+    if (!tbodyAtivos || !tbodyHist) return;
+
+    const query = (document.getElementById('search-pagamentos')?.value || '').toLowerCase();
+
+    // 1. KPIs Financeiros e de Vencimento
+    const totalRecebidoHist = pagamentos.reduce((acc, p) => acc + (parseFloat(p.valor) || 0), 0);
+    let receitaSemanalAtiva = 0;
+    let countEmDia = 0;
+    let countVencendo = 0;
+    let countAtrasados = 0;
+
+    const contratosAtivos = contratos.filter(c => c.status === 'ativo');
+    contratosAtivos.forEach(c => {
+        const moto = motos.find(m => m.id === c.motoId) || { valor: 0 };
+        const valSem = parseFloat(c.valorSemanal || (parseFloat(moto.valor || 0) * 7) || 0);
+        receitaSemanalAtiva += valSem;
+
+        const vInfo = getInfoVencimentoContrato(c);
+        if (vInfo.diffDays !== null) {
+            if (vInfo.diffDays < 0) countAtrasados++;
+            else if (vInfo.diffDays <= 2) countVencendo++;
+            else countEmDia++;
+        } else {
+            countEmDia++;
+        }
+    });
+
+    if (document.getElementById('pag-kpi-recebido')) {
+        document.getElementById('pag-kpi-recebido').innerText = `R$ ${totalRecebidoHist.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    }
+    if (document.getElementById('pag-kpi-semanal')) {
+        document.getElementById('pag-kpi-semanal').innerText = `R$ ${receitaSemanalAtiva.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    }
+    if (document.getElementById('pag-kpi-emdia')) document.getElementById('pag-kpi-emdia').innerText = countEmDia;
+    if (document.getElementById('pag-kpi-vencendo')) document.getElementById('pag-kpi-vencendo').innerText = countVencendo;
+    if (document.getElementById('pag-kpi-atrasados')) document.getElementById('pag-kpi-atrasados').innerText = countAtrasados;
+
+    const navBadgePag = document.getElementById('nav-badge-pagamentos');
+    if (navBadgePag) {
+        const totalPendentes = countAtrasados + countVencendo;
+        if (totalPendentes > 0) {
+            navBadgePag.style.display = 'inline-block';
+            navBadgePag.innerText = totalPendentes;
+            navBadgePag.style.background = countAtrasados > 0 ? '#ef4444' : '#f59e0b';
+        } else {
+            navBadgePag.style.display = 'none';
+        }
+    }
+
+    const alertBox = document.getElementById('pagamentos-alert-box');
+    if (alertBox) {
+        if (countAtrasados > 0 || countVencendo > 0) {
+            alertBox.innerHTML = `
+                <div class="alert-banner-oleo ${countAtrasados > 0 ? '' : 'warning-only'}" style="margin-bottom:20px;">
+                    <div>
+                        <strong style="font-size:0.95rem; display:block; color:#111827;">
+                            <i class="fa-solid fa-bell"></i> Alertas de Pagamentos Semanais:
+                            ${countAtrasados} aluguel(is) em atraso e ${countVencendo} vencendo hoje / nos próximos 2 dias!
+                        </strong>
+                        <span style="font-size:0.82rem; color:#4b5563;">
+                            Clique em <strong>"Confirmar Pagamento (+7d)"</strong> para dar baixa e gerar o recibo, ou em <strong>"Cobrar no WhatsApp"</strong> para enviar aviso direto ao locatário.
+                        </span>
+                    </div>
+                </div>
+            `;
+        } else {
+            alertBox.innerHTML = '';
+        }
+    }
+
+    // 2. Tabela de Pagamentos Semanais Ativos
+    tbodyAtivos.innerHTML = '';
+    const filtrados = contratosAtivos.filter(c => {
+        const cli = clientes.find(x => x.id === c.clienteId) || { nome: '' };
+        const moto = motos.find(x => x.id === c.motoId) || { placa: '', modelo: '' };
+        return (cli.nome || '').toLowerCase().includes(query) ||
+               (moto.placa || '').toLowerCase().includes(query) ||
+               (moto.modelo || '').toLowerCase().includes(query);
+    });
+
+    if (filtrados.length === 0) {
+        tbodyAtivos.innerHTML = `<tr><td colspan="7" class="empty-state" style="padding:24px;">Nenhum contrato semanal ativo encontrado.</td></tr>`;
+    } else {
+        filtrados.forEach(c => {
+            const cli = clientes.find(x => x.id === c.clienteId) || { nome: 'Cliente não encontrado', telefone: '' };
+            const moto = motos.find(x => x.id === c.motoId) || { modelo: 'Moto', placa: '-', valor: 0 };
+            const vInfo = getInfoVencimentoContrato(c);
+            const oleo = getMotoOleoInfo(moto);
+            const valSemanal = parseFloat(c.valorSemanal || (parseFloat(moto.valor || 0) * 7) || 0).toFixed(2);
+
+            let statusPagBadge = `<span class="badge badge-disponivel">Em Dia</span>`;
+            if (vInfo.diffDays !== null) {
+                if (vInfo.diffDays < 0) {
+                    statusPagBadge = `<span class="badge badge-alugada" style="background:#fee2e2; color:#991b1b;">🚨 ATRASADO (${Math.abs(vInfo.diffDays)}d)</span>`;
+                } else if (vInfo.diffDays === 0) {
+                    statusPagBadge = `<span class="badge badge-manutencao" style="background:#fef3c7; color:#92400e;">⏰ VENCE HOJE!</span>`;
+                } else if (vInfo.diffDays <= 2) {
+                    statusPagBadge = `<span class="badge badge-manutencao">⚠️ Vence em ${vInfo.diffDays}d</span>`;
+                }
+            }
+
+            const numWhats = cli.telefone ? cli.telefone.replace(/\D/g, '') : '';
+            let btnCobrarWhats = '';
+            if (numWhats) {
+                const msgCobranca = vInfo.diffDays !== null && vInfo.diffDays < 0
+                    ? `Olá ${cli.nome}, tudo bem? Aqui é da FACILITA MOTO. Consta em aberto o aluguel semanal da moto ${moto.modelo} (${moto.placa}) no valor de R$ ${valSemanal}, vencido em ${vInfo.texto}. Por gentileza, envie o comprovante PIX para regularização.`
+                    : `Olá ${cli.nome}, tudo bem? Aqui é da FACILITA MOTO! Passando para lembrar do vencimento semanal da moto ${moto.modelo} (${moto.placa}) em ${vInfo.texto}, no valor de R$ ${valSemanal}. Qualquer dúvida estamos à disposição!`;
+                btnCobrarWhats = `<a href="https://wa.me/55${numWhats}?text=${encodeURIComponent(msgCobranca)}" target="_blank" class="btn btn-secondary btn-sm" style="background:#25d366; color:#fff; border:none;" title="Enviar cobrança / lembrete no WhatsApp"><i class="fa-brands fa-whatsapp"></i> Cobrar</a>`;
+            }
+
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td>
+                    <strong>${cli.nome}</strong><br>
+                    <small style="color:var(--text-muted);">${cli.telefone || 'Sem telefone'}</small>
+                </td>
+                <td>
+                    <strong>${moto.modelo}</strong><br>
+                    <small style="color:var(--text-muted);">Placa: <strong>${moto.placa}</strong></small>
+                </td>
+                <td>
+                    <strong style="color:#059669; font-size:0.95rem;">R$ ${valSemanal}</strong><br>
+                    <small style="color:var(--text-muted);">${c.formaPagamento || 'PIX'}</small>
+                </td>
+                <td>${vInfo.htmlBadge}</td>
+                <td>${statusPagBadge}</td>
+                <td>
+                    <span style="font-size:0.75rem; font-weight:700; padding:2px 7px; border-radius:4px; background:${oleo.badgeBg}; color:${oleo.badgeColor}; display:inline-block;">
+                        ${oleo.kmAtual} km / ${oleo.kmProximaTroca} km
+                    </span><br>
+                    <button class="btn btn-secondary btn-sm" style="padding:2px 6px; font-size:0.7rem; margin-top:4px;" onclick="abrirModalTrocaOleo('${moto.id}')">
+                        <i class="fa-solid fa-oil-can"></i> Troca Óleo
+                    </button>
+                </td>
+                <td>
+                    <div style="display:flex; gap:6px; flex-wrap:wrap;">
+                        <button class="btn btn-primary btn-sm" style="background:#059669;" onclick="abrirModalConfirmarPagamento('${c.id}')" title="Confirmar recebimento semanal e avançar +7 dias">
+                            <i class="fa-solid fa-sack-dollar"></i> Confirmar (+7d)
+                        </button>
+                        ${btnCobrarWhats}
+                        <button class="btn btn-secondary btn-sm" onclick="abrirEdicaoContrato('${c.id}')" title="Editar vencimento / valor">
+                            <i class="fa-solid fa-calendar-pen"></i>
+                        </button>
+                    </div>
+                </td>
+            `;
+            tbodyAtivos.appendChild(tr);
+        });
+    }
+
+    // 3. Tabela de Histórico de Pagamentos Recebidos
+    tbodyHist.innerHTML = '';
+    const histOrdenado = [...pagamentos].sort((a, b) => (b.criadoEm || b.dataPagamento || '').localeCompare(a.criadoEm || a.dataPagamento || ''));
+    if (histOrdenado.length === 0) {
+        tbodyHist.innerHTML = `<tr><td colspan="7" class="empty-state" style="padding:22px;">Nenhum pagamento registrado no histórico ainda.</td></tr>`;
+    } else {
+        histOrdenado.forEach(p => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td><strong>${formatarDataBr(p.dataPagamento)}</strong></td>
+                <td><strong>${p.clienteNome || '-'}</strong></td>
+                <td>${p.motoModelo || '-'} <span style="color:var(--text-muted); font-size:0.78rem;">(${p.motoPlaca || '-'})</span></td>
+                <td><strong style="color:#059669;">R$ ${parseFloat(p.valor || 0).toFixed(2)}</strong></td>
+                <td><span class="badge badge-disponivel">${p.formaPagamento || 'PIX'}</span></td>
+                <td>${formatarDataBr(p.novoVencimento)}</td>
+                <td>
+                    <div style="display:flex; align-items:center; justify-content:space-between; gap:8px;">
+                        <span style="font-size:0.8rem; color:var(--text-muted);">${p.obs || 'Aluguel semanal'}</span>
+                        <div style="display:flex; gap:5px;">
+                            <button class="btn btn-secondary btn-sm" style="background:#25d366; color:#fff; border:none;" onclick="enviarReciboPagamentoWhats('${p.id}')" title="Enviar Recibo pelo WhatsApp">
+                                <i class="fa-brands fa-whatsapp"></i> Recibo
+                            </button>
+                            <button class="btn btn-danger btn-sm" onclick="deletarPagamentoHistorico('${p.id}')" title="Excluir registro">
+                                <i class="fa-solid fa-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                </td>
+            `;
+            tbodyHist.appendChild(tr);
+        });
+    }
+}
+
+function abrirModalConfirmarPagamento(contratoId) {
+    const contratos = getDb('crm_contratos');
+    const contrato = contratos.find(c => c.id === contratoId);
+    if (!contrato) return;
+
+    const clientes = getDb('crm_clientes');
+    const motos = getDb('crm_motos');
+    const cli = clientes.find(x => x.id === contrato.clienteId) || { nome: 'Locatário', telefone: '' };
+    const moto = motos.find(x => x.id === contrato.motoId) || { modelo: 'Moto', placa: '-', valor: 0 };
+
+    const valSemanal = parseFloat(contrato.valorSemanal || (parseFloat(moto.valor || 0) * 7) || 0).toFixed(2);
+    const hojeIso = new Date().toISOString().split('T')[0];
+
+    const baseDateStr = contrato.dataProxVenc || hojeIso;
+    const proxDate = new Date(baseDateStr + 'T00:00:00');
+    proxDate.setDate(proxDate.getDate() + 7);
+    const novoVencIso = proxDate.toISOString().split('T')[0];
+
+    document.getElementById('pag-modal-contrato-id').value = contrato.id;
+    document.getElementById('pag-modal-resumo-cliente').innerText = `👤 Locatário: ${cli.nome} (${cli.telefone || 'S/N'})`;
+    document.getElementById('pag-modal-resumo-moto').innerText = `🏍️ Moto: ${moto.modelo} • Placa: ${moto.placa} • Vencimento Atual: ${formatarDataBr(contrato.dataProxVenc)}`;
+    document.getElementById('pag-modal-valor').value = valSemanal;
+    document.getElementById('pag-modal-forma').value = contrato.formaPagamento || 'PIX';
+    document.getElementById('pag-modal-data-pagamento').value = hojeIso;
+    document.getElementById('pag-modal-novo-vencimento').value = novoVencIso;
+    document.getElementById('pag-modal-obs').value = `Aluguel semanal ref. vencimento ${formatarDataBr(contrato.dataProxVenc)}`;
+
+    openModal('modal-confirmar-pagamento');
+}
+
+function confirmarBaixaPagamentoSemanal(e) {
+    e.preventDefault();
+    const contratoId = document.getElementById('pag-modal-contrato-id').value;
+    const valorPago = parseFloat(document.getElementById('pag-modal-valor').value) || 0;
+    const formaPag = document.getElementById('pag-modal-forma').value || 'PIX';
+    const dataPagamento = document.getElementById('pag-modal-data-pagamento').value;
+    const novoVencimento = document.getElementById('pag-modal-novo-vencimento').value;
+    const obs = document.getElementById('pag-modal-obs').value.trim();
+
+    let contratos = getDb('crm_contratos');
+    const cIdx = contratos.findIndex(c => c.id === contratoId);
+    if (cIdx === -1) return;
+
+    const clientes = getDb('crm_clientes');
+    const motos = getDb('crm_motos');
+    const cli = clientes.find(x => x.id === contratos[cIdx].clienteId) || { nome: 'Locatário', telefone: '' };
+    const moto = motos.find(x => x.id === contratos[cIdx].motoId) || { modelo: 'Moto', placa: '-' };
+
+    const vencAnterior = contratos[cIdx].dataProxVenc;
+    contratos[cIdx].dataProxVenc = novoVencimento;
+    contratos[cIdx].formaPagamento = formaPag;
+    saveDb('crm_contratos', contratos);
+
+    const novoPag = {
+        id: generateId(),
+        contratoId: contratoId,
+        clienteId: cli.id || '',
+        clienteNome: cli.nome,
+        clienteTelefone: cli.telefone || '',
+        motoId: moto.id || '',
+        motoModelo: moto.modelo,
+        motoPlaca: moto.placa,
+        valor: valorPago.toFixed(2),
+        formaPagamento: formaPag,
+        dataPagamento: dataPagamento,
+        vencimentoAnterior: vencAnterior,
+        novoVencimento: novoVencimento,
+        obs: obs || 'Pagamento semanal confirmado',
+        criadoEm: new Date().toISOString()
+    };
+
+    let pagamentos = getDb('crm_pagamentos');
+    pagamentos.push(novoPag);
+    saveDb('crm_pagamentos', pagamentos);
+
+    closeModal('modal-confirmar-pagamento');
+    updateViews();
+
+    mostrarToastNotificacao({
+        titulo: `💰 Pagamento Confirmado (${moto.placa})`,
+        mensagem: `Recebido R$ ${valorPago.toFixed(2)} de ${cli.nome}. Próximo vencimento atualizado para ${formatarDataBr(novoVencimento)}.`,
+        cor: '#10b981',
+        icone: 'fa-sack-dollar'
+    });
+}
+
+function enviarReciboPagamentoWhats(pagamentoId) {
+    const pagamentos = getDb('crm_pagamentos');
+    const p = pagamentos.find(x => x.id === pagamentoId);
+    if (!p) return;
+
+    const numWhats = (p.clienteTelefone || '').replace(/\D/g, '');
+    if (!numWhats) {
+        alert('Este cliente não possui telefone/WhatsApp cadastrado.');
+        return;
+    }
+
+    const msg = `✅ *RECIBO DE PAGAMENTO SEMANAL — FACILITA MOTO*\n\n` +
+                `👤 *Locatário:* ${p.clienteNome}\n` +
+                `🏍️ *Motocicleta:* ${p.motoModelo} (Placa: ${p.motoPlaca})\n` +
+                `💰 *Valor Pago:* R$ ${parseFloat(p.valor || 0).toFixed(2)}\n` +
+                `💳 *Forma de Pagamento:* ${p.formaPagamento}\n` +
+                `📅 *Data do Recebimento:* ${formatarDataBr(p.dataPagamento)}\n` +
+                `📆 *Próximo Vencimento:* ${formatarDataBr(p.novoVencimento)}\n\n` +
+                `Obrigado pela pontualidade! Bons negócios e pilote com segurança.`;
+
+    window.open(`https://wa.me/55${numWhats}?text=${encodeURIComponent(msg)}`, '_blank');
+}
+
+function deletarPagamentoHistorico(pagamentoId) {
+    if (!confirm('Deseja excluir este registro do histórico de pagamentos?')) return;
+    let pagamentos = getDb('crm_pagamentos');
+    pagamentos = pagamentos.filter(p => p.id !== pagamentoId);
+    localStorage.setItem('crm_pagamentos', JSON.stringify(pagamentos));
+    if (!window.isFirebaseSyncing && window.db) {
+        window.db.collection('crm_pagamentos').doc(pagamentoId).delete();
+    }
+    updateViews();
+}
+
+// =========================================================================
+// MODULE: CENTRAL DE NOTIFICAÇÕES (PAGAMENTOS, ÓLEO 1.000 KM & BLOQUEIO 1.100 KM)
+// =========================================================================
+function coletarListaNotificacoesAtivas() {
+    const notificacoes = [];
+    const motos = getDb('crm_motos');
+    const contratos = getDb('crm_contratos');
+    const clientes = getDb('crm_clientes');
+
+    // 1. Alertas de Violação da Bateria ou Bloqueio Automático por 1.100 km nas Motos
+    motos.forEach(m => {
+        const { cliente } = getCondutorContratoAtivo(m.id, contratos, clientes);
+        const nomeCond = cliente ? cliente.nome : 'No Pátio';
+        const oleo = getMotoOleoInfo(m);
+
+        if (m.rastreadorImei && m.rastreadorBateriaRemovida) {
+            notificacoes.push({
+                id: `bat_${m.id}`,
+                prioridade: 1,
+                tipo: 'rastreador',
+                cor: '#dc2626',
+                bg: '#fef2f2',
+                icone: 'fa-car-battery',
+                titulo: `🚨 CABO DA BATERIA REMOVIDO (${m.placa})`,
+                descricao: `${m.modelo} (${nomeCond}) teve a alimentação 12V cortada! Rastreador operando na bateria backup.`,
+                acaoTexto: 'Abrir Rastreador',
+                acaoFn: `abrirPainelRastreadorMoto('${m.id}')`
+            });
+        }
+
+        if (oleo.atingiuBloqueioKm || m.bloqueadoPorKmOleo) {
+            notificacoes.push({
+                id: `bloq_km_${m.id}`,
+                prioridade: 1,
+                tipo: 'bloqueio_km',
+                cor: '#991b1b',
+                bg: '#fef2f2',
+                icone: 'fa-lock',
+                titulo: `🛑 BLOQUEIO POR KM ATIVADO — 1.100 KM (${m.placa})`,
+                descricao: `${m.modelo} (${nomeCond}) rodou ${oleo.kmRodadosCiclo} km sem troca de óleo (${oleo.kmAtual} km). Bloqueio enviado ao rastreador para proteger o motor!`,
+                acaoTexto: 'Registrar Troca & Liberar',
+                acaoFn: `abrirModalTrocaOleo('${m.id}')`
+            });
+        } else if (oleo.status === 'vencido') {
+            notificacoes.push({
+                id: `oleo_venc_${m.id}`,
+                prioridade: 2,
+                tipo: 'oleo',
+                cor: '#dc2626',
+                bg: '#fff1f2',
+                icone: 'fa-oil-can',
+                titulo: `🛢️ TROCA DE ÓLEO VENCIDA (${m.placa})`,
+                descricao: `${m.modelo} (${nomeCond}) atingiu ${oleo.kmAtual} km (Troca: ${oleo.kmProximaTroca} km). Bloqueio automático em ${Math.max(0, oleo.kmRestantesBloqueio)} km (${oleo.kmBloqueioMotor} km)!`,
+                acaoTexto: 'Registrar Troca (+1.000 km)',
+                acaoFn: `abrirModalTrocaOleo('${m.id}')`
+            });
+        } else if (oleo.status === 'aviso') {
+            notificacoes.push({
+                id: `oleo_aviso_${m.id}`,
+                prioridade: 4,
+                tipo: 'oleo',
+                cor: '#d97706',
+                bg: '#fffbeb',
+                icone: 'fa-oil-can',
+                titulo: `⚠️ Troca de Óleo Próxima (${m.placa})`,
+                descricao: `Faltam ${oleo.kmRestantes} km para a revisão de 1.000 km da moto ${m.modelo} (${nomeCond}).`,
+                acaoTexto: 'Ver Hodômetro',
+                acaoFn: `navegarParaView('oleo')`
+            });
+        }
+    });
+
+    // 2. Alertas de Pagamentos Semanais (Atrasados, Vencendo Hoje ou em até 2 dias)
+    contratos.filter(c => c.status === 'ativo').forEach(c => {
+        const cli = clientes.find(x => x.id === c.clienteId) || { nome: 'Locatário' };
+        const moto = motos.find(x => x.id === c.motoId) || { modelo: 'Moto', placa: '-', valor: 0 };
+        const vInfo = getInfoVencimentoContrato(c);
+        const valSemanal = parseFloat(c.valorSemanal || (parseFloat(moto.valor || 0) * 7) || 0).toFixed(2);
+
+        if (vInfo.diffDays !== null) {
+            if (vInfo.diffDays < 0) {
+                notificacoes.push({
+                    id: `pag_atraso_${c.id}`,
+                    prioridade: 2,
+                    tipo: 'pagamento',
+                    cor: '#dc2626',
+                    bg: '#fef2f2',
+                    icone: 'fa-hand-holding-dollar',
+                    titulo: `💰 PAGAMENTO ATRASADO (${Math.abs(vInfo.diffDays)}d) — ${cli.nome}`,
+                    descricao: `Moto ${moto.modelo} (${moto.placa}) • Valor: R$ ${valSemanal} • Venceu em ${vInfo.texto}.`,
+                    acaoTexto: 'Dar Baixa / Cobrar',
+                    acaoFn: `abrirModalConfirmarPagamento('${c.id}')`
+                });
+            } else if (vInfo.diffDays === 0) {
+                notificacoes.push({
+                    id: `pag_hoje_${c.id}`,
+                    prioridade: 3,
+                    tipo: 'pagamento',
+                    cor: '#d97706',
+                    bg: '#fffbeb',
+                    icone: 'fa-clock',
+                    titulo: `⏰ ALUGUEL VENCE HOJE — ${cli.nome}`,
+                    descricao: `Moto ${moto.modelo} (${moto.placa}) • Valor semanal: R$ ${valSemanal} (${vInfo.texto}).`,
+                    acaoTexto: 'Confirmar Pagamento',
+                    acaoFn: `abrirModalConfirmarPagamento('${c.id}')`
+                });
+            } else if (vInfo.diffDays <= 2) {
+                notificacoes.push({
+                    id: `pag_prox_${c.id}`,
+                    prioridade: 5,
+                    tipo: 'pagamento',
+                    cor: '#2563eb',
+                    bg: '#eff6ff',
+                    icone: 'fa-calendar-day',
+                    titulo: `📅 Aluguel Vence em ${vInfo.diffDays} dia(s) — ${cli.nome}`,
+                    descricao: `Moto ${moto.modelo} (${moto.placa}) • R$ ${valSemanal} • Vencimento: ${vInfo.texto}.`,
+                    acaoTexto: 'Ver Pagamentos',
+                    acaoFn: `navegarParaView('pagamentos')`
+                });
+            }
+        }
+    });
+
+    return notificacoes.sort((a, b) => a.prioridade - b.prioridade);
+}
+
+function atualizarCentralNotificacoes() {
+    const lista = coletarListaNotificacoesAtivas();
+    const badgeEl = document.getElementById('topbar-notif-badge');
+    const containerEl = document.getElementById('lista-notificacoes-container');
+    const btnSino = document.getElementById('btn-sino-notificacoes');
+
+    if (badgeEl) {
+        if (lista.length > 0) {
+            badgeEl.style.display = 'inline-block';
+            badgeEl.innerText = lista.length;
+            const temCritico = lista.some(n => n.prioridade <= 2);
+            badgeEl.style.background = temCritico ? '#ef4444' : '#f59e0b';
+            if (btnSino) btnSino.style.borderColor = temCritico ? '#fca5a5' : '#fde68a';
+        } else {
+            badgeEl.style.display = 'none';
+            if (btnSino) btnSino.style.borderColor = 'var(--border)';
+        }
+    }
+
+    if (containerEl) {
+        if (lista.length === 0) {
+            containerEl.innerHTML = `
+                <div style="padding:28px 16px; text-align:center; color:var(--text-muted);">
+                    <i class="fa-solid fa-circle-check" style="font-size:2rem; color:#10b981; margin-bottom:8px; display:block;"></i>
+                    <strong>Tudo em dia na frota!</strong><br>
+                    <span style="font-size:0.8rem;">Nenhum pagamento atrasado, troca de óleo vencida ou bloqueio pendente.</span>
+                </div>
+            `;
+        } else {
+            containerEl.innerHTML = lista.map(n => `
+                <div style="padding:12px 14px; border-bottom:1px solid var(--border); background:${n.bg}; display:flex; gap:12px; align-items:flex-start;">
+                    <div style="width:34px; height:34px; border-radius:8px; background:${n.cor}; color:#fff; display:flex; align-items:center; justify-content:center; flex-shrink:0; font-size:0.95rem;">
+                        <i class="fa-solid ${n.icone}"></i>
+                    </div>
+                    <div style="flex:1; min-width:0;">
+                        <strong style="font-size:0.83rem; color:#0f172a; display:block; margin-bottom:2px;">${n.titulo}</strong>
+                        <p style="font-size:0.77rem; color:#334155; margin:0 0 8px 0; line-height:1.35;">${n.descricao}</p>
+                        <button type="button" class="btn btn-primary btn-sm" style="padding:3px 9px; font-size:0.72rem; background:${n.cor}; border:none;" onclick="document.getElementById('painel-notificacoes-dropdown').style.display='none'; ${n.acaoFn}">
+                            ${n.acaoTexto} <i class="fa-solid fa-arrow-right" style="font-size:0.65rem;"></i>
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+        }
+    }
+}
+
+function togglePainelNotificacoes(event) {
+    if (event) event.stopPropagation();
+    const dropdown = document.getElementById('painel-notificacoes-dropdown');
+    if (!dropdown) return;
+    const isVisible = dropdown.style.display === 'block';
+    dropdown.style.display = isVisible ? 'none' : 'block';
+    if (!isVisible) {
+        atualizarCentralNotificacoes();
+    }
+}
+
+document.addEventListener('click', function(e) {
+    const wrap = document.getElementById('topbar-notif-wrap');
+    const dropdown = document.getElementById('painel-notificacoes-dropdown');
+    if (dropdown && dropdown.style.display === 'block' && wrap && !wrap.contains(e.target)) {
+        dropdown.style.display = 'none';
+    }
+});
+
+function mostrarToastNotificacao({ titulo, mensagem, cor = '#0284c7', icone = 'fa-bell', duracao = 7000 }) {
+    const container = document.getElementById('toast-notif-container');
+    if (!container) return;
+
+    const toast = document.createElement('div');
+    toast.style.cssText = `background:#0f172a; color:#fff; border-left:5px solid ${cor}; border-radius:10px; padding:12px 14px; box-shadow:0 12px 28px rgba(15,23,42,0.35); display:flex; gap:10px; align-items:flex-start; pointer-events:auto; font-size:0.82rem; animation:fadeIn 0.25s ease;`;
+    toast.innerHTML = `
+        <i class="fa-solid ${icone}" style="color:${cor}; font-size:1.1rem; margin-top:2px;"></i>
+        <div style="flex:1;">
+            <strong style="display:block; font-size:0.85rem; margin-bottom:2px;">${titulo}</strong>
+            <span style="color:#cbd5e1; font-size:0.78rem; line-height:1.35; display:block;">${mensagem}</span>
+        </div>
+        <span style="cursor:pointer; color:#94a3b8; font-weight:700;" onclick="this.parentElement.remove()">&times;</span>
+    `;
+    container.appendChild(toast);
+
+    setTimeout(() => {
+        if (toast && toast.parentElement) toast.remove();
+    }, duracao);
+}
+
+function ativarNotificacoesNavegador() {
+    if (!('Notification' in window)) {
+        alert('Este navegador não suporta notificações nativas, mas os alertas visuais no painel já estão ativos!');
+        return;
+    }
+    Notification.requestPermission().then(perm => {
+        if (perm === 'granted') {
+            new Notification('🔔 FACILITA MOTO — Alertas Ativados!', {
+                body: 'Você receberá avisos de Pagamentos Semanais, Troca de Óleo (1.000 km) e Bloqueio Automático do Motor (1.100 km).'
+            });
+            mostrarToastNotificacao({
+                titulo: '🔔 Alertas Ativados no Aparelho',
+                mensagem: 'As notificações automáticas de pagamentos, óleo (1.000 km) e bloqueio (1.100 km) estão ativas.',
+                cor: '#10b981',
+                icone: 'fa-bell'
+            });
+        }
+    });
+}
+
+function dispararAlertasAutomaticosSessao() {
+    if (window._jaDisparouAlertasIniciais) return;
+    window._jaDisparouAlertasIniciais = true;
+
+    const lista = coletarListaNotificacoesAtivas();
+    const criticos = lista.filter(n => n.prioridade <= 3).slice(0, 3);
+    criticos.forEach((n, idx) => {
+        setTimeout(() => {
+            mostrarToastNotificacao({
+                titulo: n.titulo,
+                mensagem: n.descricao,
+                cor: n.cor,
+                icone: n.icone,
+                duracao: 8500
+            });
+        }, 900 + (idx * 1200));
+    });
+}
+
 // ==========================================
 // CENTRAL UPDATE SYSTEM
 // ==========================================
@@ -3911,18 +4809,24 @@ function updateViews() {
     renderPipeline();
     renderFrota();
     renderOleoView();
+    renderPagamentosView();
     renderContratos();
     renderUsuarios();
     populateContratoSelects();
+    atualizarCentralNotificacoes();
 }
 
 function iniciarMonitoramentoAutonomoFrotaIot() {
     const verificarFrota = () => {
         const motos = getDb('crm_motos');
+        motos.forEach(m => {
+            verificarEAplicarBloqueioAutomaticoPorKm(m, true);
+        });
+
         const motoIpu = motos.find(m => (m.placa || '').toUpperCase().replace(/[^A-Z0-9]/g, '') === 'IPU2I57' || m.rastreadorImei === '00018E1B');
         if (!motoIpu) return;
 
-        // Consulta pacote mais recente na API de telemetria M2M
+        // Consulta pacote mais recente na API de telemetria M2M / App Xtrack
         sincronizarTelemetriaAutonomaMoto(motoIpu.id, true);
 
         // Se a moto IPU2I57 ainda não possui coordenada salva, tenta localizar de forma autônoma pelo endereço do cliente ou GPS
@@ -3964,6 +4868,7 @@ document.addEventListener('DOMContentLoaded', () => {
     atualizarPreviewContratoGov();
     updateViews();
     iniciarMonitoramentoAutonomoFrotaIot();
+    setTimeout(dispararAlertasAutomaticosSessao, 1500);
 });
 
 updateViews();
