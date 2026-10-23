@@ -6250,6 +6250,8 @@ function updateViews() {
     renderPagamentosView();
     renderContratos();
     renderUsuarios();
+    renderOficinas();
+    renderHistoricoOficinas();
     populateContratoSelects();
     atualizarCentralNotificacoes();
 }
@@ -6523,3 +6525,265 @@ function iniciarMonitoramentoEmergenciasWhatsApp() {
 }
 
 iniciarMonitoramentoEmergenciasWhatsApp();
+
+
+// ==========================================
+// MODULE: PORTAL DA OFICINA PARCEIRA CREDENCIADA
+// ==========================================
+function renderOficinas() {
+    const admins = getDb('crm_admins');
+    const query = document.getElementById('search-oficina') ? document.getElementById('search-oficina').value.toLowerCase().trim() : '';
+    const oficinas = admins.filter(a => a.role === 'oficina' && (
+        (a.nome || '').toLowerCase().includes(query) ||
+        (a.responsavel || '').toLowerCase().includes(query) ||
+        (a.email || '').toLowerCase().includes(query) ||
+        (a.telefone || '').toLowerCase().includes(query)
+    ));
+
+    const historico = getDb('crm_historico_oficina');
+    const motosDesbloqueadas = historico.filter(h => h.desbloqueada).length;
+
+    // Estatísticas
+    const elCadastradas = document.getElementById('stat-oficinas-cadastradas');
+    if (elCadastradas) elCadastradas.innerText = admins.filter(a => a.role === 'oficina').length;
+
+    const elTrocas = document.getElementById('stat-oficinas-trocas-realizadas');
+    if (elTrocas) elTrocas.innerText = historico.length;
+
+    const elDesbloqueadas = document.getElementById('stat-oficinas-motos-desbloqueadas');
+    if (elDesbloqueadas) elDesbloqueadas.innerText = motosDesbloqueadas;
+
+    const tbody = document.getElementById('table-oficinas');
+    if (!tbody) return;
+    tbody.innerHTML = '';
+
+    if (oficinas.length === 0) {
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="7" style="text-align:center; padding:32px 16px; color:var(--text-muted);">
+                    <i class="fa-solid fa-warehouse" style="font-size:2.2rem; color:#cbd5e1; display:block; margin-bottom:10px;"></i>
+                    Nenhuma oficina credenciada cadastrada ${query ? 'com esse termo de busca' : 'no momento'}.<br>
+                    <button type="button" class="btn btn-primary btn-sm" onclick="abrirModalNovaOficina()" style="margin-top:12px; background:#0284c7; border:none; padding:8px 16px;">
+                        <i class="fa-solid fa-plus"></i> Cadastrar Primeira Oficina
+                    </button>
+                </td>
+            </tr>
+        `;
+        return;
+    }
+
+    oficinas.forEach(ofc => {
+        const tr = document.createElement('tr');
+        const ofcImg = ofc.foto || `https://ui-avatars.com/api/?name=${encodeURIComponent(ofc.nome)}&background=0284c7&color=fff&bold=true`;
+        const telLimpo = (ofc.telefone || '').replace(/\D/g, '');
+        const linkOficina = 'https://facilitamoto.com.br/oficina.html';
+
+        tr.innerHTML = `
+            <td>
+                <div style="display:flex; align-items:center; gap:10px;">
+                    <img src="${ofcImg}" style="width:38px; height:38px; border-radius:8px; object-fit:cover; border:1px solid #cbd5e1;">
+                    <span style="font-size:0.75rem; font-weight:700; color:#0284c7;">#${ofc.id.substring(0, 4).toUpperCase()}</span>
+                </div>
+            </td>
+            <td>
+                <strong style="color:var(--text-main); font-size:0.95rem;">${ofc.nome}</strong>
+                ${ofc.endereco ? `<br><small style="color:var(--text-muted); font-size:0.76rem;"><i class="fa-solid fa-location-dot"></i> ${ofc.endereco}</small>` : ''}
+            </td>
+            <td>
+                <span style="display:inline-flex; align-items:center; gap:6px; font-weight:600; color:#334155;">
+                    <i class="fa-solid fa-user-gear" style="color:#0284c7;"></i> ${ofc.responsavel || ofc.nome}
+                </span>
+            </td>
+            <td>
+                <code style="background:#f1f5f9; padding:3px 8px; border-radius:6px; font-size:0.85rem; color:#0f172a; border:1px solid #e2e8f0;">${ofc.email}</code>
+            </td>
+            <td>
+                <span style="font-family:monospace; letter-spacing:2px; font-weight:bold;">••••••</span>
+                <button type="button" class="btn btn-secondary btn-sm" onclick="alert('Senha da Oficina ${ofc.nome.replace(/'/g, "\\\'")} :\\n\\n' + '${ofc.senha}')" title="Visualizar Senha" style="padding:2px 7px; margin-left:4px;">
+                    <i class="fa-solid fa-eye"></i>
+                </button>
+            </td>
+            <td>
+                ${telLimpo ? `
+                    <a href="https://wa.me/55${telLimpo}?text=Ol%C3%A1%2C%20aqui%20%C3%A9%20da%20Facilita%20Moto!%20Seu%20acesso%20ao%20portal%20da%20oficina%20foi%20criado%3A%0A%0A%F0%9F%94%97%20Link%3A%20${encodeURIComponent(linkOficina)}%0A%F0%9F%93%A7%20Login%3A%20${encodeURIComponent(ofc.email)}%0A%F0%9F%94%91%20Senha%3A%20${encodeURIComponent(ofc.senha)}" target="_blank" class="btn btn-secondary btn-sm" style="background:#25D366; color:#fff; border:none; display:inline-flex; align-items:center; gap:5px; font-size:0.78rem;" title="Enviar dados de acesso para a oficina no WhatsApp">
+                        <i class="fa-brands fa-whatsapp"></i> ${ofc.telefone}
+                    </a>
+                ` : `<span style="color:var(--text-muted); font-size:0.8rem;">Não informado</span>`}
+            </td>
+            <td>
+                <div style="display:flex; align-items:center; gap:6px;">
+                    <button type="button" class="btn btn-secondary btn-sm" onclick="abrirEdicaoOficina('${ofc.id}')" title="Editar dados da oficina">
+                        <i class="fa-solid fa-pen"></i>
+                    </button>
+                    <button type="button" class="btn btn-danger btn-sm" onclick="deletarOficina('${ofc.id}')" title="Excluir acesso da oficina">
+                        <i class="fa-solid fa-trash"></i>
+                    </button>
+                </div>
+            </td>
+        `;
+        tbody.appendChild(tr);
+    });
+}
+
+function abrirModalNovaOficina() {
+    const form = document.getElementById('form-oficina');
+    if (form) form.reset();
+    document.getElementById('ofc-id').value = '';
+    document.getElementById('modal-oficina-title').innerHTML = '<i class="fa-solid fa-wrench" style="color:#0284c7;"></i> Cadastrar Oficina Parceira';
+    openModal('modal-oficina');
+}
+
+function abrirEdicaoOficina(id) {
+    const admin = getDb('crm_admins').find(a => a.id === id);
+    if (!admin) return;
+
+    document.getElementById('ofc-id').value = admin.id;
+    document.getElementById('ofc-nome').value = admin.nome || '';
+    document.getElementById('ofc-responsavel').value = admin.responsavel || admin.nome || '';
+    document.getElementById('ofc-email').value = admin.email || '';
+    document.getElementById('ofc-senha').value = admin.senha || '';
+    document.getElementById('ofc-telefone').value = admin.telefone || '';
+    document.getElementById('ofc-endereco').value = admin.endereco || '';
+
+    document.getElementById('modal-oficina-title').innerHTML = '<i class="fa-solid fa-pen" style="color:#0284c7;"></i> Editar Oficina Parceira';
+    openModal('modal-oficina');
+}
+
+document.getElementById('form-oficina')?.addEventListener('submit', function(e) {
+    e.preventDefault();
+    const id = document.getElementById('ofc-id').value;
+    const nome = document.getElementById('ofc-nome').value.trim();
+    const responsavel = document.getElementById('ofc-responsavel').value.trim();
+    const email = document.getElementById('ofc-email').value.trim().toLowerCase();
+    const senha = document.getElementById('ofc-senha').value.trim();
+    const telefone = document.getElementById('ofc-telefone').value.trim();
+    const endereco = document.getElementById('ofc-endereco').value.trim();
+
+    let admins = getDb('crm_admins');
+
+    if (id) {
+        admins = admins.map(a => a.id === id ? {
+            ...a,
+            nome,
+            responsavel,
+            email,
+            senha,
+            telefone,
+            endereco,
+            role: 'oficina'
+        } : a);
+    } else {
+        if (admins.some(a => (a.email || '').toLowerCase() === email)) {
+            alert('Este e-mail já está sendo utilizado por outro usuário ou oficina!');
+            return;
+        }
+        const novaOficina = {
+            id: generateId(),
+            nome,
+            responsavel,
+            email,
+            senha,
+            telefone,
+            endereco,
+            role: 'oficina',
+            criadoEm: new Date().toISOString()
+        };
+        admins.push(novaOficina);
+        if (!window.isFirebaseSyncing && window.db) {
+            window.db.collection('crm_admins').doc(novaOficina.id).set(novaOficina);
+        }
+    }
+
+    saveDb('crm_admins', admins);
+    closeModal('modal-oficina');
+    renderOficinas();
+    renderUsuarios();
+    alert(`Oficina "${nome}" salva com sucesso! Os dados de acesso já podem ser utilizados em facilitamoto.com.br/oficina.html`);
+});
+
+function deletarOficina(id) {
+    let admins = getDb('crm_admins');
+    const ofc = admins.find(a => a.id === id);
+    if (!ofc) return;
+
+    if (!confirm(`Tem certeza que deseja excluir o acesso da oficina "${ofc.nome}"? Ela não conseguirá mais entrar no portal.`)) return;
+
+    admins = admins.filter(a => a.id !== id);
+    saveDb('crm_admins', admins);
+    if (!window.isFirebaseSyncing && window.db) {
+        window.db.collection('crm_admins').doc(id).delete();
+    }
+    renderOficinas();
+    renderUsuarios();
+}
+
+function renderHistoricoOficinas() {
+    const tbody = document.getElementById('table-oficinas-historico');
+    if (!tbody) return;
+    const historico = getDb('crm_historico_oficina');
+
+    if (historico.length === 0) {
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="7" style="text-align:center; padding:28px 16px; color:var(--text-muted);">
+                    <i class="fa-solid fa-clipboard-list" style="font-size:2rem; color:#cbd5e1; display:block; margin-bottom:8px;"></i>
+                    Nenhuma troca de óleo realizada por oficina parceira até o momento.
+                </td>
+            </tr>
+        `;
+        return;
+    }
+
+    tbody.innerHTML = '';
+    [...historico].reverse().forEach(h => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td>
+                <strong>${h.data || 'Hoje'}</strong><br>
+                <small style="color:var(--text-muted);">${h.hora || ''}</small>
+            </td>
+            <td>
+                <strong>${h.oficinaNome || 'Oficina Credenciada'}</strong><br>
+                <small style="color:var(--text-muted);"><i class="fa-solid fa-user-gear"></i> ${h.mecanico || 'Mecânico'}</small>
+            </td>
+            <td>
+                <strong>${h.motoModelo || 'Moto'}</strong><br>
+                <span class="badge badge-disponivel" style="font-size:0.75rem;">${h.motoPlaca || '---'}</span>
+            </td>
+            <td><strong>${h.kmEntrada || 0} km</strong></td>
+            <td><strong style="color:#0284c7;">${h.kmProximaTroca || 0} km</strong></td>
+            <td><span class="badge" style="background:#fef3c7; color:#92400e; font-weight:700;">${h.oleo || 'Mobil 20W-50'}</span></td>
+            <td>
+                ${h.desbloqueada ? `
+                    <span class="badge" style="background:#d1fae5; color:#065f46;"><i class="fa-solid fa-satellite-dish"></i> Desbloqueada Imediato</span>
+                ` : `
+                    <span class="badge" style="background:#e0f2fe; color:#0369a1;"><i class="fa-solid fa-check"></i> Ciclo Atualizado</span>
+                `}
+            </td>
+        `;
+        tbody.appendChild(tr);
+    });
+}
+
+function limparHistoricoOficinas() {
+    if (!confirm('Deseja limpar todo o histórico de revisões das oficinas credenciadas?')) return;
+    localStorage.removeItem('crm_historico_oficina');
+    if (!window.isFirebaseSyncing && window.db) {
+        window.db.collection('crm_historico_oficina').get().then(snap => {
+            snap.forEach(doc => doc.ref.delete());
+        });
+    }
+    renderHistoricoOficinas();
+    renderOficinas();
+}
+
+function copiarLinkPortalOficina() {
+    const link = 'https://facilitamoto.com.br/oficina.html';
+    if (navigator.clipboard) {
+        navigator.clipboard.writeText(link).then(() => {
+            alert('Link do Portal da Oficina copiado para a área de transferência:\n\n' + link + '\n\nEnvie este link para sua oficina parceira!');
+        });
+    } else {
+        prompt('Copie o link do Portal da Oficina:', link);
+    }
+}
