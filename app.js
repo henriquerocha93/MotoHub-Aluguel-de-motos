@@ -6269,3 +6269,139 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 updateViews();
+
+// ============================================================================
+// SISTEMA DE ALERTA SONORO DE EMERGÊNCIA (ROUBO / FURTO) — FACILITA MOTO
+// Escuta o robô do WhatsApp na nuvem e dispara sirene contínua e modal de ação
+// ============================================================================
+let _alarmeEmergenciaInterval = null;
+let _alarmeEmergenciaAtivo = false;
+const _alertasProcessadosIds = new Set();
+
+function tocarSirenePolicial() {
+    try {
+        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+        if (!AudioCtx) return;
+        const ctx = new AudioCtx();
+        if (ctx.state === 'suspended') ctx.resume();
+
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+
+        osc.type = 'sawtooth';
+        const now = ctx.currentTime;
+        osc.frequency.setValueAtTime(500, now);
+        osc.frequency.linearRampToValueAtTime(1100, now + 0.35);
+        osc.frequency.linearRampToValueAtTime(500, now + 0.7);
+        osc.frequency.linearRampToValueAtTime(1100, now + 1.05);
+        osc.frequency.linearRampToValueAtTime(500, now + 1.4);
+
+        gain.gain.setValueAtTime(0.7, now);
+        gain.gain.linearRampToValueAtTime(0.7, now + 1.3);
+        gain.gain.linearRampToValueAtTime(0, now + 1.5);
+
+        osc.start(now);
+        osc.stop(now + 1.5);
+    } catch (e) {
+        console.warn('Erro ao reproduzir áudio Web Audio:', e);
+    }
+}
+
+function iniciarSireneEmergencia(alertData) {
+    if (_alarmeEmergenciaAtivo) return;
+    _alarmeEmergenciaAtivo = true;
+
+    tocarSirenePolicial();
+    if (_alarmeEmergenciaInterval) clearInterval(_alarmeEmergenciaInterval);
+    _alarmeEmergenciaInterval = setInterval(tocarSirenePolicial, 1800);
+
+    exibirModalEmergenciaRoubo(alertData);
+}
+
+function silenciarSireneEmergencia(alertaId) {
+    _alarmeEmergenciaAtivo = false;
+    if (_alarmeEmergenciaInterval) {
+        clearInterval(_alarmeEmergenciaInterval);
+        _alarmeEmergenciaInterval = null;
+    }
+    const modal = document.getElementById('modal-alerta-roubo-furto');
+    if (modal) modal.remove();
+
+    try {
+        fetch('https://facilita-whatsapp-bot.onrender.com/api/emergencies/dismiss', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id: alertaId || '' })
+        }).catch(() => {});
+    } catch(e) {}
+}
+
+function exibirModalEmergenciaRoubo(alertData) {
+    let modal = document.getElementById('modal-alerta-roubo-furto');
+    if (!modal) {
+        modal = document.createElement('div');
+        modal.id = 'modal-alerta-roubo-furto';
+        document.body.appendChild(modal);
+    }
+
+    const numLimpo = String(alertData.clienteTelefone || '').replace(/\D/g, '');
+    const waLink = `https://wa.me/${numLimpo}`;
+
+    modal.innerHTML = `
+        <div style="position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(15,23,42,0.85); backdrop-filter:blur(6px); display:flex; align-items:center; justify-content:center; z-index:999999;">
+            <div style="background:#1e293b; border:3px solid #ef4444; box-shadow:0 0 40px rgba(239,68,68,0.7); border-radius:18px; max-width:520px; width:92%; padding:28px 24px; text-align:center; color:#fff;">
+                <div style="width:72px; height:72px; background:#7f1d1d; border:2px solid #ef4444; border-radius:50%; display:flex; align-items:center; justify-content:center; margin:0 auto 16px; font-size:2.2rem; color:#fca5a5;">
+                    <i class="fa-solid fa-triangle-exclamation"></i>
+                </div>
+                <h2 style="color:#f87171; font-size:1.4rem; font-weight:900; margin-bottom:6px; text-transform:uppercase; letter-spacing:1px;">
+                    🚨 ALERTA CRÍTICO: ROUBO / FURTO!
+                </h2>
+                <p style="color:#cbd5e1; font-size:0.9rem; margin-bottom:18px;">
+                    Um condutor acabou de acionar o canal de emergência pelo WhatsApp da Facilita Moto!
+                </p>
+
+                <div style="background:#0f172a; border:1px solid #334155; border-radius:12px; padding:16px; text-align:left; margin-bottom:20px; font-size:0.88rem; line-height:1.6;">
+                    <div style="margin-bottom:6px;"><strong>👤 Cliente:</strong> <span style="color:#38bdf8;">${alertData.clienteNome || 'Cliente'}</span></div>
+                    <div style="margin-bottom:6px;"><strong>📱 Telefone:</strong> <span style="color:#34d399;">${alertData.clienteTelefone || 'WhatsApp'}</span></div>
+                    <div style="margin-bottom:6px;"><strong>⏰ Horário:</strong> <span style="color:#fbbf24;">${alertData.hora || 'Agora'}</span></div>
+                    <div><strong>💬 Mensagem:</strong> <span style="color:#f1f5f9;">"${alertData.mensagem || 'Roubo ou Furto'}"</span></div>
+                </div>
+
+                <div style="display:flex; flex-direction:column; gap:10px;">
+                    <a href="${waLink}" target="_blank" class="btn" style="background:#16a34a; color:#fff; padding:14px; border-radius:10px; font-weight:800; font-size:1rem; text-decoration:none; display:flex; align-items:center; justify-content:center; gap:8px;">
+                        <i class="fa-brands fa-whatsapp" style="font-size:1.3rem;"></i> FALAR COM O CLIENTE AGORA
+                    </a>
+                    <button type="button" class="btn" onclick="navegarParaView('rastreamento'); silenciarSireneEmergencia('${alertData.id}');" style="background:#2563eb; color:#fff; padding:12px; border-radius:10px; font-weight:700; font-size:0.92rem; border:none; cursor:pointer;">
+                        <i class="fa-solid fa-satellite-dish"></i> ABRIR RASTREADOR XTRACK / BLOQUEIO
+                    </button>
+                    <button type="button" class="btn" onclick="silenciarSireneEmergencia('${alertData.id}')" style="background:#334155; color:#94a3b8; padding:10px; border-radius:10px; font-weight:600; font-size:0.85rem; border:none; cursor:pointer;">
+                        <i class="fa-solid fa-volume-xmark"></i> Silenciar Alarme Sonoro
+                    </button>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+function iniciarMonitoramentoEmergenciasWhatsApp() {
+    setInterval(async () => {
+        try {
+            const res = await fetch('https://facilita-whatsapp-bot.onrender.com/api/emergencies');
+            if (!res.ok) return;
+            const data = await res.json();
+            const alerts = data.alerts || [];
+
+            if (alerts.length > 0) {
+                const latest = alerts[0];
+                if (!_alertasProcessadosIds.has(latest.id)) {
+                    _alertasProcessadosIds.add(latest.id);
+                    iniciarSireneEmergencia(latest);
+                }
+            }
+        } catch (e) {}
+    }, 4000);
+}
+
+iniciarMonitoramentoEmergenciasWhatsApp();
