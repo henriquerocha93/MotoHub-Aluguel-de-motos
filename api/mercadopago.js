@@ -188,7 +188,7 @@ export default async function handler(req, res) {
             });
         }
 
-        // 2.3. Criar Cobrança PIX Semanal (API Mercado Pago /v1/payments + Fallback BRCode PIX)
+        // 2.3. Criar Cobrança PIX Semanal Exclusivamente via API Oficial do Mercado Pago
         if (action === 'create_pix' || !action) {
             const {
                 contratoId,
@@ -198,127 +198,106 @@ export default async function handler(req, res) {
                 motoPlaca,
                 motoModelo,
                 valor,
-                vencimento,
-                chavePix,
-                beneficiario
+                vencimento
             } = body;
 
             const valorNum = parseFloat(valor) || 350.00;
             const descricaoCob = `Aluguel Semanal Moto ${motoModelo || ''} (${motoPlaca || ''}) - Venc: ${vencimento || 'Hoje'}`.trim();
 
-            // Tenta criar na API Oficial do Mercado Pago se o Access Token estiver configurado
-            if (token && token.length > 15) {
-                try {
-                    const cpfLimpo = String(clienteCpf || '').replace(/\D/g, '');
-                    const partesNome = String(clienteNome || 'Locatario Facilita Moto').trim().split(' ');
-                    const firstName = partesNome[0] || 'Cliente';
-                    const lastName = partesNome.slice(1).join(' ') || 'Locatario';
-                    const emailPagador = (clienteEmail && clienteEmail.includes('@'))
-                        ? clienteEmail.trim()
-                        : `locatario.${contratoId || 'moto'}@facilitamoto.com.br`;
-
-                    const mpPayload = {
-                        transaction_amount: Number(valorNum.toFixed(2)),
-                        description: descricaoCob,
-                        payment_method_id: 'pix',
-                        external_reference: String(contratoId || ''),
-                        payer: {
-                            email: emailPagador,
-                            first_name: firstName,
-                            last_name: lastName,
-                            identification: cpfLimpo.length === 11 ? {
-                                type: 'CPF',
-                                number: cpfLimpo
-                            } : undefined
-                        }
-                    };
-
-                    const idempotencyKey = `facilita-${contratoId || 'avulso'}-${vencimento || Date.now()}-${Math.floor(Date.now() / 60000)}`;
-                    const mpResp = await fetch('https://api.mercadopago.com/v1/payments', {
-                        method: 'POST',
-                        headers: {
-                            'Authorization': `Bearer ${token}`,
-                            'Content-Type': 'application/json',
-                            'X-Idempotency-Key': idempotencyKey
-                        },
-                        body: JSON.stringify(mpPayload)
-                    });
-
-                    const mpData = await mpResp.json();
-                    if (mpResp.ok && mpData && mpData.id) {
-                        const txData = mpData.point_of_interaction?.transaction_data || {};
-                        const copiaECola = txData.qr_code || '';
-                        const qrCodeBase64 = txData.qr_code_base64 ? `data:image/png;base64,${txData.qr_code_base64}` : '';
-                        const ticketUrl = txData.ticket_url || '';
-
-                        const chargeObj = {
-                            paymentId: String(mpData.id),
-                            contratoId: String(contratoId || ''),
-                            clienteNome: clienteNome || '',
-                            motoPlaca: motoPlaca || '',
-                            motoModelo: motoModelo || '',
-                            valor: Number(valorNum.toFixed(2)),
-                            vencimento: vencimento || '',
-                            copiaECola,
-                            qrCodeUrl: qrCodeBase64 || `https://api.qrserver.com/v1/create-qr-code/?size=280x280&data=${encodeURIComponent(copiaECola)}`,
-                            ticketUrl,
-                            status: mpData.status || 'pending',
-                            provider: 'mercadopago_official',
-                            createdAt: new Date().toISOString()
-                        };
-
-                        if (contratoId) mpStore[String(contratoId)] = chargeObj;
-                        mpStore[String(mpData.id)] = chargeObj;
-
-                        return res.status(200).json({
-                            ok: true,
-                            provider: 'mercadopago_official',
-                            charge: chargeObj
-                        });
-                    }
-                } catch (err) {
-                    // Prossegue para gerador PIX BRCode EMV caso o token seja inválido ou sem conexão
-                }
+            // Validação do Access Token Oficial do Mercado Pago
+            if (!token || token.trim().length < 15) {
+                return res.status(200).json({
+                    ok: false,
+                    needsToken: true,
+                    error: 'Access Token do Mercado Pago não configurado. Para que o PIX seja emitido no Mercado Pago (e NÃO no Itaú) e a moto seja liberada automaticamente pelo sistema, informe o seu Access Token de Produção do Mercado Pago (APP_USR-...).',
+                    instructions: 'Acesse https://www.mercadopago.com.br/developers/panel/app -> Suas Aplicações -> Credenciais de Produção -> Copie o Access Token (APP_USR-...).'
+                });
             }
 
-            // Fallback Inteligente: Gera Payload PIX EMV (BRCode Copia e Cola) + QR Code compatível com Mercado Pago e qualquer banco
-            const txid = `FM${String(motoPlaca || '').replace(/[^A-Z0-9]/gi, '')}${String(vencimento || '').replace(/\D/g, '')}`.substring(0, 25);
-            const copiaEColaFallback = gerarPayloadPixBrCode({
-                chavePix: chavePix || '85221619091',
-                nomeBeneficiario: beneficiario || 'HENRIQUE ROCHA CLAVIJO',
-                cidade: 'PORTO ALEGRE',
-                valor: valorNum,
-                txid,
-                descricao: `ALUGUEL ${motoPlaca || 'MOTO'}`
-            });
+            try {
+                const cpfLimpo = String(clienteCpf || '').replace(/\D/g, '');
+                const partesNome = String(clienteNome || 'Locatario Facilita Moto').trim().split(' ');
+                const firstName = partesNome[0] || 'Cliente';
+                const lastName = partesNome.slice(1).join(' ') || 'Locatario';
+                const emailPagador = (clienteEmail && clienteEmail.includes('@'))
+                    ? clienteEmail.trim()
+                    : `locatario.${String(contratoId || 'moto').toLowerCase()}@facilitamoto.com.br`;
 
-            const paymentIdGerado = `MP-${Date.now().toString().slice(-8)}`;
-            const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=280x280&data=${encodeURIComponent(copiaEColaFallback)}`;
+                const mpPayload = {
+                    transaction_amount: Number(valorNum.toFixed(2)),
+                    description: descricaoCob,
+                    payment_method_id: 'pix',
+                    external_reference: String(contratoId || ''),
+                    notification_url: 'https://moto-hub-aluguel-de-motos-jhnu.vercel.app/api/mercadopago',
+                    payer: {
+                        email: emailPagador,
+                        first_name: firstName,
+                        last_name: lastName,
+                        identification: cpfLimpo.length === 11 ? {
+                            type: 'CPF',
+                            number: cpfLimpo
+                        } : undefined
+                    }
+                };
 
-            const chargeFallback = {
-                paymentId: paymentIdGerado,
-                contratoId: String(contratoId || ''),
-                clienteNome: clienteNome || '',
-                motoPlaca: motoPlaca || '',
-                motoModelo: motoModelo || '',
-                valor: Number(valorNum.toFixed(2)),
-                vencimento: vencimento || '',
-                copiaECola: copiaEColaFallback,
-                qrCodeUrl,
-                ticketUrl: '',
-                status: 'pending',
-                provider: 'mercadopago_pix_brcode',
-                createdAt: new Date().toISOString()
-            };
+                const idempotencyKey = `facilita-${contratoId || 'avulso'}-${vencimento || Date.now()}-${Math.floor(Date.now() / 60000)}`;
+                const mpResp = await fetch('https://api.mercadopago.com/v1/payments', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token.trim()}`,
+                        'Content-Type': 'application/json',
+                        'X-Idempotency-Key': idempotencyKey
+                    },
+                    body: JSON.stringify(mpPayload)
+                });
 
-            if (contratoId) mpStore[String(contratoId)] = chargeFallback;
-            mpStore[paymentIdGerado] = chargeFallback;
+                const mpData = await mpResp.json();
+                if (mpResp.ok && mpData && mpData.id) {
+                    const txData = mpData.point_of_interaction?.transaction_data || {};
+                    const copiaECola = txData.qr_code || '';
+                    const qrCodeBase64 = txData.qr_code_base64 ? `data:image/png;base64,${txData.qr_code_base64}` : '';
+                    const ticketUrl = txData.ticket_url || '';
 
-            return res.status(200).json({
-                ok: true,
-                provider: 'mercadopago_pix_brcode',
-                charge: chargeFallback
-            });
+                    const chargeObj = {
+                        paymentId: String(mpData.id),
+                        contratoId: String(contratoId || ''),
+                        clienteNome: clienteNome || '',
+                        motoPlaca: motoPlaca || '',
+                        motoModelo: motoModelo || '',
+                        valor: Number(valorNum.toFixed(2)),
+                        vencimento: vencimento || '',
+                        copiaECola,
+                        qrCodeUrl: qrCodeBase64 || `https://api.qrserver.com/v1/create-qr-code/?size=280x280&data=${encodeURIComponent(copiaECola)}`,
+                        ticketUrl,
+                        status: mpData.status || 'pending',
+                        statusDetail: mpData.status_detail || '',
+                        provider: 'mercadopago_official',
+                        createdAt: new Date().toISOString()
+                    };
+
+                    if (contratoId) mpStore[String(contratoId)] = chargeObj;
+                    mpStore[String(mpData.id)] = chargeObj;
+
+                    return res.status(200).json({
+                        ok: true,
+                        provider: 'mercadopago_official',
+                        charge: chargeObj
+                    });
+                } else {
+                    const errMsg = mpData?.message || mpData?.error || 'Erro ao comunicar com a API do Mercado Pago.';
+                    const causeDetail = mpData?.cause?.[0]?.description ? ` (${mpData.cause[0].description})` : '';
+                    return res.status(200).json({
+                        ok: false,
+                        error: `Falha na API Oficial do Mercado Pago: ${errMsg}${causeDetail}`,
+                        details: mpData
+                    });
+                }
+            } catch (err) {
+                return res.status(500).json({
+                    ok: false,
+                    error: `Erro ao conectar na API do Mercado Pago: ${err.message}`
+                });
+            }
         }
     }
 

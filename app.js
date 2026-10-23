@@ -131,6 +131,29 @@ function getMercadoPagoConfig() {
     }
 }
 
+function getWhatsAppConfig() {
+    const def = {
+        provider: 'meta_cloud',
+        metaToken: '',
+        metaPhoneNumberId: '',
+        metaWabaId: '',
+        metaTemplateName: 'cobranca_aluguel_moto',
+        gatewayUrl: '',
+        gatewayToken: '',
+        autoDisparo08h: true,
+        autoDisparo18h: true,
+        autoDisparoDesbloqueio: true,
+        autoDisparoOleo: true
+    };
+    try {
+        const saved = JSON.parse(localStorage.getItem('crm_whatsapp_config'));
+        if (!saved) return def;
+        return Object.assign({}, def, saved);
+    } catch (e) {
+        return def;
+    }
+}
+
 function generateId() {
     return Math.random().toString(36).substr(2, 9);
 }
@@ -329,6 +352,21 @@ function openModal(id) {
         if (document.getElementById('cfg-mp-auto-notif-08h')) document.getElementById('cfg-mp-auto-notif-08h').checked = cfgMp.autoNotificar08h !== false;
         if (document.getElementById('cfg-mp-auto-bloqueio-18h')) document.getElementById('cfg-mp-auto-bloqueio-18h').checked = cfgMp.autoBloquear18h !== false;
         if (document.getElementById('cfg-mp-auto-desbloqueio-pix')) document.getElementById('cfg-mp-auto-desbloqueio-pix').checked = cfgMp.autoDesbloquearPix !== false;
+    }
+    if (id === 'modal-config-whatsapp') {
+        const cfgWa = getWhatsAppConfig();
+        if (document.getElementById('cfg-wa-provider')) document.getElementById('cfg-wa-provider').value = cfgWa.provider || 'meta_cloud';
+        if (document.getElementById('cfg-wa-phone-id')) document.getElementById('cfg-wa-phone-id').value = cfgWa.metaPhoneNumberId || '';
+        if (document.getElementById('cfg-wa-waba-id')) document.getElementById('cfg-wa-waba-id').value = cfgWa.metaWabaId || '';
+        if (document.getElementById('cfg-wa-meta-token')) document.getElementById('cfg-wa-meta-token').value = cfgWa.metaToken || '';
+        if (document.getElementById('cfg-wa-gateway-url')) document.getElementById('cfg-wa-gateway-url').value = cfgWa.gatewayUrl || '';
+        if (document.getElementById('cfg-wa-gateway-token')) document.getElementById('cfg-wa-gateway-token').value = cfgWa.gatewayToken || '';
+        if (document.getElementById('cfg-wa-auto-08h')) document.getElementById('cfg-wa-auto-08h').checked = cfgWa.autoDisparo08h !== false;
+        if (document.getElementById('cfg-wa-auto-18h')) document.getElementById('cfg-wa-auto-18h').checked = cfgWa.autoDisparo18h !== false;
+        if (document.getElementById('cfg-wa-auto-desbloqueio')) document.getElementById('cfg-wa-auto-desbloqueio').checked = cfgWa.autoDisparoDesbloqueio !== false;
+        if (document.getElementById('cfg-wa-auto-oleo')) document.getElementById('cfg-wa-auto-oleo').checked = cfgWa.autoDisparoOleo !== false;
+        alternarCamposProviderWhatsApp();
+        carregarLogsWhatsAppOficial();
     }
 }
 
@@ -4368,6 +4406,7 @@ function garantirCobrancaPixLocalNoContrato(contrato, cliente, moto) {
     if (!contrato) return null;
     const valSemanal = parseFloat(contrato.valorSemanal || (parseFloat(moto?.valor || 0) * 7) || 350).toFixed(2);
     const vencRef = contrato.dataProxVenc || new Date().toISOString().split('T')[0];
+    const cfgMp = getMercadoPagoConfig();
 
     if (contrato.pixCobrancaAtual &&
         contrato.pixCobrancaAtual.vencimento === vencRef &&
@@ -4393,6 +4432,12 @@ function garantirCobrancaPixLocalNoContrato(contrato, cliente, moto) {
         createdAt: new Date().toISOString()
     };
     contrato.pixCobrancaAtual = cobranca;
+
+    // Se houver token oficial do Mercado Pago, dispara a geração do PIX oficial dinâmico imediatamente
+    if (cfgMp.accessToken && cfgMp.accessToken.trim().length > 15) {
+        setTimeout(() => sincronizarCobrancaPixComServidorMp(contrato.id), 50);
+    }
+
     return cobranca;
 }
 
@@ -4742,6 +4787,173 @@ function renderPagamentosView() {
 }
 
 // =========================================================================
+// MÓDULO: API OFICIAL DO WHATSAPP (DISPARO 100% AUTÔNOMO SEM INTERVENÇÃO HUMANA)
+// =========================================================================
+function alternarCamposProviderWhatsApp() {
+    const prov = document.getElementById('cfg-wa-provider')?.value || 'meta_cloud';
+    const boxMeta = document.getElementById('box-cfg-wa-meta');
+    const boxGateway = document.getElementById('box-cfg-wa-gateway');
+    if (boxMeta) boxMeta.style.display = prov === 'meta_cloud' ? 'block' : 'none';
+    if (boxGateway) boxGateway.style.display = prov !== 'meta_cloud' ? 'block' : 'none';
+}
+
+function salvarConfigWhatsAppOficial(e) {
+    if (e) e.preventDefault();
+    const cfg = {
+        provider: document.getElementById('cfg-wa-provider')?.value || 'meta_cloud',
+        metaPhoneNumberId: document.getElementById('cfg-wa-phone-id')?.value.trim() || '',
+        metaWabaId: document.getElementById('cfg-wa-waba-id')?.value.trim() || '',
+        metaToken: document.getElementById('cfg-wa-meta-token')?.value.trim() || '',
+        gatewayUrl: document.getElementById('cfg-wa-gateway-url')?.value.trim() || '',
+        gatewayToken: document.getElementById('cfg-wa-gateway-token')?.value.trim() || '',
+        autoDisparo08h: document.getElementById('cfg-wa-auto-08h') ? document.getElementById('cfg-wa-auto-08h').checked : true,
+        autoDisparo18h: document.getElementById('cfg-wa-auto-18h') ? document.getElementById('cfg-wa-auto-18h').checked : true,
+        autoDisparoDesbloqueio: document.getElementById('cfg-wa-auto-desbloqueio') ? document.getElementById('cfg-wa-auto-desbloqueio').checked : true,
+        autoDisparoOleo: document.getElementById('cfg-wa-auto-oleo') ? document.getElementById('cfg-wa-auto-oleo').checked : true
+    };
+    localStorage.setItem('crm_whatsapp_config', JSON.stringify(cfg));
+    closeModal('modal-config-whatsapp');
+    carregarLogsWhatsAppOficial();
+
+    mostrarToastNotificacao({
+        titulo: '✅ API Oficial do WhatsApp Configurada!',
+        mensagem: 'O robô autônomo está pronto para disparar notificações e PIX sem intervenção humana.',
+        cor: '#16a34a',
+        icone: 'fa-robot'
+    });
+}
+
+async function testarDisparoApiWhatsAppOficial() {
+    const telefone = document.getElementById('cfg-wa-teste-numero')?.value.trim();
+    if (!telefone) {
+        alert('Por favor, informe o número de telefone de teste com DDD (Ex: 51999999999).');
+        return;
+    }
+    const cfgWa = getWhatsAppConfig();
+    const token = document.getElementById('cfg-wa-meta-token')?.value.trim() || cfgWa.metaToken;
+    const phoneId = document.getElementById('cfg-wa-phone-id')?.value.trim() || cfgWa.metaPhoneNumberId;
+    const gatewayUrl = document.getElementById('cfg-wa-gateway-url')?.value.trim() || cfgWa.gatewayUrl;
+    const gatewayToken = document.getElementById('cfg-wa-gateway-token')?.value.trim() || cfgWa.gatewayToken;
+    const provider = document.getElementById('cfg-wa-provider')?.value || cfgWa.provider;
+
+    mostrarToastNotificacao({
+        titulo: '🚀 Disparando Teste via API...',
+        mensagem: `Enviando notificação de teste via API ${provider === 'meta_cloud' ? 'Oficial Meta WhatsApp' : 'Gateway REST'} para ${telefone}...`,
+        cor: '#009ee3',
+        icone: 'fa-paper-plane'
+    });
+
+    try {
+        const res = await fetch('/api/whatsapp', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                action: 'send_message',
+                telefone,
+                clienteNome: 'Administrador Facilita Moto',
+                motoPlaca: 'IPU2I57',
+                motoModelo: 'CG 150 TITAN MIX',
+                tipo: 'teste',
+                mensagem: '🤖 *FACILITA MOTO — TESTE DA API OFICIAL DO WHATSAPP*\n\nSe você recebeu esta mensagem, o robô autônomo de disparos sem intervenção humana está configurado com sucesso!',
+                provider,
+                metaToken: token,
+                metaPhoneNumberId: phoneId,
+                gatewayUrl,
+                gatewayToken
+            })
+        });
+        const data = await res.json();
+        carregarLogsWhatsAppOficial();
+        if (data && data.success) {
+            mostrarToastNotificacao({
+                titulo: '✅ Teste WhatsApp Disparado!',
+                mensagem: `O robô enviou a notificação para ${telefone} sem intervenção humana.`,
+                cor: '#16a34a',
+                icone: 'fa-check'
+            });
+            alert(`✅ Sucesso! Mensagem disparada com sucesso para ${telefone} via API Oficial (${provider}).\n\nStatus: ${data.status || 'OK'}`);
+        } else {
+            alert(`⚠️ Resposta da API WhatsApp:\n${data?.error || data?.message || 'Falha ao disparar. Verifique o Token ou Telefone.'}`);
+        }
+    } catch (err) {
+        alert(`❌ Erro de conexão ao enviar: ${err.message}`);
+    }
+}
+
+async function carregarLogsWhatsAppOficial() {
+    const container = document.getElementById('whatsapp-api-logs-container');
+    if (!container) return;
+    try {
+        const res = await fetch('/api/whatsapp?action=get_logs');
+        if (!res.ok) return;
+        const data = await res.json();
+        const logs = data.logs || [];
+        if (logs.length === 0) {
+            container.innerHTML = `<span style="color:#64748b; font-size:0.75rem;">Nenhum disparo autônomo registrado nesta sessão. As mensagens enviadas pelo robô em segundo plano aparecerão aqui.</span>`;
+            return;
+        }
+        container.innerHTML = logs.slice(0, 8).map(l => {
+            const hora = new Date(l.timestamp).toLocaleTimeString('pt-BR');
+            const statusBadge = l.status === 'sent'
+                ? `<span class="badge badge-disponivel" style="background:#16a34a; color:#fff; font-size:0.68rem;"><i class="fa-solid fa-check"></i> Enviado</span>`
+                : (l.status === 'simulated'
+                    ? `<span class="badge badge-manutencao" style="font-size:0.68rem;"><i class="fa-solid fa-flask"></i> Simulado</span>`
+                    : `<span class="badge badge-alugada" style="background:#dc2626; color:#fff; font-size:0.68rem;"><i class="fa-solid fa-xmark"></i> Falha</span>`);
+            return `
+                <div style="background:#fff; border:1px solid #e2e8f0; border-radius:6px; padding:6px 10px; display:flex; justify-content:space-between; align-items:center; gap:8px;">
+                    <div>
+                        <strong style="color:#0f172a; font-size:0.75rem;">${l.clienteNome || 'Cliente'} (${l.motoPlaca || 'Moto'})</strong>
+                        <span style="color:#64748b; font-size:0.7rem; margin-left:6px;">📱 ${l.telefone}</span>
+                        <div style="font-size:0.7rem; color:#334155; margin-top:2px;">${l.tipo || 'Mensagem'} • ${hora} • <em>${l.provider || 'API'}</em></div>
+                    </div>
+                    <div>${statusBadge}</div>
+                </div>
+            `;
+        }).join('');
+    } catch (e) {}
+}
+
+async function dispararMensagemWhatsAppAutonoma({ telefone, clienteNome, motoPlaca, motoModelo, tipo, mensagem, pixCopiaECola }) {
+    if (!telefone) return { success: false, error: 'Telefone ausente' };
+    const cfgWa = getWhatsAppConfig();
+
+    if (tipo === 'cobranca_08h' && cfgWa.autoDisparo08h === false) return { skipped: true };
+    if (tipo === 'bloqueio_18h' && cfgWa.autoDisparo18h === false) return { skipped: true };
+    if (tipo === 'desbloqueio_pix' && cfgWa.autoDisparoDesbloqueio === false) return { skipped: true };
+    if ((tipo === 'oleo_aviso' || tipo === 'bloqueio_km') && cfgWa.autoDisparoOleo === false) return { skipped: true };
+
+    try {
+        const res = await fetch('/api/whatsapp', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                action: 'send_message',
+                telefone,
+                clienteNome,
+                motoPlaca,
+                motoModelo,
+                tipo,
+                mensagem,
+                pixCopiaECola: pixCopiaECola || '',
+                provider: cfgWa.provider,
+                metaToken: cfgWa.metaToken,
+                metaPhoneNumberId: cfgWa.metaPhoneNumberId,
+                metaWabaId: cfgWa.metaWabaId,
+                metaTemplateName: cfgWa.metaTemplateName,
+                gatewayUrl: cfgWa.gatewayUrl,
+                gatewayToken: cfgWa.gatewayToken
+            })
+        });
+        const data = await res.json();
+        carregarLogsWhatsAppOficial();
+        return data;
+    } catch (err) {
+        console.error('[WhatsApp Autônomo Error]', err);
+        return { success: false, error: err.message };
+    }
+}
+
+// =========================================================================
 // FUNÇÕES DE NOTIFICAÇÃO INDIVIDUAL POR USUÁRIO (08:00H, 18:00H E ÓLEO)
 // =========================================================================
 function notificarUsuarioIndividual08h(contratoId) {
@@ -4761,9 +4973,31 @@ function notificarUsuarioIndividual08h(contratoId) {
 
     const msg = montarTextoNotificacao08hUsuario(contratos[cIdx], cli, moto);
     const numWhats = (cli.telefone || '').replace(/\D/g, '');
+    const cfgWa = getWhatsAppConfig();
+    const temApiWa = !!(cfgWa.metaToken || cfgWa.gatewayUrl);
+
+    // Disparo 100% autônomo via API Oficial em segundo plano
+    dispararMensagemWhatsAppAutonoma({
+        telefone: cli.telefone,
+        clienteNome: cli.nome,
+        motoPlaca: moto.placa,
+        motoModelo: moto.modelo,
+        tipo: 'cobranca_08h',
+        mensagem: msg,
+        pixCopiaECola: contratos[cIdx].pixCobrancaAtual?.copiaECola || ''
+    }).then(res => {
+        if (res && res.success) {
+            mostrarToastNotificacao({
+                titulo: `🤖 WhatsApp Autônomo Enviado — ${cli.nome}`,
+                mensagem: `Cobrança 08h e PIX enviados sem intervenção humana via API Oficial!`,
+                cor: '#16a34a',
+                icone: 'fa-robot'
+            });
+        }
+    });
 
     mostrarToastNotificacao({
-        titulo: `☀️ Notificação 08:00h Enviada — ${cli.nome}`,
+        titulo: `☀️ Notificação 08:00h Disparada — ${cli.nome}`,
         mensagem: `Cobrança semanal PIX Mercado Pago + Aviso de bloqueio automático às 18:00h gerados para a moto ${moto.placa}.`,
         cor: '#009ee3',
         icone: 'fa-bell'
@@ -4771,10 +5005,9 @@ function notificarUsuarioIndividual08h(contratoId) {
 
     updateViews();
 
-    if (numWhats) {
+    // Se a API ainda não tiver token configurado, abre a janela como contingência
+    if (!temApiWa && numWhats) {
         window.open(`https://wa.me/55${numWhats}?text=${encodeURIComponent(msg)}`, '_blank');
-    } else {
-        alert(`Notificação individual registrada para ${cli.nome}!\n\nMensagem gerada:\n\n${msg}`);
     }
 }
 
@@ -4791,6 +5024,20 @@ function notificarUsuarioIndividualOleo(motoId) {
     motos[mIdx].ultimoAvisoOleoData = new Date().toISOString();
     saveDb('crm_motos', motos);
 
+    const cfgWa = getWhatsAppConfig();
+    const temApiWa = !!(cfgWa.metaToken || cfgWa.gatewayUrl);
+
+    if (cliente && cliente.telefone) {
+        dispararMensagemWhatsAppAutonoma({
+            telefone: cliente.telefone,
+            clienteNome: cliente.nome,
+            motoPlaca: motos[mIdx].placa,
+            motoModelo: motos[mIdx].modelo,
+            tipo: 'oleo_aviso',
+            mensagem: msg
+        });
+    }
+
     mostrarToastNotificacao({
         titulo: `🛢️ Notificação Individual de Óleo (${motos[mIdx].placa})`,
         mensagem: `Alerta de revisão de 1.000 km e bloqueio de proteção aos 1.100 km enviado para ${cliente ? cliente.nome : 'Condutor'}.`,
@@ -4798,14 +5045,13 @@ function notificarUsuarioIndividualOleo(motoId) {
         icone: 'fa-oil-can'
     });
 
-    if (cliente && cliente.telefone) {
+    if (!temApiWa && cliente && cliente.telefone) {
         const numWhats = cliente.telefone.replace(/\D/g, '');
         if (numWhats) {
             window.open(`https://wa.me/55${numWhats}?text=${encodeURIComponent(msg)}`, '_blank');
             return;
         }
     }
-    alert(`Notificação individual de Troca de Óleo gerada:\n\n${msg}`);
 }
 
 // =========================================================================
@@ -4836,6 +5082,20 @@ function abrirModalPixMercadoPago(contratoId) {
     const alertaBloqEl = document.getElementById('mp-pix-alerta-bloqueada');
     if (alertaBloqEl) {
         alertaBloqEl.style.display = moto.bloqueadoPorInadimplencia ? 'block' : 'none';
+    }
+
+    const alertaTokenEl = document.getElementById('mp-pix-alerta-sem-token');
+    const temTokenMp = !!(cfgMp.accessToken && cfgMp.accessToken.trim().length > 15);
+    if (alertaTokenEl) {
+        alertaTokenEl.style.display = temTokenMp ? 'none' : 'block';
+    }
+
+    const provLabelInit = document.getElementById('mp-pix-provider-label');
+    if (provLabelInit) {
+        provLabelInit.innerText = temTokenMp
+            ? 'API Oficial Mercado Pago'
+            : '⚠️ Token Mercado Pago Não Configurado (Insira acima para emitir no Mercado Pago)';
+        provLabelInit.style.color = temTokenMp ? '#009ee3' : '#dc2626';
     }
 
     const statusBadgeEl = document.getElementById('mp-pix-status-badge');
@@ -4901,7 +5161,18 @@ function sincronizarCobrancaPixComServidorMp(contratoId, forcarNovo = false) {
     })
     .then(r => r.ok ? r.json() : null)
     .then(data => {
-        if (!data || !data.charge) return;
+        if (!data) return;
+        if (data.needsToken) {
+            const alertaTokenEl = document.getElementById('mp-pix-alerta-sem-token');
+            if (alertaTokenEl) alertaTokenEl.style.display = 'block';
+            const provLabel = document.getElementById('mp-pix-provider-label');
+            if (provLabel) {
+                provLabel.innerText = '⚠️ Access Token do Mercado Pago Necessário (APP_USR-...)';
+                provLabel.style.color = '#dc2626';
+            }
+            return;
+        }
+        if (!data.charge) return;
         let contratosAtuais = getDb('crm_contratos');
         const idx = contratosAtuais.findIndex(x => x.id === contratoId);
         if (idx > -1) {
@@ -4917,7 +5188,8 @@ function sincronizarCobrancaPixComServidorMp(contratoId, forcarNovo = false) {
             if (provLabel) {
                 provLabel.innerText = data.provider === 'mercadopago_official'
                     ? `API Oficial Mercado Pago (#${data.charge.paymentId})`
-                    : `PIX Mercado Pago BRCode (#${data.charge.paymentId})`;
+                    : `PIX Mercado Pago (#${data.charge.paymentId})`;
+                provLabel.style.color = '#009ee3';
             }
         }
     })
@@ -5007,9 +5279,32 @@ function aplicarBloqueio18hManualNoModal() {
         icone: 'fa-lock'
     });
 
-    const numWhats = (cli.telefone || '').replace(/\D/g, '');
     const msgBloq = montarTextoNotificacaoBloqueio18hUsuario(contratos[cIdx], cli, motos[mIdx]);
-    if (numWhats && confirm(`A moto ${motos[mIdx].modelo} (${motos[mIdx].placa}) foi BLOQUEADA no rastreador/bloqueador!\n\nDeseja enviar agora o aviso de bloqueio + código PIX para ${cli.nome} no WhatsApp?`)) {
+    const cfgWa = getWhatsAppConfig();
+    const temApiWa = !!(cfgWa.metaToken || cfgWa.gatewayUrl);
+
+    // Dispara via robô autônomo da API Oficial WhatsApp sem intervenção humana
+    dispararMensagemWhatsAppAutonoma({
+        telefone: cli.telefone,
+        clienteNome: cli.nome,
+        motoPlaca: motos[mIdx].placa,
+        motoModelo: motos[mIdx].modelo,
+        tipo: 'bloqueio_18h',
+        mensagem: msgBloq,
+        pixCopiaECola: contratos[cIdx].pixCobrancaAtual?.copiaECola || ''
+    }).then(res => {
+        if (res && res.success) {
+            mostrarToastNotificacao({
+                titulo: `🤖 WhatsApp Autônomo Disparado (${cli.nome})`,
+                mensagem: `Aviso de bloqueio e código PIX enviados via API Oficial sem intervenção humana!`,
+                cor: '#16a34a',
+                icone: 'fa-robot'
+            });
+        }
+    });
+
+    const numWhats = (cli.telefone || '').replace(/\D/g, '');
+    if (!temApiWa && numWhats && confirm(`A moto ${motos[mIdx].modelo} (${motos[mIdx].placa}) foi BLOQUEADA no rastreador/bloqueador!\n\nDeseja enviar agora o aviso de bloqueio + código PIX para ${cli.nome} no WhatsApp?`)) {
         window.open(`https://wa.me/55${numWhats}?text=${encodeURIComponent(msgBloq)}`, '_blank');
     }
 }
@@ -5153,6 +5448,34 @@ function processarConfirmacaoAutomaticaPixMercadoPago(contratoId, chargeData = {
     pagamentos.push(novoPag);
     saveDb('crm_pagamentos', pagamentos);
 
+    // 4. Dispara Notificação e Recibo Automático via WhatsApp (Sem Intervenção Humana)
+    if (cli.telefone) {
+        const msgReciboWa = `✅ *PAGAMENTO PIX CONFIRMADO & MOTO LIBERADA — FACILITA MOTO*\n\n` +
+            `Olá, *${cli.nome}*!\n` +
+            `Seu pagamento semanal de *R$ ${valorPago.toFixed(2)}* referente à motocicleta *${moto.modelo} (${moto.placa})* foi confirmado com sucesso pelo *Mercado Pago*!\n\n` +
+            `📅 *Novo Vencimento:* ${formatarDataBr(novoVencimento)}\n` +
+            `${desbloqueouMoto ? `🔓 *COMANDO DE DESBLOQUEIO ENVIADO:* Sua motocicleta foi liberada automaticamente no rastreador/bloqueador!\n\n` : `🔓 *STATUS DO BLOQUEADOR:* Motocicleta Liberada\n\n`}` +
+            `Obrigado pela pontualidade e bom trabalho!`;
+
+        dispararMensagemWhatsAppAutonoma({
+            telefone: cli.telefone,
+            clienteNome: cli.nome,
+            motoPlaca: moto.placa,
+            motoModelo: moto.modelo,
+            tipo: 'desbloqueio_pix',
+            mensagem: msgReciboWa
+        }).then(res => {
+            if (res && res.success) {
+                mostrarToastNotificacao({
+                    titulo: `🤖 Recibo WhatsApp Enviado — ${cli.nome}`,
+                    mensagem: `Recibo e aviso de desbloqueio disparados sem intervenção humana!`,
+                    cor: '#16a34a',
+                    icone: 'fa-robot'
+                });
+            }
+        });
+    }
+
     fecharModalPixMercadoPago();
     updateViews();
 
@@ -5240,6 +5563,19 @@ function verificarReguaAutomaticaPagamentosEBloqueio18h(exibirResumoManual = fal
                         cor: oleo.atingiuBloqueioKm ? '#dc2626' : '#d97706',
                         icone: 'fa-oil-can'
                     });
+
+                    // Disparo 100% autônomo via API Oficial WhatsApp sem intervenção humana
+                    if (cliente.telefone) {
+                        const msgOleoAuto = montarTextoNotificacaoOleoIndividualUsuario(m, cliente);
+                        dispararMensagemWhatsAppAutonoma({
+                            telefone: cliente.telefone,
+                            clienteNome: cliente.nome,
+                            motoPlaca: m.placa,
+                            motoModelo: m.modelo,
+                            tipo: oleo.atingiuBloqueioKm ? 'bloqueio_km' : 'oleo_aviso',
+                            mensagem: msgOleoAuto
+                        });
+                    }
                 }
             }
         }
@@ -5291,6 +5627,20 @@ function verificarReguaAutomaticaPagamentosEBloqueio18h(exibirResumoManual = fal
                             body: `Aluguel R$ ${valSemanal} vence hoje. Aviso de bloqueio automático às ${cfgMp.horaBloqueio || '18:00'}h ativo.`
                         });
                     } catch (e) {}
+                }
+
+                // Disparo 100% autônomo via API Oficial WhatsApp sem intervenção humana (08:00h)
+                if (cli.telefone) {
+                    const msg08hAuto = montarTextoNotificacao08hUsuario(c, cli, moto);
+                    dispararMensagemWhatsAppAutonoma({
+                        telefone: cli.telefone,
+                        clienteNome: cli.nome,
+                        motoPlaca: moto.placa,
+                        motoModelo: moto.modelo,
+                        tipo: 'cobranca_08h',
+                        mensagem: msg08hAuto,
+                        pixCopiaECola: c.pixCobrancaAtual?.copiaECola || ''
+                    });
                 }
             }
         }
@@ -5344,6 +5694,20 @@ function verificarReguaAutomaticaPagamentosEBloqueio18h(exibirResumoManual = fal
                             body: `${cli.nome} não confirmou o PIX até as 18:00h. Bloqueio enviado ao bloqueador da moto!`
                         });
                     } catch (e) {}
+                }
+
+                // Disparo 100% autônomo de bloqueio + PIX via API Oficial do WhatsApp sem intervenção humana (18:00h)
+                if (cli.telefone) {
+                    const msg18hAuto = montarTextoNotificacaoBloqueio18hUsuario(c, cli, moto);
+                    dispararMensagemWhatsAppAutonoma({
+                        telefone: cli.telefone,
+                        clienteNome: cli.nome,
+                        motoPlaca: moto.placa,
+                        motoModelo: moto.modelo,
+                        tipo: 'bloqueio_18h',
+                        mensagem: msg18hAuto,
+                        pixCopiaECola: c.pixCobrancaAtual?.copiaECola || ''
+                    });
                 }
             }
         }
@@ -5512,7 +5876,30 @@ function enviarReciboPagamentoWhats(pagamentoId) {
                 `🔓 *Status Bloqueador:* Motocicleta Liberada\n\n` +
                 `Obrigado pela pontualidade! Bons negócios e pilote com segurança.`;
 
-    window.open(`https://wa.me/55${numWhats}?text=${encodeURIComponent(msg)}`, '_blank');
+    const cfgWa = getWhatsAppConfig();
+    const temApiWa = !!(cfgWa.metaToken || cfgWa.gatewayUrl);
+
+    dispararMensagemWhatsAppAutonoma({
+        telefone: p.clienteTelefone,
+        clienteNome: p.clienteNome,
+        motoPlaca: p.motoPlaca,
+        motoModelo: p.motoModelo,
+        tipo: 'desbloqueio_pix',
+        mensagem: msg
+    }).then(res => {
+        if (res && res.success) {
+            mostrarToastNotificacao({
+                titulo: `🤖 Recibo Enviado via WhatsApp (${p.clienteNome})`,
+                mensagem: `Recibo disparado sem intervenção humana via API Oficial!`,
+                cor: '#16a34a',
+                icone: 'fa-robot'
+            });
+        }
+    });
+
+    if (!temApiWa) {
+        window.open(`https://wa.me/55${numWhats}?text=${encodeURIComponent(msg)}`, '_blank');
+    }
 }
 
 function deletarPagamentoHistorico(pagamentoId) {

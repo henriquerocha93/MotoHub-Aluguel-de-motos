@@ -468,8 +468,11 @@
                                     <span style="background:#009ee3; color:#fff; font-weight:800; font-size:0.75rem; padding:3px 10px; border-radius:999px; display:inline-flex; align-items:center; gap:5px;">
                                         <i class="fa-solid fa-qrcode"></i> API MERCADO PAGO PIX ATIVA
                                     </span>
+                                    <span style="background:#16a34a; color:#fff; font-weight:800; font-size:0.75rem; padding:3px 10px; border-radius:999px; display:inline-flex; align-items:center; gap:5px;">
+                                        <i class="fa-brands fa-whatsapp"></i> API OFICIAL WHATSAPP (DISPARO 100% AUTOMÁTICO S/ INTERVENÇÃO)
+                                    </span>
                                     <span style="background:#fef3c7; color:#92400e; font-weight:700; font-size:0.74rem; padding:3px 9px; border-radius:999px;">
-                                        ☀️ 08:00h: Notificação Individual + Aviso Bloqueio
+                                        ☀️ 08:00h: Disparo Automático PIX + Aviso Bloqueio
                                     </span>
                                     <span style="background:#fee2e2; color:#991b1b; font-weight:700; font-size:0.74rem; padding:3px 9px; border-radius:999px;">
                                         🛑 18:00h: Bloqueio Automático s/ PIX
@@ -479,18 +482,21 @@
                                     </span>
                                 </div>
                                 <h3 style="font-size:0.98rem; color:#0f172a; margin-bottom:4px;">
-                                    Régua Automática: Cobrança Semanal PIX (08:00h), Bloqueio no Rastreador (18:00h) &amp; Troca de Óleo Individual
+                                    Robô Autônomo (WhatsApp Cloud API Oficial + Mercado Pago PIX + Bloqueador Xtrack): Zero Intervenção Humana
                                 </h3>
                                 <p id="mp-regua-resumo-status" style="font-size:0.8rem; color:#334155; margin:0; line-height:1.4;">
-                                    O sistema notifica individualmente cada locatário às <strong>08:00h da manhã</strong> do dia do vencimento com a cobrança PIX do Mercado Pago e aviso de bloqueio até as <strong>18:00h</strong>. Se o PIX não for confirmado até as <strong>18:00h</strong>, o sistema envia automaticamente o comando de <strong>BLOQUEIO</strong> para o bloqueador da moto e só libera após confirmação do PIX.
+                                    O sistema dispara automaticamente via <strong>API Oficial do WhatsApp</strong> (em segundo plano, sem precisar clicar ou abrir janelas) a cobrança PIX do Mercado Pago às <strong>08:00h</strong> com aviso de bloqueio até as <strong>18:00h</strong>, os alertas individuais de <strong>Troca de Óleo (1.000/1.100 km)</strong>, o bloqueio automático às <strong>18:00h</strong> e o recibo de desbloqueio pós-PIX.
                                 </p>
                             </div>
                             <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
-                                <button type="button" class="btn btn-primary btn-sm" style="background:#009ee3; border:none;" onclick="openModal('modal-config-mercadopago')">
-                                    <i class="fa-solid fa-sliders"></i> Configurar API Mercado Pago &amp; Horários (08h / 18h)
+                                <button type="button" class="btn btn-primary btn-sm" style="background:#16a34a; border:none;" onclick="openModal('modal-config-whatsapp')">
+                                    <i class="fa-brands fa-whatsapp"></i> Configurar API Oficial WhatsApp (Autônomo)
                                 </button>
-                                <button type="button" class="btn btn-secondary btn-sm" style="background:#0f172a; color:#fff; border:none;" onclick="executarReguaCompletaManual()" title="Verifica todos os contratos e motos agora: dispara avisos das 08:00h, troca de óleo e aplica bloqueio automático das 18:00h nos inadimplentes">
-                                    <i class="fa-solid fa-bolt" style="color:#fbbf24;"></i> Rodar Automação 08h / 18h Agora
+                                <button type="button" class="btn btn-primary btn-sm" style="background:#009ee3; border:none;" onclick="openModal('modal-config-mercadopago')">
+                                    <i class="fa-solid fa-sliders"></i> Configurar API Mercado Pago (08h / 18h)
+                                </button>
+                                <button type="button" class="btn btn-secondary btn-sm" style="background:#0f172a; color:#fff; border:none;" onclick="executarReguaCompletaManual()" title="Força agora o disparo automático via API Oficial do WhatsApp (08:00h + Óleo) e a verificação de bloqueio das 18:00h">
+                                    <i class="fa-solid fa-robot" style="color:#34d399;"></i> Executar Robô Autônomo Agora
                                 </button>
                             </div>
                         </div>
@@ -526,11 +532,16 @@
                     </div>
 
                     <!-- CENTRAL DE NOTIFICAÇÕES INDIVIDUAIS POR USUÁRIO (COBRANÇA 08:00H, BLOQUEIO 18:00H & TROCA DE ÓLEO) -->
-                    <div class="card table-card" style="margin-bottom:26px; border-top:4px solid #009ee3;">
+                    <div class="card table-card" style="margin-bottom:26px; border-top:4px solid #16a34a;">
                         <div class="section-card-header">
                             <div>
-                                <h3><i class="fa-solid fa-bell" style="color:#009ee3;"></i> Notificações Individuais por Locatário (Cobrança Semanal 08:00h, Bloqueio 18:00h &amp; Troca de Óleo)</h3>
-                                <span style="font-size:0.8rem; color:var(--text-muted);">Controle individual de notificações automáticas enviadas a cada usuário sobre Troca de Óleo (1.000 km / Bloqueio 1.100 km) e Cobrança Semanal PIX Mercado Pago (08:00h com bloqueio automático às 18:00h).</span>
+                                <h3><i class="fa-brands fa-whatsapp" style="color:#16a34a;"></i> Disparo Automático Individual por Locatário via API Oficial do WhatsApp (Sem Intervenção Humana)</h3>
+                                <span style="font-size:0.8rem; color:var(--text-muted);">O robô dispara sozinho em segundo plano os avisos de Cobrança Semanal PIX às 08:00h (com aviso de bloqueio às 18:00h), Bloqueio Automático às 18:00h, Recibo de Desbloqueio Pós-PIX e Troca de Óleo (1.000 / 1.100 km).</span>
+                            </div>
+                            <div style="display:flex; gap:8px;">
+                                <button type="button" class="btn btn-primary btn-sm" style="background:#16a34a; border:none;" onclick="dispararTodosAvisosApiWhatsAppAgora()">
+                                    <i class="fa-solid fa-paper-plane"></i> Disparar Avisos Pendentes via API Agora
+                                </button>
                             </div>
                         </div>
                         <table class="data-table">
@@ -538,16 +549,31 @@
                                 <tr>
                                     <th>Usuário (Locatário)</th>
                                     <th>Motocicleta</th>
-                                    <th>Notificação Cobrança Semanal (08:00h / Bloqueio 18:00h)</th>
-                                    <th>Notificação Troca de Óleo (1.000 km / Bloqueio 1.100 km)</th>
+                                    <th>Status Disparo Automático (08:00h / Bloqueio 18:00h)</th>
+                                    <th>Status Disparo Automático Troca de Óleo (1.000 / 1.100 km)</th>
                                     <th>Status do Bloqueador da Moto</th>
-                                    <th>Disparo Individual p/ o Usuário</th>
+                                    <th>Disparo Direto via API WhatsApp</th>
                                 </tr>
                             </thead>
                             <tbody id="table-notificacoes-individuais">
                                 <!-- Populado pelo JS -->
                             </tbody>
                         </table>
+
+                        <!-- LOG DE MENSAGENS DISPARADAS AUTOMATICAMENTE PELA API OFICIAL DO WHATSAPP -->
+                        <div style="padding:14px 18px; background:#f8fafc; border-top:1px solid var(--border);">
+                            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; flex-wrap:wrap; gap:8px;">
+                                <h4 style="font-size:0.86rem; color:#0f172a; margin:0;">
+                                    <i class="fa-solid fa-robot" style="color:#16a34a;"></i> Log de Disparos Automáticos da API Oficial do WhatsApp (Zero Intervenção Humana)
+                                </h4>
+                                <button type="button" class="btn btn-secondary btn-sm" style="padding:2px 8px; font-size:0.72rem;" onclick="limparHistoricoDisparosWhatsApp()">
+                                    <i class="fa-solid fa-broom"></i> Limpar Log
+                                </button>
+                            </div>
+                            <div id="whatsapp-api-logs-container" style="max-height:210px; overflow-y:auto; border:1px solid #e2e8f0; border-radius:8px; background:#fff;">
+                                <!-- Populado pelo JS -->
+                            </div>
+                        </div>
                     </div>
 
                     <div class="card table-card" style="border-top:4px solid var(--primary);">
@@ -1892,6 +1918,19 @@
                     O pagamento semanal não foi confirmado até as 18:00h e o sistema enviou o bloqueio para o bloqueador da moto. Assim que o pagamento PIX abaixo for confirmado pelo Mercado Pago, o sistema <strong>desbloqueará a motocicleta automaticamente</strong>!
                 </div>
 
+                <!-- Alerta e Configuração Rápida do Access Token Oficial Mercado Pago -->
+                <div id="mp-pix-alerta-sem-token" style="display:none; background:#eff6ff; border:1px solid #93c5fd; border-radius:8px; padding:11px 13px; margin-bottom:14px; font-size:0.8rem; color:#1e40af;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap;">
+                        <div style="flex:1; min-width:260px;">
+                            <strong><i class="fa-solid fa-key" style="color:#009ee3;"></i> Conectar Access Token Oficial do Mercado Pago:</strong><br>
+                            <span>Para que o PIX caia no <strong>Mercado Pago</strong> (e não no Itaú) e libere a moto automaticamente via Webhook/API, conecte seu token de produção (<code>APP_USR-...</code>).</span>
+                        </div>
+                        <button type="button" class="btn btn-primary btn-sm" style="background:#009ee3; border:none; white-space:nowrap; padding:6px 12px;" onclick="openModal('modal-config-mercadopago')">
+                            <i class="fa-solid fa-sliders"></i> Configurar Access Token
+                        </button>
+                    </div>
+                </div>
+
                 <!-- Área do QR Code PIX Dinâmico + Copia e Cola -->
                 <div style="display:grid; grid-template-columns: 200px 1fr; gap:16px; align-items:center; background:#fff; border:1px solid #e2e8f0; border-radius:10px; padding:14px; margin-bottom:14px;">
                     <div style="text-align:center; border-right:1px solid #f1f5f9; padding-right:12px;">
@@ -2006,6 +2045,103 @@
         </div>
     </div>
 
+    <!-- Modal Configurar API Oficial do WhatsApp (Disparo 100% Automático Sem Intervenção Humana) -->
+    <div class="modal" id="modal-config-whatsapp">
+        <div class="modal-content" style="max-width: 640px;">
+            <div class="modal-header" style="background:linear-gradient(90deg, #15803d 0%, #16a34a 100%); color:#fff; border-radius:12px 12px 0 0;">
+                <h3><i class="fa-brands fa-whatsapp"></i> API Oficial do WhatsApp — Disparo 100% Automático (Sem Intervenção Humana)</h3>
+                <span class="close-btn" style="color:#fff;" onclick="closeModal('modal-config-whatsapp')">&times;</span>
+            </div>
+            <div class="modal-body">
+                <div style="background:#ecfdf5; border:1px solid #a7f3d0; border-radius:8px; padding:10px 13px; margin-bottom:14px; font-size:0.8rem; color:#065f46;">
+                    <strong><i class="fa-solid fa-robot"></i> Operação 100% Autônoma em Segundo Plano:</strong><br>
+                    Com a API Oficial do WhatsApp Business Cloud (Meta Graph API) ou Gateway REST configurado, o sistema envia todas as mensagens <strong>sozinho via requisição HTTP direta no servidor</strong> (às 08:00h, às 18:00h no bloqueio, na confirmação do PIX e nos alertas de 1.000/1.100 km de óleo), <strong>sem abrir janelas e sem precisar de nenhum clique humano</strong>!
+                </div>
+
+                <form id="form-config-whatsapp" onsubmit="salvarConfigWhatsAppOficial(event)">
+                    <div class="form-group">
+                        <label>Motor de Disparo Automático do WhatsApp*</label>
+                        <select id="cfg-wa-provider" onchange="alternarCamposProviderWhatsApp()">
+                            <option value="meta_cloud">API Oficial do WhatsApp Business Cloud (Meta Graph API v20.0)</option>
+                            <option value="gateway_rest">Z-API / Evolution API / UltraMsg (QR Code / Instância Dedicada)</option>
+                            <option value="webhook">Webhook Automático (n8n / Make / Servidor Próprio)</option>
+                        </select>
+                    </div>
+
+                    <!-- Campos API Oficial Meta WhatsApp Cloud -->
+                    <div id="box-cfg-wa-meta">
+                        <div class="form-group row">
+                            <div class="col">
+                                <label>Phone Number ID (ID do Número na Meta)*</label>
+                                <input type="text" id="cfg-wa-phone-id" placeholder="Ex: 109283746510293">
+                            </div>
+                            <div class="col">
+                                <label>WhatsApp Business Account ID (Opcional)</label>
+                                <input type="text" id="cfg-wa-waba-id" placeholder="Ex: 102938475610293">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label>Token Permanente da API Oficial Meta (Bearer Token — <code>EAAG...</code>)</label>
+                            <input type="password" id="cfg-wa-meta-token" placeholder="EAAGm0PX4ZCpsBA...">
+                            <small style="color:var(--text-muted); font-size:0.72rem;">Obtido no painel <strong>Meta for Developers &rarr; WhatsApp &rarr; Configuração da API</strong>. Endpoint oficial utilizado: <code>https://graph.facebook.com/v20.0/{PHONE_NUMBER_ID}/messages</code>.</small>
+                        </div>
+                    </div>
+
+                    <!-- Campos Gateway REST / Z-API / Evolution / Webhook -->
+                    <div id="box-cfg-wa-gateway" style="display:none;">
+                        <div class="form-group">
+                            <label>URL do Endpoint de Disparo (Z-API / Evolution API / Webhook)</label>
+                            <input type="text" id="cfg-wa-gateway-url" placeholder="Ex: https://api.z-api.io/instances/SUA_INSTANCIA/token/SEU_TOKEN/send-text">
+                        </div>
+                        <div class="form-group">
+                            <label>Client-Token / API Key do Gateway (Opcional)</label>
+                            <input type="password" id="cfg-wa-gateway-token" placeholder="Token de segurança da instância">
+                        </div>
+                    </div>
+
+                    <div style="background:#f8fafc; border:1px solid var(--border); border-radius:8px; padding:10px 12px; margin-bottom:14px;">
+                        <strong style="font-size:0.81rem; color:#0f172a; display:block; margin-bottom:6px;">
+                            <i class="fa-solid fa-bolt" style="color:#16a34a;"></i> Gatilhos Automáticos Ativos (Sem Intervenção Humana):
+                        </strong>
+                        <label style="display:flex; align-items:center; gap:8px; cursor:pointer; font-size:0.8rem; margin-bottom:5px;">
+                            <input type="checkbox" id="cfg-wa-auto-08h" checked style="width:auto;">
+                            ☀️ <strong>08:00h (Dia do Pagamento):</strong> Enviar cobrança semanal + Código PIX Copia e Cola + Aviso de bloqueio às 18:00h
+                        </label>
+                        <label style="display:flex; align-items:center; gap:8px; cursor:pointer; font-size:0.8rem; margin-bottom:5px;">
+                            <input type="checkbox" id="cfg-wa-auto-18h" checked style="width:auto;">
+                            🛑 <strong>18:00h (Inadimplência):</strong> Enviar comunicado de bloqueio automático da moto + PIX para liberação
+                        </label>
+                        <label style="display:flex; align-items:center; gap:8px; cursor:pointer; font-size:0.8rem; margin-bottom:5px;">
+                            <input type="checkbox" id="cfg-wa-auto-desbloqueio" checked style="width:auto;">
+                            🔓 <strong>Pós-Confirmação PIX:</strong> Enviar recibo automático e confirmação de desbloqueio imediato da moto
+                        </label>
+                        <label style="display:flex; align-items:center; gap:8px; cursor:pointer; font-size:0.8rem;">
+                            <input type="checkbox" id="cfg-wa-auto-oleo" checked style="width:auto;">
+                            🛢️ <strong>Troca de Óleo (1.000 km / 1.100 km):</strong> Enviar alerta individual de revisão e bloqueio de proteção do motor
+                        </label>
+                    </div>
+
+                    <!-- Caixa de Teste de Disparo Automático da API -->
+                    <div style="background:#f0fdf4; border:1px dashed #16a34a; border-radius:8px; padding:10px 12px; margin-bottom:14px;">
+                        <label style="font-size:0.79rem; font-weight:700; color:#166534; display:block; margin-bottom:6px;">
+                            <i class="fa-solid fa-paper-plane"></i> Testar Disparo Automático em Segundo Plano Agora:
+                        </label>
+                        <div style="display:flex; gap:8px;">
+                            <input type="text" id="cfg-wa-teste-numero" placeholder="DDD + Número (Ex: 51999999999)" style="flex:1; padding:6px 10px; font-size:0.82rem;">
+                            <button type="button" class="btn btn-secondary btn-sm" style="background:#15803d; color:#fff; border:none; white-space:nowrap;" onclick="testarDisparoApiWhatsAppOficial()">
+                                <i class="fa-solid fa-bolt"></i> Disparar Teste via API
+                            </button>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary btn-block" style="background:#16a34a; border:none;">
+                        <i class="fa-solid fa-floppy-disk"></i> Salvar Integração API Oficial WhatsApp (Disparo 100% Automático)
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
     <!-- Container de Toasts de Notificação Automática (Pagamentos e Troca de Óleo) -->
     <div id="toast-notif-container" style="position:fixed; bottom:20px; right:20px; z-index:9999; display:flex; flex-direction:column; gap:10px; max-width:370px; pointer-events:none;"></div>
 
@@ -2013,6 +2149,6 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <!-- Firebase Firestore -->
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
-    <script src="app.js?v=20261022_mp_pix_18h"></script>
+    <script src="app.js?v=20261022_wa_oficial_autonomo"></script>
 </body>
 </html>
