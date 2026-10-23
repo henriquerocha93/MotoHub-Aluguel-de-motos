@@ -113,7 +113,7 @@ function getTrackerConfig() {
 
 function getMercadoPagoConfig() {
     const def = {
-        accessToken: '',
+        accessToken: 'APP_USR-6194243169013538-102220-43c64ed326354129ba6d2d512a427b04-213948720',
         chavePix: '85221619091',
         beneficiario: 'HENRIQUE ROCHA CLAVIJO',
         horaNotificacao: '08:00',
@@ -125,6 +125,11 @@ function getMercadoPagoConfig() {
     try {
         const saved = JSON.parse(localStorage.getItem('crm_mercadopago_config'));
         if (!saved) return def;
+        // Se houver configuração salva mas o token estiver vazio, preenche com o token oficial de produção
+        if (!saved.accessToken || saved.accessToken.trim() === '') {
+            saved.accessToken = def.accessToken;
+            localStorage.setItem('crm_mercadopago_config', JSON.stringify(saved));
+        }
         return Object.assign({}, def, saved);
     } catch (e) {
         return def;

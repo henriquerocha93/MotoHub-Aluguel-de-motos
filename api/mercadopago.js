@@ -79,7 +79,7 @@ export default async function handler(req, res) {
     // ========================================================================
     if (req.method === 'GET') {
         const { contratoId, paymentId, accessToken } = req.query || {};
-        const token = accessToken || process.env.MP_ACCESS_TOKEN || '';
+        const token = accessToken || process.env.MP_ACCESS_TOKEN || 'APP_USR-6194243169013538-102220-43c64ed326354129ba6d2d512a427b04-213948720';
         const keyRef = contratoId || paymentId || '';
 
         let charge = mpStore[keyRef] || Object.values(mpStore).find(c => String(c.paymentId) === String(paymentId) || String(c.contratoId) === String(contratoId)) || null;
@@ -131,7 +131,7 @@ export default async function handler(req, res) {
         }
 
         const action = body.action || '';
-        const token = body.accessToken || process.env.MP_ACCESS_TOKEN || '';
+        const token = body.accessToken || process.env.MP_ACCESS_TOKEN || 'APP_USR-6194243169013538-102220-43c64ed326354129ba6d2d512a427b04-213948720';
 
         // 2.1. Webhook Oficial do Mercado Pago (notificação automática quando cliente paga o PIX)
         if (body.type === 'payment' || (body.action && String(body.action).startsWith('payment.')) || (body.data && body.data.id && !action)) {
