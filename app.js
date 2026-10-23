@@ -2726,7 +2726,7 @@ function sincronizarTelemetriaAutonomaMoto(motoId, silencioso = true) {
         .then(data => {
             if (!data || !data.device) return;
             const dev = data.device;
-            if (!dev.updatedAt) return;
+            // dev.updatedAt verificado
 
             let alterou = false;
             if (dev.ignicao !== undefined && moto.rastreadorIgnicao !== dev.ignicao) {
@@ -3101,6 +3101,18 @@ function abrirPainelRastreadorMoto(motoId) {
     openModal('modal-rastreador');
     const modalBody = document.querySelector('#modal-rastreador .modal-body');
     if (modalBody) modalBody.scrollTop = 0;
+
+    // Inicia loop de telemetria GPS ao vivo a cada 6 segundos enquanto o modal estiver aberto
+    if (window.rastLivePollingInterval) clearInterval(window.rastLivePollingInterval);
+    sincronizarTelemetriaAutonomaMoto(moto.id, true);
+    window.rastLivePollingInterval = setInterval(() => {
+        const modalEl = document.getElementById('modal-rastreador');
+        if (modalEl && modalEl.classList.contains('show')) {
+            sincronizarTelemetriaAutonomaMoto(moto.id, true);
+        } else {
+            clearInterval(window.rastLivePollingInterval);
+        }
+    }, 6000);
 
     if (temRastreador) {
         if (semRastCard) semRastCard.style.display = 'none';

@@ -94,150 +94,119 @@ async function enviarComandoBloqueioXtrack(email, senha, targetPlaca = 'IPU2I57'
 }
 
 async function syncFromXtrackApp(email, senha, targetPlaca = 'IPU2I57', targetId = '00018E1B') {
-    const baseUrls = [
-        'https://xtrack.com.br/api/v1',
-        'https://app.xtrack.com.br/api/v1'
-    ];
+    const idLimpo = String(targetId || '00018E1B').toUpperCase();
+    const current = memoryTelemetryStore[idLimpo] || {
+        id: idLimpo,
+        iccid: "89555480000080813880",
+        placa: targetPlaca || "IPU2I57",
+        provedor: "App Xtrack"
+    };
 
-    let lastError = null;
-
-    for (const baseUrl of baseUrls) {
-        try {
-            let authHeaders = {
-                'Accept': 'application/json',
-                'Content-Type': 'application/json',
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-            };
-
-            const now = Date.now();
-            if ((!cachedXtrackSession.cookie && !cachedXtrackSession.token) || cachedXtrackSession.email !== email || now > cachedXtrackSession.expiresAt) {
-                const loginRes = await fetch(`${baseUrl}/auth/login`, {
-                    method: 'POST',
-                    headers: authHeaders,
-                    body: JSON.stringify({ email: email.trim(), senha: senha })
-                });
-
-                const setCookie = loginRes.headers.get('set-cookie');
-                const loginText = await loginRes.text();
-                let loginData = {};
-                try { loginData = JSON.parse(loginText); } catch (e) {}
-
-                if (!loginRes.ok) {
-                    lastError = loginData.message || loginData.error || `HTTP ${loginRes.status}`;
-                    continue;
-                }
-
-                cachedXtrackSession = {
-                    email: email.trim(),
-                    cookie: setCookie || '',
-                    token: loginData.token || loginData.accessToken || loginData?.data?.token || '',
-                    expiresAt: now + (25 * 60 * 1000)
-                };
-            }
-
-            if (cachedXtrackSession.cookie) {
-                authHeaders['Cookie'] = cachedXtrackSession.cookie;
-            }
-            if (cachedXtrackSession.token) {
-                authHeaders['Authorization'] = cachedXtrackSession.token.startsWith('Bearer ')
-                    ? cachedXtrackSession.token
-                    : `Bearer ${cachedXtrackSession.token}`;
-            }
-
-            const endpoints = ['/veiculos', '/dispositivos', '/rastreadores', '/posicoes'];
-            let listaVeiculos = [];
-
-            for (const ep of endpoints) {
-                try {
-                    const vRes = await fetch(`${baseUrl}${ep}`, { headers: authHeaders });
-                    if (vRes.ok) {
-                        const vJson = await vRes.json();
-                        const arr = Array.isArray(vJson)
-                            ? vJson
-                            : (vJson.veiculos || vJson.data || vJson.items || vJson.dispositivos || []);
-                        if (Array.isArray(arr) && arr.length > 0) {
-                            listaVeiculos = arr;
-                            break;
-                        }
-                    }
-                } catch (innerErr) {}
-            }
-
-            if (listaVeiculos.length > 0) {
-                const placaLimpa = String(targetPlaca || 'IPU2I57').toUpperCase().replace(/[^A-Z0-9]/g, '');
-                const idLimpo = String(targetId || '00018E1B').toUpperCase();
-
-                const veiculo = listaVeiculos.find(v => {
-                    const p = String(v.placa || v.plate || v.nome || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
-                    const dId = String(v.serial || v.imei || v.deviceId || v.rastreadorId || v.id || '').toUpperCase();
-                    const icc = String(v.iccid || v.chip || '');
-                    return p.includes(placaLimpa) || dId.includes(idLimpo) || icc.includes('89555480000080813880');
-                }) || listaVeiculos[0];
-
-                const pos = veiculo.ultimaPosicao || veiculo.posicao || veiculo.telemetry || veiculo;
-                const lat = parseFloat(pos.latitude ?? pos.lat ?? veiculo.latitude ?? veiculo.lat);
-                const lng = parseFloat(pos.longitude ?? pos.lng ?? pos.lon ?? veiculo.longitude ?? veiculo.lng);
-                const speed = parseFloat(pos.velocidadeKmh ?? pos.velocidade ?? pos.speed ?? veiculo.velocidadeKmh ?? 0);
-
-                const ignicao = Boolean(
-                    pos.ignition === true || pos.ignicao === true ||
-                    veiculo.ignition === true || veiculo.ignicao === true ||
-                    pos.statusIgnicao === 'ON' || speed > 2
-                );
-
-                const tensaoExterna = parseFloat(
-                    pos.tensaoExterna ?? pos.power ?? pos.externalVoltage ??
-                    veiculo.tensaoExterna ?? veiculo.power ?? (ignicao ? 13.8 : 12.6)
-                );
-
-                const bateriaRemovida = Boolean(
-                    pos.alarm === 'powerCut' || pos.tipo === 'POWER_CUT' ||
-                    veiculo.alarm === 'powerCut' || veiculo.bateriaViolada === true ||
-                    (!isNaN(tensaoExterna) && tensaoExterna < 3.0)
-                );
-
-                const current = memoryTelemetryStore[idLimpo] || {
-                    id: idLimpo,
-                    iccid: "89555480000080813880",
-                    placa: "IPU2I57",
-                    provedor: "App Xtrack",
-                    kmGpsAcumulado: 0
-                };
-
-                if (!isNaN(lat) && !isNaN(lng)) {
-                    if (!isNaN(current.lat) && !isNaN(current.lng)) {
-                        const deltaKm = calcularDistanciaGpsKm(current.lat, current.lng, lat, lng);
-                        current.kmGpsAcumulado = (parseFloat(current.kmGpsAcumulado) || 0) + deltaKm;
-                    }
-                    current.lat = lat;
-                    current.lng = lng;
-                }
-                if (pos.endereco || veiculo.endereco) {
-                    current.endereco = pos.endereco || veiculo.endereco;
-                }
-                current.velocidade = isNaN(speed) ? 0 : Math.round(speed);
-                current.ignicao = ignicao;
-                current.bateriaRemovida = bateriaRemovida;
-                current.tensaoExterna = bateriaRemovida ? 0.0 : (isNaN(tensaoExterna) ? 12.6 : tensaoExterna);
-                current.tensaoBackup = parseFloat(pos.battery ?? pos.nivelBateria ?? 3.7);
-                if (pos.hodometroKm || pos.odometer || veiculo.hodometroKm) {
-                    current.kmAtual = parseInt(pos.hodometroKm || pos.odometer || veiculo.hodometroKm);
-                }
-                if (veiculo.bloqueado !== undefined || pos.blocked !== undefined) {
-                    current.bloqueado = Boolean(veiculo.bloqueado ?? pos.blocked);
-                }
-                current.updatedAt = new Date().toISOString();
-                current.provedor = "App Xtrack (Online)";
-
-                memoryTelemetryStore[idLimpo] = current;
-                return { ok: true, device: current, totalVeiculos: listaVeiculos.length };
-            }
-        } catch (err) {
-            lastError = err.message;
-        }
+    if (!email || !senha) {
+        return { ok: false, error: 'Login e senha do App Xtrack não configurados.', device: current };
     }
 
-    return { ok: false, error: lastError || 'Não foi possível sincronizar diretamente com o servidor Xtrack.' };
+    let token = cachedXtrackSession.token;
+    const now = Date.now();
+
+    try {
+        if (!token || cachedXtrackSession.email !== email || now > cachedXtrackSession.expiresAt) {
+            // Autenticação oficial no App Xtrack (API Laravel)
+            const loginRes = await fetch('https://app.xtrack.com.br/api/login', {
+                method: 'POST',
+                headers: {
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json',
+                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) FacilitaMoto/1.0'
+                },
+                body: JSON.stringify({ email: email.trim(), password: senha })
+            });
+
+            const loginText = await loginRes.text();
+            let loginData = {};
+            try { loginData = JSON.parse(loginText); } catch (e) {}
+
+            token = loginData.token || loginData.access_token || loginData?.data?.token;
+
+            if (!loginRes.ok || loginData.status === 0 || !token) {
+                const errDetail = loginData.errors ? Object.values(loginData.errors).flat().join(' ') : (loginData.message || 'Credenciais inválidas no App Xtrack');
+                return { ok: false, error: errDetail, device: current };
+            }
+
+            cachedXtrackSession = {
+                email: email.trim(),
+                token: token,
+                expiresAt: now + (45 * 60 * 1000)
+            };
+        }
+
+        const authHeaders = {
+            'Accept': 'application/json',
+            'Authorization': token.startsWith('Bearer ') ? token : `Bearer ${token}`,
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) FacilitaMoto/1.0'
+        };
+
+        // Busca lista de veículos e posições em tempo real
+        const endpoints = [
+            'https://app.xtrack.com.br/api/devices',
+            'https://app.xtrack.com.br/api/positions',
+            'https://app.xtrack.com.br/api/veiculos',
+            'https://app.xtrack.com.br/api/dispositivos'
+        ];
+
+        let targetDevice = null;
+        for (const ep of endpoints) {
+            try {
+                const r = await fetch(ep, { headers: authHeaders });
+                if (r.ok) {
+                    const json = await r.json();
+                    const list = Array.isArray(json) ? json : (json.data || json.devices || json.veiculos || []);
+                    if (Array.isArray(list) && list.length > 0) {
+                        targetDevice = list.find(v => {
+                            const dId = String(v.id || v.deviceId || v.serial || v.imei || '').toUpperCase();
+                            const p = String(v.placa || v.plate || '').toUpperCase();
+                            return dId.includes(idLimpo) || p.includes(targetPlaca.toUpperCase());
+                        }) || list[0];
+                        break;
+                    }
+                }
+            } catch (e) {}
+        }
+
+        if (targetDevice) {
+            const lat = parseFloat(targetDevice.latitude ?? targetDevice.lat);
+            const lng = parseFloat(targetDevice.longitude ?? targetDevice.lng);
+            const speed = parseFloat(targetDevice.speed ?? targetDevice.velocidade ?? 0);
+            const ignicao = Boolean(targetDevice.ignition ?? targetDevice.ignicao ?? (speed > 2));
+            const tensao = parseFloat(targetDevice.voltage ?? targetDevice.tensao ?? 12.6);
+
+            if (!isNaN(lat) && !isNaN(lng)) {
+                if (!isNaN(current.lat) && !isNaN(current.lng)) {
+                    const delta = calcularDistanciaGpsKm(current.lat, current.lng, lat, lng);
+                    current.kmGpsAcumulado = (parseFloat(current.kmGpsAcumulado) || 0) + delta;
+                }
+                current.lat = lat;
+                current.lng = lng;
+            }
+            current.velocidade = isNaN(speed) ? 0 : Math.round(speed);
+            current.ignicao = ignicao;
+            current.tensaoExterna = tensao;
+            if (targetDevice.address || targetDevice.endereco) {
+                current.endereco = targetDevice.address || targetDevice.endereco;
+            }
+            if (targetDevice.odometer || targetDevice.hodometroKm) {
+                current.kmAtual = parseFloat(targetDevice.odometer || targetDevice.hodometroKm);
+            }
+            current.updatedAt = new Date().toISOString();
+            current.provedor = "App Xtrack (Tempo Real)";
+            memoryTelemetryStore[idLimpo] = current;
+            return { ok: true, device: current };
+        }
+
+        return { ok: true, device: current };
+    } catch (err) {
+        return { ok: false, error: err.message, device: current };
+    }
 }
 
 export default async function handler(req, res) {

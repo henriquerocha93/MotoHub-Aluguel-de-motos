@@ -684,7 +684,7 @@ textarea {
 }
 
 @media (max-width: 768px) {
-    /* TRAVA HORIZONTAL ABSOLUTA NO MOBILE */
+    /* TRAVA HORIZONTAL ABSOLUTA NO MOBILE - ZERO ROLAGEM LATERAL */
     html, body {
         width: 100% !important;
         max-width: 100vw !important;
@@ -779,7 +779,7 @@ textarea {
         z-index: 9998 !important;
     }
 
-    /* TOPBAR LIMPA, EM LINHA ÚNICA E SEM AMONTOAMENTO */
+    /* TOPBAR LIMPA, EM LINHA ÚNICA E ESPAÇOSA */
     .topbar {
         padding: max(8px, env(safe-area-inset-top, 8px)) 12px 8px 12px !important;
         height: auto !important;
@@ -858,7 +858,7 @@ textarea {
         z-index: 99999 !important;
     }
 
-    /* CARDS E CABEÇALHOS 100% FLUIDOS SEM TRANSBORDAR */
+    /* CARDS GERAIS */
     .card {
         width: 100% !important;
         max-width: 100% !important;
@@ -899,51 +899,116 @@ textarea {
         justify-content: center !important;
     }
 
-    /* TABELAS COM SCROLL INTERNO NATIVO SEM PUXAR A TELA TODA */
+    /* ==============================================================
+       TRANSFORMAÇÃO DAS TABELAS EM CARDS MOBILE 100% NATIVOS
+       Elimina de vez qualquer rolagem horizontal ("arrastar pro lado")
+       ============================================================== */
     .table-card {
         width: 100% !important;
         max-width: 100% !important;
         min-width: 0 !important;
         box-sizing: border-box !important;
-        overflow-x: auto !important;
-        -webkit-overflow-scrolling: touch !important;
-        padding: 8px 4px !important;
+        background: transparent !important;
+        border: none !important;
+        box-shadow: none !important;
+        padding: 4px 0 !important;
+        overflow: visible !important;
     }
 
-    .table-responsive,
-    div[style*="overflow-x:auto"],
-    .table-card > div[style*="overflow-x:auto"] {
-        width: 100% !important;
-        max-width: 100% !important;
-        min-width: 0 !important;
-        box-sizing: border-box !important;
-        overflow-x: auto !important;
-        -webkit-overflow-scrolling: touch !important;
+    .data-table {
         display: block !important;
+        width: 100% !important;
+        border: none !important;
+        background: transparent !important;
     }
 
-    .data-table th, .data-table td {
-        padding: 10px 8px !important;
+    /* Esconde o thead (cabeçalho de colunas) que esticava a página */
+    .data-table thead {
+        display: none !important;
+    }
+
+    .data-table tbody {
+        display: flex !important;
+        flex-direction: column !important;
+        gap: 14px !important;
+        width: 100% !important;
+    }
+
+    /* Cada linha (TR) vira um CARD bonito, branco, com sombra e borda arredondada */
+    .data-table tr {
+        display: block !important;
+        width: 100% !important;
+        background: #ffffff !important;
+        border: 1px solid #e2e8f0 !important;
+        border-radius: 14px !important;
+        padding: 14px !important;
+        box-shadow: 0 4px 14px rgba(15, 23, 42, 0.05) !important;
+        box-sizing: border-box !important;
+    }
+
+    /* Cada célula (TD) vira uma linha interna dentro do Card */
+    .data-table td {
+        display: block !important;
+        width: 100% !important;
+        padding: 6px 0 !important;
+        border: none !important;
+        white-space: normal !important;
+        word-break: break-word !important;
+        font-size: 0.88rem !important;
+        line-height: 1.4 !important;
+    }
+
+    .data-table td:not(:last-child) {
+        border-bottom: 1px solid #f1f5f9 !important;
+        padding-bottom: 8px !important;
+        margin-bottom: 6px !important;
+    }
+
+    /* A última célula (geralmente ações/botões) fica em destaque no rodapé do Card */
+    .data-table td:last-child {
+        display: flex !important;
+        flex-wrap: wrap !important;
+        gap: 8px !important;
+        padding-top: 10px !important;
+        margin-top: 6px !important;
+        border-top: 1.5px solid #e2e8f0 !important;
+    }
+
+    .data-table td:last-child .btn,
+    .data-table td:last-child button {
+        flex: 1 1 auto !important;
+        min-height: 40px !important;
         font-size: 0.82rem !important;
-        white-space: nowrap !important;
+        font-weight: 600 !important;
+        justify-content: center !important;
+        padding: 8px 12px !important;
     }
 
-    /* KANBAN BOARD MOBILE */
+    /* ==============================================================
+       PIPELINE DE VENDAS (KANBAN) EMPILHADO VERTICALMENTE NO MOBILE
+       Elimina a necessidade de arrastar para o lado entre etapas
+       ============================================================== */
     .kanban-board {
         width: 100% !important;
         max-width: 100% !important;
         box-sizing: border-box !important;
-        overflow-x: auto !important;
-        -webkit-overflow-scrolling: touch !important;
+        overflow-x: visible !important;
         display: flex !important;
-        gap: 12px !important;
+        flex-direction: column !important;
+        gap: 16px !important;
         padding-bottom: 20px !important;
     }
 
     .kanban-column {
-        min-width: 82vw !important;
-        max-width: 85vw !important;
-        flex-shrink: 0 !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        min-width: 100% !important;
+        box-sizing: border-box !important;
+        margin: 0 !important;
+        background: #f8fafc !important;
+        border: 1px solid #e2e8f0 !important;
+        border-radius: 14px !important;
+        padding: 14px !important;
     }
 
     /* VIEW HEADERS E BUSCA */
@@ -981,7 +1046,7 @@ textarea {
         font-size: 16px !important;
     }
 
-    /* Modais */
+    /* Modais fluidas e scrolláveis */
     .modal {
         padding: 10px !important;
     }
