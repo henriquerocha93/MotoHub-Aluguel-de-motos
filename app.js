@@ -4525,7 +4525,7 @@ function renderPagamentosView() {
             Relógio do Sistema: <strong>${horaAgora}</strong> •
             ☀️ Notificação Automática no dia do pagamento às <strong>${cfgMp.horaNotificacao || '08:00'}h</strong> •
             🛑 Bloqueio Automático no bloqueador da moto às <strong>${cfgMp.horaBloqueio || '18:00'}h</strong> se não pago •
-            🔓 Liberação Automática somente após confirmação do PIX (Chave: <strong>${cfgMp.chavePix || '85221619091'}</strong>).
+            🔓 Liberação Automática imediata após confirmação do PIX (API Oficial Mercado Pago — QR Code Dinâmico).
         `;
     }
 
@@ -5504,9 +5504,9 @@ function processarConfirmacaoAutomaticaPixMercadoPago(contratoId, chargeData = {
 function salvarConfigMercadoPago(e) {
     e.preventDefault();
     const cfg = {
-        accessToken: document.getElementById('cfg-mp-access-token')?.value.trim() || '',
-        chavePix: document.getElementById('cfg-mp-chave-pix')?.value.trim() || '85221619091',
-        beneficiario: document.getElementById('cfg-mp-beneficiario')?.value.trim() || 'HENRIQUE ROCHA CLAVIJO',
+        accessToken: document.getElementById('cfg-mp-access-token')?.value.trim() || 'APP_USR-6194243169013538-102220-43c64ed326354129ba6d2d512a427b04-213948720',
+        chavePix: 'mercadopago_api_dinamica',
+        beneficiario: 'MERCADO PAGO INSTITUICAO DE PAGAMENTO',
         horaNotificacao: document.getElementById('cfg-mp-hora-notif')?.value || '08:00',
         horaBloqueio: document.getElementById('cfg-mp-hora-bloqueio')?.value || '18:00',
         autoNotificar08h: document.getElementById('cfg-mp-auto-notif-08h') ? document.getElementById('cfg-mp-auto-notif-08h').checked : true,
