@@ -7,11 +7,20 @@ let memoryTelemetryStore = {
         id: "00018E1B",
         iccid: "89555480000080813880",
         placa: "IPU2I57",
-        provedor: "App Xtrack",
+        provedor: "App Xtrack (Online / Em Movimento)",
         bloqueado: false,
         motivoBloqueio: null,
-        kmGpsAcumulado: 0,
-        updatedAt: null
+        kmGpsAcumulado: 4,
+        kmAtual: 26098,
+        lat: -30.0663672,
+        lng: -51.1703269,
+        endereco: "Rua Dona Firmina, 1348, São José, Porto Alegre - RS, 91520-210, Brasil",
+        velocidade: 22,
+        ignicao: true,
+        bateriaRemovida: false,
+        tensaoExterna: 13.8,
+        tensaoBackup: 4.1,
+        updatedAt: new Date().toISOString()
     }
 };
 
