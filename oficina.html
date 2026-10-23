@@ -1,0 +1,1020 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FACILITA MOTO • Portal da Oficina Parceira Credenciada</title>
+    <link rel="icon" type="image/png" href="logo.png.png">
+    <link rel="apple-touch-icon" href="logo.png.png">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --primary: #f97316;
+            --primary-hover: #ea580c;
+            --bg-dark: #090d16;
+            --bg-card: #131b2e;
+            --bg-card-hover: #1e293b;
+            --border: #223049;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --success: #10b981;
+            --danger: #ef4444;
+            --warning: #f59e0b;
+            --info: #38bdf8;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Inter', sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-dark);
+            color: var(--text-main);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow-x: hidden;
+        }
+
+        /* Topbar Header */
+        .topbar {
+            background: rgba(19, 27, 46, 0.95);
+            backdrop-filter: blur(12px);
+            border-bottom: 1px solid var(--border);
+            padding: 12px 24px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: sticky;
+            top: 0;
+            z-index: 50;
+        }
+
+        .brand-container {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+
+        .brand-logo {
+            height: 48px;
+            width: auto;
+            border-radius: 8px;
+            object-fit: contain;
+            background: #fff;
+            padding: 3px;
+        }
+
+        .brand-text h1 {
+            font-size: 1.15rem;
+            font-weight: 800;
+            letter-spacing: -0.5px;
+            color: #fff;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .brand-text span {
+            font-size: 0.76rem;
+            color: var(--primary);
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+        }
+
+        .oficina-badge {
+            background: #1e293b;
+            border: 1px solid #334155;
+            padding: 6px 14px;
+            border-radius: 999px;
+            font-size: 0.82rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .oficina-badge strong {
+            color: #38bdf8;
+        }
+
+        .btn-logout {
+            background: #271414;
+            color: #fca5a5;
+            border: 1px solid #7f1d1d;
+            padding: 7px 14px;
+            border-radius: 8px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            transition: 0.2s;
+        }
+
+        .btn-logout:hover {
+            background: #7f1d1d;
+            color: #fff;
+        }
+
+        /* Container Principal */
+        .container {
+            max-width: 1050px;
+            width: 100%;
+            margin: 0 auto;
+            padding: 24px 16px;
+            flex: 1;
+        }
+
+        /* Login Card */
+        .login-card {
+            max-width: 440px;
+            margin: 60px auto;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 36px 28px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.4);
+            text-align: center;
+        }
+
+        .login-card .logo {
+            max-width: 170px;
+            margin-bottom: 20px;
+            border-radius: 10px;
+            background: #fff;
+            padding: 6px;
+        }
+
+        .form-group {
+            margin-bottom: 18px;
+            text-align: left;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 0.84rem;
+            font-weight: 600;
+            color: var(--text-muted);
+            margin-bottom: 6px;
+        }
+
+        .form-control {
+            width: 100%;
+            background: #0f172a;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 12px 14px;
+            color: #fff;
+            font-size: 0.95rem;
+            outline: none;
+            transition: 0.2s;
+        }
+
+        .form-control:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.2);
+        }
+
+        .btn-primary {
+            width: 100%;
+            background: linear-gradient(135deg, #f97316, #ea580c);
+            color: #fff;
+            border: none;
+            padding: 13px;
+            border-radius: 8px;
+            font-size: 0.95rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .btn-primary:hover {
+            filter: brightness(1.1);
+            transform: translateY(-1px);
+        }
+
+        /* Grid de Troca de Óleo */
+        .card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            padding: 22px;
+            margin-bottom: 22px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.25);
+        }
+
+        .card-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 18px;
+            padding-bottom: 14px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .card-header h2 {
+            font-size: 1.15rem;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .moto-preview-box {
+            background: #0f172a;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 16px;
+            margin-bottom: 20px;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 14px;
+        }
+
+        .preview-item {
+            display: flex;
+            flex-direction: column;
+            gap: 3px;
+        }
+
+        .preview-item span {
+            font-size: 0.74rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            font-weight: 600;
+        }
+
+        .preview-item strong {
+            font-size: 1rem;
+            color: #fff;
+        }
+
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 10px;
+            border-radius: 999px;
+            font-size: 0.78rem;
+            font-weight: 700;
+        }
+
+        .status-bloqueada {
+            background: #7f1d1d;
+            color: #fecaca;
+            border: 1px solid #ef4444;
+            animation: pulse-red 1.8s infinite;
+        }
+
+        .status-liberada {
+            background: #064e3b;
+            color: #a7f3d0;
+            border: 1px solid #10b981;
+        }
+
+        @keyframes pulse-red {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.6; }
+        }
+
+        /* Chips rápidos para o óleo */
+        .chips-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 8px;
+        }
+
+        .chip-btn {
+            background: #1e293b;
+            color: #cbd5e1;
+            border: 1px solid #334155;
+            padding: 6px 12px;
+            border-radius: 999px;
+            font-size: 0.78rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: 0.15s;
+        }
+
+        .chip-btn:hover, .chip-btn.active {
+            background: #f97316;
+            color: #fff;
+            border-color: #f97316;
+        }
+
+        .calc-box {
+            background: #1e293b;
+            border: 1px solid #334155;
+            border-radius: 8px;
+            padding: 12px;
+            margin-top: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: space-around;
+            text-align: center;
+        }
+
+        .calc-box div strong {
+            display: block;
+            font-size: 1.15rem;
+            color: #38bdf8;
+            margin-top: 2px;
+        }
+
+        .calc-box div span {
+            font-size: 0.73rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+        }
+
+        /* Tabela Histórico */
+        .table-responsive {
+            width: 100%;
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.88rem;
+            text-align: left;
+        }
+
+        th {
+            background: #0f172a;
+            color: var(--text-muted);
+            font-weight: 600;
+            padding: 12px 14px;
+            border-bottom: 1px solid var(--border);
+            font-size: 0.78rem;
+            text-transform: uppercase;
+        }
+
+        td {
+            padding: 12px 14px;
+            border-bottom: 1px solid #1a253c;
+            color: #e2e8f0;
+        }
+
+        tr:hover td {
+            background: rgba(30, 41, 59, 0.4);
+        }
+
+        /* Modal Sucesso */
+        .modal-overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.8);
+            backdrop-filter: blur(8px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 100;
+            opacity: 0;
+            pointer-events: none;
+            transition: 0.2s;
+        }
+
+        .modal-overlay.show {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .modal-box {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 30px;
+            max-width: 480px;
+            width: 90%;
+            text-align: center;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.6);
+            transform: scale(0.95);
+            transition: 0.2s;
+        }
+
+        .modal-overlay.show .modal-box {
+            transform: scale(1);
+        }
+
+        .modal-icon-success {
+            width: 70px;
+            height: 70px;
+            border-radius: 50%;
+            background: #064e3b;
+            color: #10b981;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+            margin: 0 auto 16px;
+            border: 2px solid #10b981;
+        }
+
+        .footer {
+            text-align: center;
+            padding: 16px;
+            font-size: 0.76rem;
+            color: var(--text-muted);
+            border-top: 1px solid var(--border);
+            background: #0b101d;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- TOPBAR -->
+    <header class="topbar">
+        <div class="brand-container">
+            <img src="logo.png.png" alt="FACILITA MOTO" class="brand-logo">
+            <div class="brand-text">
+                <h1>FACILITA MOTO</h1>
+                <span>Portal da Oficina Parceira</span>
+            </div>
+        </div>
+
+        <div id="topbar-user-section" style="display:none; align-items:center; gap:12px;">
+            <div class="oficina-badge">
+                <i class="fa-solid fa-wrench" style="color:var(--primary);"></i>
+                <span>Oficina: <strong id="header-oficina-nome">Oficina Parceira</strong></span>
+            </div>
+            <button class="btn-logout" onclick="fazerLogoutOficina()">
+                <i class="fa-solid fa-right-from-bracket"></i> Sair
+            </button>
+        </div>
+    </header>
+
+    <!-- ÁREA 1: LOGIN DA OFICINA PARCEIRA -->
+    <div id="section-login" class="container" style="display:none;">
+        <div class="login-card">
+            <img src="logo.png.png" alt="FACILITA MOTO" class="logo">
+            <h2 style="font-size:1.35rem; font-weight:800; margin-bottom:6px;">Acesso da Oficina Credenciada</h2>
+            <p style="font-size:0.83rem; color:var(--text-muted); margin-bottom:24px;">Informe seu login e senha cadastrados pelo administrador da Facilita Moto.</p>
+
+            <form id="form-login-oficina" onsubmit="realizarLoginOficina(event)">
+                <div class="form-group">
+                    <label>E-mail ou Login de Acesso*</label>
+                    <input type="text" id="login-email" class="form-control" required placeholder="oficina@exemplo.com">
+                </div>
+                <div class="form-group">
+                    <label>Senha*</label>
+                    <input type="password" id="login-senha" class="form-control" required placeholder="••••••••">
+                </div>
+                <p id="login-error" style="color:var(--danger); font-size:0.82rem; margin-bottom:12px; display:none; font-weight:600;">E-mail ou senha incorretos!</p>
+                <button type="submit" class="btn-primary">
+                    <i class="fa-solid fa-right-to-bracket"></i> Entrar no Painel da Oficina
+                </button>
+            </form>
+
+            <div style="margin-top:20px; font-size:0.78rem; color:var(--text-muted);">
+                Esqueceu a senha? Solicite à administração da Facilita Moto.
+            </div>
+        </div>
+    </div>
+
+    <!-- ÁREA 2: PAINEL DA OFICINA -->
+    <main id="section-app" class="container" style="display:none;">
+
+        <!-- Banner com a Identidade da Oficina e da Facilita Moto -->
+        <div style="background: linear-gradient(135deg, #1e293b, #0f172a); border:1px solid #334155; border-radius:14px; padding:18px 22px; margin-bottom:22px; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:14px;">
+            <div style="display:flex; align-items:center; gap:16px;">
+                <div style="width:52px; height:52px; border-radius:12px; background:rgba(249, 115, 22, 0.15); border:1px solid rgba(249, 115, 22, 0.3); display:flex; align-items:center; justify-content:center; font-size:1.6rem; color:var(--primary);">
+                    <i class="fa-solid fa-motorcycle"></i>
+                </div>
+                <div>
+                    <h2 style="font-size:1.25rem; font-weight:800; color:#fff;" id="banner-oficina-nome">Oficina Parceira Credenciada</h2>
+                    <p style="font-size:0.83rem; color:#94a3b8;">Oficina autorizada para manutenção preventiva, troca de óleo e liberação de veículos da <strong>Facilita Moto</strong>.</p>
+                </div>
+            </div>
+            <div style="display:flex; align-items:center; gap:8px;">
+                <span class="status-badge status-liberada" style="font-size:0.82rem; padding:6px 14px;">
+                    <i class="fa-solid fa-shield-check"></i> Sistema Integrado & Operacional
+                </span>
+            </div>
+        </div>
+
+        <!-- Card de Registro de Troca de Óleo -->
+        <div class="card">
+            <div class="card-header">
+                <h2><i class="fa-solid fa-oil-can" style="color:var(--primary);"></i> Registrar Troca de Óleo & Liberar Moto</h2>
+                <span style="font-size:0.8rem; color:var(--text-muted); font-weight:600;">Ciclo Oficial: 1.000 KM</span>
+            </div>
+
+            <form id="form-registro-troca" onsubmit="processarTrocaOleo(event)">
+                <!-- 1. Seleção da Motocicleta -->
+                <div class="form-group">
+                    <label>Selecione a Motocicleta da Frota*</label>
+                    <select id="select-moto" class="form-control" required onchange="aoSelecionarMoto(this.value)" style="font-size:1rem; font-weight:600; color:#38bdf8;">
+                        <option value="">-- Selecione uma moto para iniciar o atendimento --</option>
+                    </select>
+                </div>
+
+                <!-- Preview Dinâmico da Moto -->
+                <div id="moto-preview" class="moto-preview-box" style="display:none;">
+                    <div class="preview-item">
+                        <span>Placa do Veículo</span>
+                        <strong id="prev-placa" style="font-size:1.15rem; color:#f97316;">---</strong>
+                    </div>
+                    <div class="preview-item">
+                        <span>Modelo da Moto</span>
+                        <strong id="prev-modelo">---</strong>
+                    </div>
+                    <div class="preview-item">
+                        <span>Condutor / Locatário</span>
+                        <strong id="prev-condutor">---</strong>
+                    </div>
+                    <div class="preview-item">
+                        <span>Última Troca Registrada</span>
+                        <strong id="prev-km-ultima">0 km</strong>
+                    </div>
+                    <div class="preview-item">
+                        <span>Status Atual de Bloqueio</span>
+                        <div id="prev-status-bloqueio">
+                            <span class="status-badge status-liberada">Liberada</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 2. Detalhes do Serviço -->
+                <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap:18px;">
+                    <!-- KM de Chegada -->
+                    <div class="form-group">
+                        <label>KM Atual no Hodômetro (Chegada na Oficina)*</label>
+                        <input type="number" id="input-km" class="form-control" required min="0" placeholder="Ex: 27150" oninput="calcularProximasMetas(this.value)">
+                        <small style="display:block; font-size:0.75rem; color:var(--text-muted); margin-top:4px;">
+                            Digite o KM exato marcado no painel da moto no momento do serviço.
+                        </small>
+                    </div>
+
+                    <!-- Data da Troca -->
+                    <div class="form-group">
+                        <label>Data do Serviço*</label>
+                        <input type="date" id="input-data" class="form-control" required>
+                    </div>
+                </div>
+
+                <!-- Cálculo em Tempo Real do Novo Ciclo -->
+                <div class="calc-box">
+                    <div>
+                        <span>KM Registrado Agora</span>
+                        <strong id="calc-km-atual">-- km</strong>
+                    </div>
+                    <div style="font-size:1.5rem; color:#475569;">➔</div>
+                    <div>
+                        <span>Próxima Troca Obrigatória (+1.000 km)</span>
+                        <strong id="calc-km-prox" style="color:#10b981;">-- km</strong>
+                    </div>
+                    <div style="font-size:1.5rem; color:#475569;">➔</div>
+                    <div>
+                        <span>Bloqueio de Proteção (+1.100 km)</span>
+                        <strong id="calc-km-bloq" style="color:#f59e0b;">-- km</strong>
+                    </div>
+                </div>
+
+                <!-- Óleo Utilizado -->
+                <div class="form-group" style="margin-top:18px;">
+                    <label>Marca e Especificação do Óleo Utilizado*</label>
+                    <input type="text" id="input-oleo" class="form-control" required placeholder="Ex: Mobil 20W-50 4T Mineral">
+                    <div class="chips-container">
+                        <span style="font-size:0.75rem; color:var(--text-muted); align-self:center; margin-right:4px;">Sugestões Rápidas:</span>
+                        <button type="button" class="chip-btn" onclick="selecionarOleoRapido('Mobil 20W-50 4T Mineral')">Mobil 20W-50</button>
+                        <button type="button" class="chip-btn" onclick="selecionarOleoRapido('Havoline 20W-50 4T Mineral')">Havoline 20W-50</button>
+                        <button type="button" class="chip-btn" onclick="selecionarOleoRapido('Honda Genuíno 10W-30 Semissintético')">Honda 10W-30</button>
+                        <button type="button" class="chip-btn" onclick="selecionarOleoRapido('Motul 3000 20W-50 4T')">Motul 3000 20W-50</button>
+                        <button type="button" class="chip-btn" onclick="selecionarOleoRapido('Ipiranga Moto 20W-50 4T')">Ipiranga 20W-50</button>
+                    </div>
+                </div>
+
+                <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap:18px;">
+                    <!-- Mecânico Responsável -->
+                    <div class="form-group">
+                        <label>Mecânico / Técnico Responsável</label>
+                        <input type="text" id="input-mecanico" class="form-control" placeholder="Nome do mecânico">
+                    </div>
+
+                    <!-- Observações -->
+                    <div class="form-group">
+                        <label>Observações do Serviço (Opcional)</label>
+                        <input type="text" id="input-obs" class="form-control" placeholder="Ex: Filtro trocado, corrente ajustada e lubrificada">
+                    </div>
+                </div>
+
+                <!-- Botão de Confirmação -->
+                <div style="margin-top:10px;">
+                    <button type="submit" class="btn-primary" style="padding:16px; font-size:1.05rem; background:linear-gradient(135deg, #16a34a, #15803d);">
+                        <i class="fa-solid fa-check-double"></i> Confirmar Troca de Óleo e Liberar Moto na Hora (+1.000 KM)
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Tabela de Histórico de Trocas Feitas Pela Oficina -->
+        <div class="card">
+            <div class="card-header">
+                <h2><i class="fa-solid fa-clock-rotate-left" style="color:var(--info);"></i> Histórico de Revisões Realizadas por Esta Oficina</h2>
+                <span id="historico-total-count" style="font-size:0.8rem; color:var(--text-muted);">0 registros</span>
+            </div>
+
+            <div class="table-responsive">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Data</th>
+                            <th>Placa</th>
+                            <th>Modelo</th>
+                            <th>KM da Troca</th>
+                            <th>Próxima Troca</th>
+                            <th>Óleo Utilizado</th>
+                            <th>Técnico</th>
+                            <th>Status no Sistema</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tabela-historico-oficina">
+                        <tr>
+                            <td colspan="8" style="text-align:center; color:var(--text-muted); padding:24px;">
+                                Nenhuma troca de óleo registrada por esta oficina ainda.
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- MODAL DE SUCESSO -->
+    <div id="modal-sucesso" class="modal-overlay">
+        <div class="modal-box">
+            <div class="modal-icon-success">
+                <i class="fa-solid fa-check"></i>
+            </div>
+            <h2 style="font-size:1.4rem; font-weight:800; color:#fff; margin-bottom:8px;">Serviço Confirmado com Sucesso!</h2>
+            <p id="modal-sucesso-msg" style="font-size:0.92rem; color:#cbd5e1; line-height:1.5; margin-bottom:20px;">
+                A moto foi liberada para mais 1.000 KM no sistema.
+            </p>
+            <div id="modal-sucesso-destaque" style="background:#0f172a; border:1px solid #10b981; border-radius:10px; padding:14px; margin-bottom:22px; text-align:left; font-size:0.85rem;">
+                <!-- Preenchido dinamicamente -->
+            </div>
+            <button type="button" class="btn-primary" onclick="fecharModalSucesso()">
+                <i class="fa-solid fa-thumbs-up"></i> Entendido / Concluir Atendimento
+            </button>
+        </div>
+    </div>
+
+    <footer class="footer">
+        Facilita Moto Locações Inteligentes • Portal de Telemetria e Manutenção Preventiva da Oficina Parceira
+    </footer>
+
+    <!-- Firebase SDK Compat v8 para sincronização híbrida com CRM -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyDp8U3HYT_XAbZ30dSQlKoh8zw02DLeIvc",
+            authDomain: "motohub-9e839.firebaseapp.com",
+            projectId: "motohub-9e839",
+            storageBucket: "motohub-9e839.firebasestorage.app",
+            messagingSenderId: "200673709108",
+            appId: "1:200673709108:web:e84d8fdb824cf18fd5ce61"
+        };
+        if (typeof firebase !== 'undefined' && !firebase.apps.length) {
+            try { firebase.initializeApp(firebaseConfig); } catch(e) {}
+        }
+        const db = (typeof firebase !== 'undefined') ? firebase.firestore() : null;
+
+        // Sessão da Oficina
+        let sessaoOficina = null;
+
+        function getDb(key) {
+            try { return JSON.parse(localStorage.getItem(key)) || []; } catch(e) { return []; }
+        }
+        function saveDb(key, data) {
+            try {
+                localStorage.setItem(key, JSON.stringify(data));
+                if (db) {
+                    const batch = db.batch();
+                    data.forEach(item => {
+                        if (item && item.id) {
+                            batch.set(db.collection(key).doc(item.id), item);
+                        }
+                    });
+                    batch.commit().catch(() => {});
+                }
+            } catch(e) {}
+        }
+
+        // Inicialização
+        document.addEventListener('DOMContentLoaded', () => {
+            document.getElementById('input-data').value = new Date().toISOString().split('T')[0];
+            verificarAutenticacao();
+        });
+
+        function verificarAutenticacao() {
+            try {
+                const s = JSON.parse(localStorage.getItem('crm_session_oficina')) || JSON.parse(localStorage.getItem('crm_session'));
+                if (s && (s.role === 'oficina' || s.role === 'admin')) {
+                    sessaoOficina = s;
+                    exibirPainelOficina();
+                    return;
+                }
+            } catch(e) {}
+            exibirTelaLogin();
+        }
+
+        function exibirTelaLogin() {
+            document.getElementById('section-login').style.display = 'block';
+            document.getElementById('section-app').style.display = 'none';
+            document.getElementById('topbar-user-section').style.display = 'none';
+        }
+
+        function exibirPainelOficina() {
+            document.getElementById('section-login').style.display = 'none';
+            document.getElementById('section-app').style.display = 'block';
+            document.getElementById('topbar-user-section').style.display = 'flex';
+
+            const nomeOficina = sessaoOficina.oficinaNome || sessaoOficina.nome || 'Oficina Credenciada';
+            document.getElementById('header-oficina-nome').innerText = nomeOficina;
+            document.getElementById('banner-oficina-nome').innerText = nomeOficina;
+
+            carregarMotosNoSelect();
+            carregarHistoricoOficina();
+        }
+
+        function realizarLoginOficina(e) {
+            e.preventDefault();
+            const email = (document.getElementById('login-email').value || '').trim().toLowerCase();
+            const senha = (document.getElementById('login-senha').value || '').trim();
+
+            const admins = getDb('crm_admins');
+            const user = admins.find(u => 
+                (u.email || '').toLowerCase() === email && 
+                u.senha === senha &&
+                (u.role === 'oficina' || u.role === 'admin')
+            );
+
+            if (user) {
+                sessaoOficina = {
+                    id: user.id,
+                    nome: user.nome,
+                    oficinaNome: user.nome,
+                    email: user.email,
+                    role: user.role
+                };
+                localStorage.setItem('crm_session_oficina', JSON.stringify(sessaoOficina));
+                exibirPainelOficina();
+            } else {
+                document.getElementById('login-error').style.display = 'block';
+            }
+        }
+
+        function fazerLogoutOficina() {
+            localStorage.removeItem('crm_session_oficina');
+            sessaoOficina = null;
+            exibirTelaLogin();
+        }
+
+        function carregarMotosNoSelect() {
+            const motos = getDb('crm_motos');
+            const clientes = getDb('crm_clientes');
+            const select = document.getElementById('select-moto');
+            select.innerHTML = '<option value="">-- Selecione a moto pelo modelo ou placa --</option>';
+
+            motos.forEach(m => {
+                const c = clientes.find(cli => cli.id === m.clienteId);
+                const condutor = c ? c.nome : (m.status === 'alugada' ? 'Locada' : 'No Pátio');
+                const km = parseInt(m.kmAtual) || 0;
+                const statusBloq = (m.bloqueadoPorKmOleo || (m.rastreadorBloqueado && !m.bloqueadoPorInadimplencia)) ? ' 🚨 [BLOQUEADA]' : '';
+                select.innerHTML += `<option value="${m.id}">🏍️ ${m.placa} — ${m.modelo} (Condutor: ${condutor}) ${statusBloq}</option>`;
+            });
+        }
+
+        function aoSelecionarMoto(motoId) {
+            const preview = document.getElementById('moto-preview');
+            if (!motoId) {
+                preview.style.display = 'none';
+                return;
+            }
+
+            const motos = getDb('crm_motos');
+            const clientes = getDb('crm_clientes');
+            const m = motos.find(x => x.id === motoId);
+            if (!m) return;
+
+            const c = clientes.find(cli => cli.id === m.clienteId);
+            const condutor = c ? `${c.nome} (${c.telefone || ''})` : 'Disponível no Pátio';
+
+            document.getElementById('prev-placa').innerText = m.placa;
+            document.getElementById('prev-modelo').innerText = m.modelo;
+            document.getElementById('prev-condutor').innerText = condutor;
+            document.getElementById('prev-km-ultima').innerText = `${m.kmUltimaTroca || m.kmAtual || 0} km`;
+
+            const isBloqueada = m.bloqueadoPorKmOleo === true || (m.rastreadorBloqueado === true && !m.bloqueadoPorInadimplencia);
+            const statusDiv = document.getElementById('prev-status-bloqueio');
+            if (isBloqueada) {
+                statusDiv.innerHTML = `<span class="status-badge status-bloqueada"><i class="fa-solid fa-lock"></i> BLOQUEADA POR FALTA DE TROCA DE ÓLEO</span>`;
+            } else {
+                statusDiv.innerHTML = `<span class="status-badge status-liberada"><i class="fa-solid fa-circle-check"></i> Liberada / Circulando</span>`;
+            }
+
+            preview.style.display = 'grid';
+
+            // Pré-preenche o KM de chegada com o KM atual estimado se houver
+            const kmAtualEst = parseInt(m.kmAtual) || 0;
+            if (kmAtualEst > 0 && !document.getElementById('input-km').value) {
+                document.getElementById('input-km').value = kmAtualEst;
+                calcularProximasMetas(kmAtualEst);
+            }
+        }
+
+        function calcularProximasMetas(val) {
+            const km = parseInt(val) || 0;
+            if (km <= 0) {
+                document.getElementById('calc-km-atual').innerText = '-- km';
+                document.getElementById('calc-km-prox').innerText = '-- km';
+                document.getElementById('calc-km-bloq').innerText = '-- km';
+                return;
+            }
+
+            document.getElementById('calc-km-atual').innerText = `${km.toLocaleString('pt-BR')} km`;
+            document.getElementById('calc-km-prox').innerText = `${(km + 1000).toLocaleString('pt-BR')} km`;
+            document.getElementById('calc-km-bloq').innerText = `${(km + 1100).toLocaleString('pt-BR')} km`;
+        }
+
+        function selecionarOleoRapido(nomeOleo) {
+            document.getElementById('input-oleo').value = nomeOleo;
+            document.querySelectorAll('.chip-btn').forEach(btn => {
+                btn.classList.toggle('active', btn.innerText.includes(nomeOleo.split(' ')[0]));
+            });
+        }
+
+        function processarTrocaOleo(e) {
+            e.preventDefault();
+            const motoId = document.getElementById('select-moto').value;
+            const kmChegada = parseInt(document.getElementById('input-km').value) || 0;
+            const dataTroca = document.getElementById('input-data').value;
+            const oleo = document.getElementById('input-oleo').value.trim();
+            const mecanico = document.getElementById('input-mecanico').value.trim() || 'Técnico Autorizado';
+            const obs = document.getElementById('input-obs').value.trim();
+
+            if (!motoId) {
+                alert('Por favor, selecione uma moto!');
+                return;
+            }
+            if (kmChegada <= 0) {
+                alert('Informe um KM válido registrado no painel da moto!');
+                return;
+            }
+
+            let motos = getDb('crm_motos');
+            const idx = motos.findIndex(m => m.id === motoId);
+            if (idx === -1) return;
+
+            const moto = motos[idx];
+            const estavaBloqueada = moto.bloqueadoPorKmOleo === true || (moto.rastreadorBloqueado === true && !moto.bloqueadoPorInadimplencia);
+            const proxKm = kmChegada + 1000;
+            const limiteBloq = kmChegada + 1100;
+            const nomeOficina = sessaoOficina?.oficinaNome || sessaoOficina?.nome || 'Oficina Parceira Credenciada';
+
+            // 1. Atualiza os dados da moto para mais 1.000 KM
+            moto.kmAtual = Math.max(parseInt(moto.kmAtual) || 0, kmChegada);
+            moto.kmUltimaTroca = kmChegada;
+            moto.kmProximaTroca = proxKm;
+            moto.bloqueadoPorKmOleo = false;
+            moto.bloqueioOleoDisparado = false;
+
+            // 2. Se a moto estava bloqueada por falta de troca, DESBLOQUEIA NA HORA!
+            let mensagemDesbloqueio = '';
+            if (estavaBloqueada) {
+                moto.rastreadorBloqueado = false;
+                if (!moto.bloqueadoPorInadimplencia) {
+                    moto.motivoBloqueioAutomatico = '';
+                }
+                mensagemDesbloqueio = '🚨 A moto estava bloqueada e foi DESBLOQUEADA IMEDIATAMENTE via satélite!';
+
+                // Disparo de comando de desbloqueio via API de telemetria
+                fetch('/api/telemetry', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: 'command_block',
+                        id: moto.rastreadorImei || '00018E1B',
+                        placa: moto.placa,
+                        bloquear: false,
+                        motivo: `Troca de óleo realizada na ${nomeOficina} — Motor 100% liberado`
+                    })
+                }).catch(() => {});
+            }
+
+            // 3. Registra no Histórico Oficial da Moto
+            if (!Array.isArray(moto.historicoOleo)) moto.historicoOleo = [];
+            moto.historicoOleo.unshift({
+                id: 'REV-' + Date.now(),
+                data: dataTroca,
+                km: kmChegada,
+                proxKm: proxKm,
+                oleo: oleo,
+                oficinaNome: nomeOficina,
+                mecanico: mecanico,
+                obs: obs || 'Troca de óleo e revisão preventiva 1.000 km realizada com sucesso.',
+                desbloqueada: estavaBloqueada,
+                registradoEm: new Date().toISOString()
+            });
+
+            // 4. Salva no banco de dados
+            motos[idx] = moto;
+            saveDb('crm_motos', motos);
+
+            // 5. Exibe Modal de Sucesso
+            document.getElementById('modal-sucesso-msg').innerHTML = `
+                A revisão da moto <strong>${moto.placa}</strong> (${moto.modelo}) foi registrada pela <strong>${nomeOficina}</strong>.<br>
+                ${mensagemDesbloqueio ? `<span style="color:#34d399; font-weight:700; display:block; margin-top:8px;">${mensagemDesbloqueio}</span>` : ''}
+            `;
+
+            document.getElementById('modal-sucesso-destaque').innerHTML = `
+                • <strong>Veículo:</strong> ${moto.placa} — ${moto.modelo}<br>
+                • <strong>KM da Troca:</strong> ${kmChegada.toLocaleString('pt-BR')} km<br>
+                • <strong>Próxima Troca Agendada:</strong> <span style="color:#10b981; font-weight:700;">${proxKm.toLocaleString('pt-BR')} km</span><br>
+                • <strong>Óleo Utilizado:</strong> ${oleo}<br>
+                • <strong>Técnico Responsável:</strong> ${mecanico}<br>
+                • <strong>Status:</strong> <span style="color:#38bdf8; font-weight:700;">MOTO 100% LIBERADA PARA RODAR</span>
+            `;
+
+            document.getElementById('modal-sucesso').classList.add('show');
+
+            // Atualiza a visualização
+            aoSelecionarMoto(moto.id);
+            carregarHistoricoOficina();
+            carregarMotosNoSelect();
+            document.getElementById('select-moto').value = moto.id;
+        }
+
+        function fecharModalSucesso() {
+            document.getElementById('modal-sucesso').classList.remove('show');
+            document.getElementById('form-registro-troca').reset();
+            document.getElementById('moto-preview').style.display = 'none';
+            document.getElementById('calc-km-atual').innerText = '-- km';
+            document.getElementById('calc-km-prox').innerText = '-- km';
+            document.getElementById('calc-km-bloq').innerText = '-- km';
+            document.getElementById('input-data').value = new Date().toISOString().split('T')[0];
+        }
+
+        function carregarHistoricoOficina() {
+            const motos = getDb('crm_motos');
+            const tbody = document.getElementById('tabela-historico-oficina');
+            const nomeOficinaAtual = (sessaoOficina?.oficinaNome || sessaoOficina?.nome || '').toLowerCase();
+
+            let registros = [];
+            motos.forEach(m => {
+                if (Array.isArray(m.historicoOleo)) {
+                    m.historicoOleo.forEach(h => {
+                        registros.push(Object.assign({}, h, { motoPlaca: m.placa, motoModelo: m.modelo }));
+                    });
+                }
+            });
+
+            // Ordena pelo mais recente
+            registros.sort((a, b) => new Date(b.registradoEm || b.data) - new Date(a.registradoEm || a.data));
+
+            document.getElementById('historico-total-count').innerText = `${registros.length} revisões cadastradas`;
+
+            if (registros.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; color:var(--text-muted); padding:24px;">Nenhuma troca de óleo registrada ainda.</td></tr>`;
+                return;
+            }
+
+            tbody.innerHTML = '';
+            registros.forEach(r => {
+                const tr = document.createElement('tr');
+                const dataFmt = r.data ? r.data.split('-').reverse().join('/') : '--/--/----';
+                tr.innerHTML = `
+                    <td><strong>${dataFmt}</strong></td>
+                    <td><span style="background:#1e293b; padding:4px 8px; border-radius:6px; font-weight:700; color:#f97316;">${r.motoPlaca}</span></td>
+                    <td>${r.motoModelo}</td>
+                    <td><strong>${parseInt(r.km || 0).toLocaleString('pt-BR')} km</strong></td>
+                    <td><span style="color:#10b981; font-weight:700;">${parseInt(r.proxKm || 0).toLocaleString('pt-BR')} km</span></td>
+                    <td>${r.oleo || r.obs || 'Mobil 20W-50'}</td>
+                    <td>${r.mecanico || r.oficinaNome || 'Oficina Parceira'}</td>
+                    <td>
+                        <span class="status-badge status-liberada">
+                            <i class="fa-solid fa-check"></i> Liberada
+                        </span>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+    </script>
+</body>
+</html>

@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>FACILITA MOTO CRM - Aluguel de Motos</title>
+    <link rel="icon" type="image/png" href="logo.png.png">
+    <link rel="apple-touch-icon" href="logo.png.png">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
@@ -36,6 +38,7 @@
                 </a>
                 <a href="#" data-target="contratos" class="nav-item"><i class="fa-solid fa-file-contract"></i> Contratos (Gov.br)</a>
                 <a href="#" data-target="usuarios" class="nav-item"><i class="fa-solid fa-user-shield"></i> Usuários</a>
+                <a href="oficina.html" target="_blank" class="nav-item" style="color:#38bdf8; font-weight:600;"><i class="fa-solid fa-wrench"></i> Portal da Oficina <i class="fa-solid fa-arrow-up-right-from-square" style="font-size:0.7rem; margin-left:auto;"></i></a>
             </nav>
             <div class="sidebar-footer">
                 <button class="btn-whatsapp" onclick="openModal('modal-config-rastreador-global')" style="background-color:#0f172a; margin-bottom:8px;" title="Configurar API de Rastreador GPS">
@@ -1801,6 +1804,7 @@
                             <select id="usr-nivel">
                                 <option value="admin">Administrador</option>
                                 <option value="funcionario">Funcionário</option>
+                                <option value="oficina">Oficina Parceira (Credenciada)</option>
                             </select>
                         </div>
                     </div>

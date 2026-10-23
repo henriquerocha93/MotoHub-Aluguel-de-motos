@@ -4290,6 +4290,15 @@ function renderUsuarios() {
         const tr = document.createElement('tr');
         const userImg = a.foto || `https://ui-avatars.com/api/?name=${encodeURIComponent(a.nome)}&background=e2e8f0&color=94a3b8`;
 
+        let roleBadge = '';
+        if (a.role === 'admin') {
+            roleBadge = '<span class="badge badge-disponivel">Admin</span>';
+        } else if (a.role === 'oficina') {
+            roleBadge = '<a href="oficina.html" target="_blank" class="badge" style="background:#0284c7; color:#fff; text-decoration:none;" title="Abrir portal da oficina"><i class="fa-solid fa-wrench"></i> Oficina Parceira</a>';
+        } else {
+            roleBadge = '<span class="badge badge-encerrado">Funcionário</span>';
+        }
+
         tr.innerHTML = `
             <td>
                 <div style="display:flex; align-items:center; gap:10px;">
@@ -4299,7 +4308,7 @@ function renderUsuarios() {
             </td>
             <td><strong>${a.nome}</strong></td>
             <td>${a.email}</td>
-            <td><span class="badge ${a.role === 'admin' ? 'badge-disponivel' : 'badge-encerrado'}">${a.role === 'admin' ? 'Admin' : 'Funcionário'}</span></td>
+            <td>${roleBadge}</td>
             <td><span style="font-family: monospace;">••••••</span> <button class="btn btn-secondary btn-sm" onclick="alert('Senha: ${a.senha}')" title="Mostrar senha"><i class="fa-solid fa-eye"></i></button></td>
             <td>
                 <button class="btn btn-secondary btn-sm" onclick="abrirEdicaoUsuario('${a.id}')"><i class="fa-solid fa-pen"></i></button>
