@@ -679,8 +679,29 @@ function sincronizarDadosPadraoRastreadoresFrota() {
                 m.rastreadorModelo = 'Chip IoT M2M';
                 mudou = true;
             }
+        } else if (m.placa === 'IMJ6E36') {
+            // Moto IMJ6E36 (HONDA/CG 150 TITAN ESD • 2005) com rastreador BWS NB2
+            if (m.rastreadorImei !== '00016415') {
+                m.rastreadorImei = '00016415';
+                mudou = true;
+            }
+            if (m.rastreadorChip !== '5521959604209') {
+                m.rastreadorChip = '5521959604209';
+                mudou = true;
+            }
+            if (!m.rastreadorModelo || m.rastreadorModelo === 'Traccar / GPS') {
+                m.rastreadorModelo = 'BWS NB2 (BWS IOT TIM)';
+                mudou = true;
+            }
+            if (!m.rastreadorLat || m.rastreadorLat === '') {
+                m.rastreadorLat = -30.074847;
+                m.rastreadorLng = -51.169472;
+                m.rastreadorEndereco = 'Vila São José, Porto Alegre - RS';
+                mudou = true;
+            }
+            m.rastreadorProvedor = 'xtrack';
         } else {
-            // As demais motos (ex: IMJ6E36, IOG2G34) ainda NÃO possuem rastreador instalado
+            // As demais motos ainda NÃO possuem rastreador instalado
             if (!jaLimpouOutrasMotos || m.rastreadorImei === '00018E1B' || m.rastreadorChip === '89555480000080813880' || m.rastreadorChip === 'Traccar / GPS') {
                 if (m.rastreadorImei || m.rastreadorChip || m.rastreadorLat || m.rastreadorLng || m.rastreadorEndereco) {
                     m.rastreadorImei = '';
@@ -3804,7 +3825,7 @@ function coletarCamposEditorGov() {
         'gov-prazo-inicio', 'gov-prazo-hora', 'gov-prazo-duracao',
         'gov-fin-semanal', 'gov-fin-semanal-extenso', 'gov-fin-dia-venc', 'gov-fin-hora-venc', 'gov-fin-forma-pag',
         'gov-fin-caucao', 'gov-fin-caucao-extenso', 'gov-multa-prazo-dias',
-        'gov-foro-local', 'gov-foro-data', 'gov-test1-nome', 'gov-test1-cpf', 'gov-test2-nome', 'gov-test2-cpf',
+        'gov-foro-local', 'gov-foro-data', 'gov-test1-nome', 'gov-test1-cpf', 'gov-test1-rg',
         'gov-vist-combustivel', 'gov-vist-pneus', 'gov-vist-freios', 'gov-vist-farois', 'gov-vist-retrovisores',
         'gov-vist-carenagem', 'gov-vist-chaves', 'gov-vist-danos', 'gov-vist-fotos', 'gov-vist-obs',
         'gov-anexo2-pix', 'gov-anexo2-prazo-caucao', 'gov-anexo2-uso', 'gov-anexo2-outras'
@@ -4083,18 +4104,13 @@ function gerarHtmlContratoPadraoCompleto(d) {
             </div>
         </div>
 
-        <div class="govbr-sign-grid" style="margin-top:10px;">
-            <div style="font-size:12px;">
-                <strong>TESTEMUNHA 1</strong><br>
-                Nome: ${v('gov-test1-nome', '____________________________________________________')}<br>
-                CPF: ${v('gov-test1-cpf', '_____________________________________________________')}<br>
-                Assinatura: _______________________________________________
-            </div>
-            <div style="font-size:12px;">
-                <strong>TESTEMUNHA 2</strong><br>
-                Nome: ${v('gov-test2-nome', '____________________________________________________')}<br>
-                CPF: ${v('gov-test2-cpf', '_____________________________________________________')}<br>
-                Assinatura: _______________________________________________
+        <div style="margin-top:18px; padding:12px 16px; border:1px solid #cbd5e1; border-radius:6px; background:#f8fafc; font-size:12px;">
+            <strong style="color:#0f172a; font-size:12.5px; text-transform:uppercase;">TESTEMUNHA</strong><br>
+            <div style="margin-top:6px; line-height:1.7;">
+                <strong>Nome:</strong> ${v('gov-test1-nome', '____________________________________________________')}<br>
+                <strong>CPF:</strong> ${v('gov-test1-cpf', '_____________________________________________________')}<br>
+                ${d['gov-test1-rg'] ? `<strong>RG / Documento:</strong> ${d['gov-test1-rg']}<br>` : ''}
+                Assinatura da Testemunha: _______________________________________________
             </div>
         </div>
 

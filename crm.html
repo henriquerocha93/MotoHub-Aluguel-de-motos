@@ -905,6 +905,25 @@
                                         <input type="text" id="gov-locatario-cnh-val" placeholder="DD/MM/AAAA" oninput="atualizarPreviewContratoGov()">
                                     </div>
                                 </div>
+
+                                <!-- 1.3. TESTEMUNHA DO CONTRATO (Apenas 1 Testemunha) -->
+                                <h4 style="margin:20px 0 10px; color:var(--primary); font-size:0.9rem; border-top:1px solid var(--border); padding-top:14px; display:flex; align-items:center; gap:8px;">
+                                    <i class="fa-solid fa-user-pen"></i> 1.3. TESTEMUNHA (Apenas 1 Testemunha para Assinatura e Validade do Contrato)
+                                </h4>
+                                <div class="form-group row">
+                                    <div class="col" style="flex:2;">
+                                        <label>Nome Completo da Testemunha</label>
+                                        <input type="text" id="gov-test1-nome" placeholder="Nome completo da testemunha" oninput="atualizarPreviewContratoGov()">
+                                    </div>
+                                    <div class="col">
+                                        <label>CPF da Testemunha</label>
+                                        <input type="text" id="gov-test1-cpf" placeholder="000.000.000-00" oninput="atualizarPreviewContratoGov()">
+                                    </div>
+                                    <div class="col">
+                                        <label>RG / Documento (Opcional)</label>
+                                        <input type="text" id="gov-test1-rg" placeholder="RG ou Órgão Emissor" oninput="atualizarPreviewContratoGov()">
+                                    </div>
+                                </div>
                             </div>
 
                             <!-- ABA 2: MOTOCICLETA & PRAZO -->
@@ -1002,7 +1021,7 @@
                                     </div>
                                 </div>
 
-                                <h4 style="margin:15px 0 10px; color:var(--primary); font-size:0.9rem;">CLÁUSULA 18ª — LOCAL, DATA E TESTEMUNHAS</h4>
+                                <h4 style="margin:15px 0 10px; color:var(--primary); font-size:0.9rem;">CLÁUSULA 18ª — LOCAL E DATA DE ASSINATURA</h4>
                                 <div class="form-group row">
                                     <div class="col">
                                         <label>Local de Assinatura</label>
@@ -1011,24 +1030,6 @@
                                     <div class="col">
                                         <label>Data de Assinatura</label>
                                         <input type="text" id="gov-foro-data" placeholder="DD/MM/AAAA" oninput="atualizarPreviewContratoGov()">
-                                    </div>
-                                </div>
-                                <div class="form-group row">
-                                    <div class="col">
-                                        <label>Testemunha 1 — Nome (Opcional)</label>
-                                        <input type="text" id="gov-test1-nome" oninput="atualizarPreviewContratoGov()">
-                                    </div>
-                                    <div class="col">
-                                        <label>Testemunha 1 — CPF</label>
-                                        <input type="text" id="gov-test1-cpf" oninput="atualizarPreviewContratoGov()">
-                                    </div>
-                                    <div class="col">
-                                        <label>Testemunha 2 — Nome (Opcional)</label>
-                                        <input type="text" id="gov-test2-nome" oninput="atualizarPreviewContratoGov()">
-                                    </div>
-                                    <div class="col">
-                                        <label>Testemunha 2 — CPF</label>
-                                        <input type="text" id="gov-test2-cpf" oninput="atualizarPreviewContratoGov()">
                                     </div>
                                 </div>
                             </div>

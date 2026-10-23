@@ -3,6 +3,26 @@
 // Moto Rastreada: HONDA/CG150 TITAN MIXESD • Placa: IPU2I57 • ID: 00018E1B • ICCID: 89555480000080813880
 
 let memoryTelemetryStore = {
+    "00016415": {
+        id: "00016415",
+        iccid: "5521959604209",
+        imei: "357746431285144",
+        placa: "IMJ6E36",
+        provedor: "App Xtrack Oficial (tela.xtrack.app.br)",
+        bloqueado: false,
+        motivoBloqueio: null,
+        kmGpsAcumulado: 0,
+        kmAtual: 0,
+        lat: -30.074847,
+        lng: -51.169472,
+        endereco: "Vila São José, Porto Alegre - RS",
+        velocidade: 0,
+        ignicao: false,
+        bateriaRemovida: false,
+        tensaoExterna: 12.8,
+        tensaoBackup: 4.1,
+        updatedAt: new Date().toISOString()
+    },
     "00018E1B": {
         id: "00018E1B",
         iccid: "89555480000080813880",
@@ -113,7 +133,7 @@ async function syncFromXtrackApp(login, senha, targetPlaca = 'IPU2I57', targetId
 
     // 1. Tenta consultar primeiro o Robô no Render (Background Polling 24h)
     try {
-        const renderRes = await fetch('https://facilita-whatsapp-bot.onrender.com/api/tracker-live', {
+        const renderRes = await fetch(`https://facilita-whatsapp-bot.onrender.com/api/tracker-live?placa=${encodeURIComponent(targetPlaca)}&id=${encodeURIComponent(idLimpo)}`, {
             signal: AbortSignal.timeout(2500)
         });
         if (renderRes.ok) {
@@ -202,7 +222,7 @@ async function syncFromXtrackApp(login, senha, targetPlaca = 'IPU2I57', targetId
 
             const json = await res.json().catch(() => null);
             if (json && json.status === true && Array.isArray(json.dados) && json.dados.length > 0) {
-                const motoData = json.dados[0];
+                const motoData = json.dados.find(d => (d.ras_veiculos?.ras_vei_placa || "").toUpperCase() === targetPlaca || String(d.ras_eve_aut_id || "") === idLimpo) || json.dados[0];
                 const loc = motoData.loc || [];
                 const lat = parseFloat(loc[0]);
                 const lng = parseFloat(loc[1]);
@@ -374,7 +394,7 @@ export default async function handler(req, res) {
 
         return res.status(200).json({
             status: 'online',
-            device: memoryTelemetryStore[deviceId] || memoryTelemetryStore["00018E1B"]
+            device: memoryTelemetryStore[deviceId] || (payload.placa ? Object.values(memoryTelemetryStore).find(d => d.placa === String(payload.placa).toUpperCase()) : null) || memoryTelemetryStore["00018E1B"]
         });
     } catch (err) {
         return res.status(500).json({ error: err.message });
