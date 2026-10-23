@@ -138,12 +138,12 @@ function getMercadoPagoConfig() {
 
 function getWhatsAppConfig() {
     const def = {
-        provider: 'meta_cloud',
+        provider: 'gateway_rest',
         metaToken: '',
         metaPhoneNumberId: '',
         metaWabaId: '',
         metaTemplateName: 'cobranca_aluguel_moto',
-        gatewayUrl: '',
+        gatewayUrl: 'https://facilita-whatsapp-bot.onrender.com/send-message',
         gatewayToken: '',
         autoDisparo08h: true,
         autoDisparo18h: true,
@@ -153,6 +153,12 @@ function getWhatsAppConfig() {
     try {
         const saved = JSON.parse(localStorage.getItem('crm_whatsapp_config'));
         if (!saved) return def;
+        // Se a URL do gateway estiver vazia ou com valor antigo, atualiza com o robô em nuvem da Facilita Moto
+        if (!saved.gatewayUrl || saved.gatewayUrl.includes('z-api')) {
+            saved.gatewayUrl = def.gatewayUrl;
+            saved.provider = 'gateway_rest';
+            localStorage.setItem('crm_whatsapp_config', JSON.stringify(saved));
+        }
         return Object.assign({}, def, saved);
     } catch (e) {
         return def;

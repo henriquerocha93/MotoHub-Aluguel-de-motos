@@ -75,11 +75,11 @@ export default async function handler(req, res) {
             });
         }
 
-        const provider = config.provider || process.env.WHATSAPP_PROVIDER || 'meta_cloud';
+        const provider = config.provider || process.env.WHATSAPP_PROVIDER || (config.gatewayUrl || !config.metaToken ? 'gateway_rest' : 'meta_cloud');
         const metaToken = config.metaAccessToken || process.env.WHATSAPP_ACCESS_TOKEN || '';
         const metaPhoneId = config.metaPhoneNumberId || process.env.WHATSAPP_PHONE_NUMBER_ID || '';
         const metaVersion = config.metaApiVersion || 'v20.0';
-        const gatewayUrl = config.gatewayUrl || process.env.WHATSAPP_GATEWAY_URL || '';
+        const gatewayUrl = config.gatewayUrl || process.env.WHATSAPP_GATEWAY_URL || 'https://facilita-whatsapp-bot.onrender.com/send-message';
         const gatewayToken = config.gatewayToken || process.env.WHATSAPP_GATEWAY_TOKEN || '';
 
         let apiDelivered = false;
@@ -162,13 +162,15 @@ export default async function handler(req, res) {
                     headers['apikey'] = gatewayToken;
                 }
 
-                // Formato universal compatível com Z-API, Evolution API e Webhooks n8n/Make
+                // Formato universal compatível com Z-API, Evolution API, UltraMsg e Webhooks n8n/Make
                 const gatewayPayload = {
                     phone: numeroDestino,
                     number: numeroDestino,
                     to: numeroDestino,
                     message: String(mensagem || ''),
                     text: String(mensagem || ''),
+                    body: String(mensagem || ''),
+                    token: gatewayToken || undefined,
                     textMessage: { text: String(mensagem || '') },
                     pixCopiaECola: pixCopiaECola || '',
                     clienteNome: clienteNome || '',
