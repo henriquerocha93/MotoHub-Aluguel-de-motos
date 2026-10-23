@@ -53,6 +53,11 @@
                 <button class="menu-toggle" onclick="toggleSidebar()"><i class="fa-solid fa-bars"></i></button>
                 <h1 id="page-title">Dashboard</h1>
                 <div style="display:flex; align-items:center; gap:14px;">
+                    <!-- Botão Restaurar Dados & Backup -->
+                    <button type="button" class="btn btn-secondary btn-sm" onclick="restaurarBackupCompletoManualmente()" style="background:#065f46; color:#a7f3d0; border:1px solid #10b981; padding:6px 12px; border-radius:999px; font-weight:700; font-size:0.78rem; display:flex; align-items:center; gap:6px; cursor:pointer;" title="Clique para restaurar todos os clientes, motos e contratos">
+                        <i class="fa-solid fa-cloud-arrow-down"></i> Restaurar Dados
+                    </button>
+
                     <!-- Botão Testar Sirene Roubo/Furto & Desbloquear Áudio do Navegador -->
                     <button type="button" class="btn btn-secondary btn-sm" onclick="testarSireneEmergenciaManualmente()" style="background:#7f1d1d; color:#fca5a5; border:1px solid #ef4444; padding:6px 12px; border-radius:999px; font-weight:700; font-size:0.78rem; display:flex; align-items:center; gap:6px; cursor:pointer;" title="Clique para testar o som da sirene de roubo/furto e ativar alertas sonoros">
                         <i class="fa-solid fa-bullhorn"></i> Testar Sirene
@@ -2146,6 +2151,6 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <!-- Firebase Firestore -->
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
-    <script src="app.js?v=20261023_sirene_roubo_v6"></script>
+    <script src="app.js?v=20261023_recuperar_dados_v7"></script>
 </body>
 </html>
