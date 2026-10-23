@@ -5,14 +5,22 @@
 
 let deferredInstallPrompt = null;
 
-// Registra Service Worker
+// Registra Service Worker com atualização forçada em mobile
 if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
         navigator.serviceWorker.register('./sw.js').then((reg) => {
             console.log('✅ [PWA] Service Worker registrado com sucesso:', reg.scope);
+            if (reg.update) {
+                reg.update();
+            }
         }).catch((err) => {
             console.warn('⚠️ [PWA] Falha ao registrar Service Worker:', err);
         });
+    });
+
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+        console.log('🔄 [PWA] Nova versão do app carregada! Atualizando tela...');
+        window.location.reload();
     });
 }
 
