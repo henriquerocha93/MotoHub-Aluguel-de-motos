@@ -80,12 +80,14 @@
             top: 0;
             left: 0;
             right: 0;
-            height: 78px;
-            background: rgba(9, 13, 22, 0.88);
+            padding-top: env(safe-area-inset-top, 0px);
+            height: auto;
+            min-height: calc(72px + env(safe-area-inset-top, 0px));
+            background: rgba(9, 13, 22, 0.94);
             backdrop-filter: blur(14px);
             -webkit-backdrop-filter: blur(14px);
             border-bottom: 1px solid var(--border-subtle);
-            z-index: 100;
+            z-index: 1000;
             display: flex;
             align-items: center;
         }
@@ -1245,14 +1247,51 @@
         }
 
         @media (max-width: 640px) {
+            .public-navbar {
+                padding-top: max(8px, env(safe-area-inset-top, 8px)) !important;
+                padding-bottom: 8px !important;
+                min-height: 64px !important;
+            }
             .navbar-container {
-                padding: 0 16px;
+                padding: 0 14px !important;
+                min-height: 48px !important;
+                gap: 10px !important;
+            }
+            .btn-admin-nav {
+                min-height: 42px !important;
+                padding: 9px 15px !important;
+                font-size: 0.88rem !important;
+                font-weight: 700 !important;
+                background: #1e293b !important;
+                border: 1.5px solid #38bdf8 !important;
+                color: #38bdf8 !important;
+                border-radius: 999px !important;
+                box-shadow: 0 4px 14px rgba(56, 189, 248, 0.25) !important;
+                margin-top: 2px !important;
             }
             .btn-nav-cta {
                 display: none;
             }
             .hero-section {
-                padding: 108px 16px 48px;
+                padding: calc(90px + env(safe-area-inset-top, 0px)) 16px 48px;
+            }
+            .mobile-admin-access-hero {
+                display: flex !important;
+                width: 100% !important;
+                justify-content: center !important;
+                align-items: center !important;
+                gap: 8px !important;
+                padding: 13px 20px !important;
+                border-radius: 12px !important;
+                background: rgba(15, 23, 42, 0.95) !important;
+                border: 1.5px solid #38bdf8 !important;
+                color: #38bdf8 !important;
+                font-weight: 700 !important;
+                font-size: 0.95rem !important;
+                margin-top: 12px !important;
+                text-decoration: none !important;
+                cursor: pointer !important;
+                box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4) !important;
             }
             .hero-trust-row {
                 grid-template-columns: 1fr;
@@ -1439,6 +1478,10 @@
                     <a href="#como-funciona" class="btn-hero-secondary">
                         Como Funciona <i class="fa-solid fa-chevron-down"></i>
                     </a>
+                    <!-- Botão de Acesso Admin / Login em Destaque no Celular -->
+                    <button type="button" class="mobile-admin-access-hero" onclick="abrirLoginAdmin()" style="display:none;">
+                        <i class="fa-solid fa-lock"></i> Entrar na Área do Administrador (CRM)
+                    </button>
                 </div>
 
                 <div class="hero-trust-row">

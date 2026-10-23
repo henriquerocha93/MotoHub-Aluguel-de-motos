@@ -15,7 +15,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <link rel="stylesheet" href="style.css?v=20261023_mobile_v2">
+    <link rel="stylesheet" href="style.css?v=20261023_mobile_v4">
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 </head>
@@ -59,16 +59,6 @@
                     <h1 id="page-title">Dashboard</h1>
                 </div>
                 <div class="topbar-right">
-                    <!-- Botão Restaurar Dados & Backup (Desktop) -->
-                    <button type="button" class="btn btn-secondary btn-sm desktop-only-btn" onclick="restaurarBackupCompletoManualmente()" style="background:#065f46; color:#a7f3d0; border:1px solid #10b981; padding:6px 12px; border-radius:999px; font-weight:700; font-size:0.78rem; display:flex; align-items:center; gap:6px; cursor:pointer;" title="Clique para restaurar todos os clientes, motos e contratos">
-                        <i class="fa-solid fa-cloud-arrow-down"></i> <span>Restaurar Dados</span>
-                    </button>
-
-                    <!-- Botão Testar Sirene Roubo/Furto (Desktop) -->
-                    <button type="button" class="btn btn-secondary btn-sm desktop-only-btn" onclick="testarSireneEmergenciaManualmente()" style="background:#7f1d1d; color:#fca5a5; border:1px solid #ef4444; padding:6px 12px; border-radius:999px; font-weight:700; font-size:0.78rem; display:flex; align-items:center; gap:6px; cursor:pointer;" title="Clique para testar o som da sirene de roubo/furto e ativar alertas sonoros">
-                        <i class="fa-solid fa-bullhorn"></i> <span>Testar Sirene</span>
-                    </button>
-
                     <!-- Botão Criar App (PWA PC / Celular) -->
                     <button type="button" class="btn btn-secondary btn-sm" onclick="acionarInstalacaoApp()" style="background:#0f172a; color:#38bdf8; border:1px solid #334155; border-radius:999px; padding:6px 10px; font-weight:700; font-size:0.78rem; display:flex; align-items:center; gap:6px; cursor:pointer;" title="Instalar App no PC, iPhone ou Android">
                         <i class="fa-solid fa-mobile-screen-button"></i> <span class="hide-mobile">Criar App</span>
