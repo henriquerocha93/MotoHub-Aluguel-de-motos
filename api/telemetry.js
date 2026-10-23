@@ -392,9 +392,23 @@ export default async function handler(req, res) {
             return res.status(200).json({ status: 'ok', telemetry: current });
         }
 
+        const reqPlaca = String(payload.placa || '').toUpperCase().trim();
+        const reqId = String(payload.id || payload.deviceid || payload.imei || payload.deviceId || '').toUpperCase().trim();
+
+        let targetDevice = null;
+        if (reqPlaca) {
+            targetDevice = Object.values(memoryTelemetryStore).find(d => (d.placa || '').toUpperCase() === reqPlaca);
+        }
+        if (!targetDevice && reqId) {
+            targetDevice = memoryTelemetryStore[reqId] || Object.values(memoryTelemetryStore).find(d => (d.id || '').toUpperCase() === reqId || (d.imei || '').toUpperCase() === reqId);
+        }
+        if (!targetDevice) {
+            targetDevice = memoryTelemetryStore['00018E1B'];
+        }
+
         return res.status(200).json({
             status: 'online',
-            device: memoryTelemetryStore[deviceId] || (payload.placa ? Object.values(memoryTelemetryStore).find(d => d.placa === String(payload.placa).toUpperCase()) : null) || memoryTelemetryStore["00018E1B"]
+            device: targetDevice
         });
     } catch (err) {
         return res.status(500).json({ error: err.message });
