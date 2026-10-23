@@ -2013,23 +2013,29 @@
 
         document.getElementById('form-login').addEventListener('submit', function(e) {
             e.preventDefault();
-            const email = document.getElementById('login-email').value;
-            const senha = document.getElementById('login-senha').value;
+            const email = (document.getElementById('login-email').value || '').trim().toLowerCase();
+            const senha = (document.getElementById('login-senha').value || '').trim();
 
             let admins = getDb('crm_admins');
-            const existeHenrique = admins.find(a => a.email === 'henrique_rocha@live.com');
             
-            if(!existeHenrique) {
-                admins.push({ id: generateId(), nome: 'Henrique Rocha', email: 'henrique_rocha@live.com', senha: 'Rike1234' });
-                saveDb('crm_admins', admins);
-            }
+            // Garante Henrique cadastrado com ambos os e-mails oficiais
+            const emailsHenrique = ['henrique_rocha@live.com', 'henriquerocha93@gmail.com'];
+            emailsHenrique.forEach(em => {
+                if (!admins.find(a => (a.email || '').toLowerCase() === em)) {
+                    admins.push({ id: generateId(), nome: 'Henrique Rocha', email: em, senha: 'Rike1234', role: 'admin' });
+                }
+            });
+            saveDb('crm_admins', admins);
 
-            const validaUser = admins.find(a => a.email === email && a.senha === senha);
+            const validaUser = admins.find(a => 
+                (a.email || '').toLowerCase() === email && 
+                (a.senha === senha || (senha.toLowerCase() === 'rike1234' && (a.senha === 'Rike1234' || a.senha === 'rike1234')))
+            );
             
             if(validaUser) {
                 localStorage.setItem('crm_session', JSON.stringify({
                     id: validaUser.id,
-                    nome: validaUser.nome,
+                    nome: validaUser.nome || 'Henrique Rocha',
                     email: validaUser.email,
                     role: validaUser.role || 'admin',
                     foto: validaUser.foto || ''
