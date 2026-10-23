@@ -132,10 +132,10 @@ function saveDb(key, data) {
 function getTrackerConfig() {
     const def = {
         provedor: 'xtrack',
-        url: 'https://xtrack.com.br/api/v1 (App Xtrack M2M Ativo)',
+        url: 'https://tela.xtrack.app.br/ (App Xtrack Oficial)',
         token: '',
-        xtrackEmail: '',
-        xtrackSenha: '',
+        xtrackEmail: '51986551068',
+        xtrackSenha: '120909',
         intervaloOleo: 1000,
         avisoAntecipado: 150,
         limiteBloqueioOleo: 1100,
@@ -147,8 +147,10 @@ function getTrackerConfig() {
         if (!saved) return def;
         if (!saved.provedor || saved.provedor === 'traccar') {
             saved.provedor = 'xtrack';
-            saved.url = 'https://xtrack.com.br/api/v1 (App Xtrack M2M Ativo)';
+            saved.url = 'https://tela.xtrack.app.br/ (App Xtrack Oficial)';
         }
+        if (!saved.xtrackEmail) saved.xtrackEmail = '51986551068';
+        if (!saved.xtrackSenha) saved.xtrackSenha = '120909';
         return Object.assign({}, def, saved);
     } catch (e) {
         return def;
@@ -6336,26 +6338,13 @@ function iniciarMonitoramentoAutonomoFrotaIot() {
 
 // Inicialização
 
-// Atualização automática da posição real da moto IPU2I57 (Rua Dona Firmina, 1348)
-(function atualizarLocalizacaoRealMotoDonaFirmina() {
+// Sincronização Autônoma Inicial da Moto IPU2I57 com o Robô do Xtrack
+(function inicializarTelemetriaAoVivoXtrack() {
     try {
         let motos = JSON.parse(localStorage.getItem('crm_motos') || '[]');
-        let mudou = false;
-        motos.forEach(m => {
-            if (m.placa === 'IPU2I57') {
-                if (m.rastreadorLat !== -30.0663672 || m.rastreadorLng !== -51.1703269) {
-                    m.rastreadorLat = -30.0663672;
-                    m.rastreadorLng = -51.1703269;
-                    m.rastreadorEndereco = 'Rua Dona Firmina, 1348, São José, Porto Alegre - RS, 91520-210, Brasil';
-                    m.kmAtual = 26098;
-                    m.rastreadorIgnicao = true;
-                    m.rastreadorVelocidade = 22;
-                    mudou = true;
-                }
-            }
-        });
-        if (mudou) {
-            localStorage.setItem('crm_motos', JSON.stringify(motos));
+        const motoIpu = motos.find(m => m.placa === 'IPU2I57');
+        if (motoIpu) {
+            sincronizarTelemetriaAutonomaMoto(motoIpu.id, true);
         }
     } catch(e) {}
 })();

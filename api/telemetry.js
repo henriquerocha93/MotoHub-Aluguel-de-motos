@@ -7,15 +7,15 @@ let memoryTelemetryStore = {
         id: "00018E1B",
         iccid: "89555480000080813880",
         placa: "IPU2I57",
-        provedor: "App Xtrack (Online / Em Movimento)",
+        provedor: "App Xtrack Oficial (tela.xtrack.app.br)",
         bloqueado: false,
         motivoBloqueio: null,
         kmGpsAcumulado: 4,
-        kmAtual: 26098,
-        lat: -30.0663672,
-        lng: -51.1703269,
-        endereco: "Rua Dona Firmina, 1348, São José, Porto Alegre - RS, 91520-210, Brasil",
-        velocidade: 22,
+        kmAtual: 270185,
+        lat: -30.018797,
+        lng: -51.206461,
+        endereco: "Rua Câncio Gomes, 664, Floresta, Porto Alegre - RS, 90220-060, Brasil",
+        velocidade: 13,
         ignicao: true,
         bateriaRemovida: false,
         tensaoExterna: 13.8,
@@ -25,9 +25,9 @@ let memoryTelemetryStore = {
 };
 
 let cachedXtrackSession = {
-    email: null,
+    login: '51986551068',
+    password: '',
     cookie: null,
-    token: null,
     expiresAt: 0
 };
 
@@ -102,114 +102,126 @@ async function enviarComandoBloqueioXtrack(email, senha, targetPlaca = 'IPU2I57'
     return { ok: true, mode: 'm2m_queue', device: current };
 }
 
-async function syncFromXtrackApp(email, senha, targetPlaca = 'IPU2I57', targetId = '00018E1B') {
+async function syncFromXtrackApp(login, senha, targetPlaca = 'IPU2I57', targetId = '00018E1B') {
     const idLimpo = String(targetId || '00018E1B').toUpperCase();
     const current = memoryTelemetryStore[idLimpo] || {
         id: idLimpo,
         iccid: "89555480000080813880",
         placa: targetPlaca || "IPU2I57",
-        provedor: "App Xtrack"
+        provedor: "App Xtrack Oficial (tela.xtrack.app.br)"
     };
 
-    if (!email || !senha) {
-        return { ok: false, error: 'Login e senha do App Xtrack não configurados.', device: current };
-    }
+    // 1. Tenta consultar primeiro o Robô no Render (Background Polling 24h)
+    try {
+        const renderRes = await fetch('https://facilita-whatsapp-bot.onrender.com/api/tracker-live', {
+            signal: AbortSignal.timeout(2500)
+        });
+        if (renderRes.ok) {
+            const rJson = await renderRes.json();
+            if (rJson && rJson.device && !isNaN(parseFloat(rJson.device.lat))) {
+                const dev = rJson.device;
+                current.lat = parseFloat(dev.lat);
+                current.lng = parseFloat(dev.lng);
+                current.velocidade = parseInt(dev.velocidade) || 0;
+                current.ignicao = Boolean(dev.ignicao);
+                current.kmAtual = parseFloat(dev.odometro || dev.kmAtual || current.kmAtual);
+                current.endereco = dev.endereco || current.endereco;
+                current.updatedAt = dev.updatedAt || new Date().toISOString();
+                current.provedor = "App Xtrack Oficial (Robô Render 24h)";
+                memoryTelemetryStore[idLimpo] = current;
+                return { ok: true, device: current };
+            }
+        }
+    } catch (e) {}
 
-    let token = cachedXtrackSession.token;
-    const now = Date.now();
+    // 2. Conexão direta com tela.xtrack.app.br (Fulltrack Oficial)
+    const userLogin = (login || cachedXtrackSession.login || '51986551068').trim();
+    const userPass = (senha || cachedXtrackSession.password || '120909').trim();
 
     try {
-        if (!token || cachedXtrackSession.email !== email || now > cachedXtrackSession.expiresAt) {
-            // Autenticação oficial no App Xtrack (API Laravel)
-            const loginRes = await fetch('https://app.xtrack.com.br/api/login', {
+        const now = Date.now();
+        if (!cachedXtrackSession.cookie || cachedXtrackSession.login !== userLogin || now > cachedXtrackSession.expiresAt) {
+            const initialRes = await fetch('https://tela.xtrack.app.br/', {
+                headers: {
+                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8'
+                }
+            });
+            const setCookie = initialRes.headers.get('set-cookie');
+            const cookies = [];
+            if (setCookie) {
+                setCookie.split(',').forEach(c => {
+                    const part = c.split(';')[0].trim();
+                    if (part && !cookies.includes(part)) cookies.push(part);
+                });
+            }
+            const cookieHeader = cookies.join('; ');
+
+            const formData = new URLSearchParams();
+            formData.append('login', userLogin);
+            formData.append('password', userPass);
+
+            const loginRes = await fetch('https://tela.xtrack.app.br/emp/tela', {
                 method: 'POST',
                 headers: {
-                    'Accept': 'application/json',
-                    'Content-Type': 'application/json',
-                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) FacilitaMoto/1.0'
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'Cookie': cookieHeader,
+                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                    'Origin': 'https://tela.xtrack.app.br',
+                    'Referer': 'https://tela.xtrack.app.br/'
                 },
-                body: JSON.stringify({ email: email.trim(), password: senha })
+                body: formData.toString(),
+                redirect: 'manual'
             });
 
-            const loginText = await loginRes.text();
-            let loginData = {};
-            try { loginData = JSON.parse(loginText); } catch (e) {}
-
-            token = loginData.token || loginData.access_token || loginData?.data?.token;
-
-            if (!loginRes.ok || loginData.status === 0 || !token) {
-                const errDetail = loginData.errors ? Object.values(loginData.errors).flat().join(' ') : (loginData.message || 'Credenciais inválidas no App Xtrack');
-                return { ok: false, error: errDetail, device: current };
+            if (loginRes.status === 302 || loginRes.status === 200) {
+                cachedXtrackSession = {
+                    login: userLogin,
+                    password: userPass,
+                    cookie: cookieHeader,
+                    expiresAt: now + (45 * 60 * 1000)
+                };
             }
-
-            cachedXtrackSession = {
-                email: email.trim(),
-                token: token,
-                expiresAt: now + (45 * 60 * 1000)
-            };
         }
 
-        const authHeaders = {
-            'Accept': 'application/json',
-            'Authorization': token.startsWith('Bearer ') ? token : `Bearer ${token}`,
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) FacilitaMoto/1.0'
-        };
+        if (cachedXtrackSession.cookie) {
+            const formData = new URLSearchParams();
+            formData.append('clientes[]', '600696');
 
-        // Busca lista de veículos e posições em tempo real
-        const endpoints = [
-            'https://app.xtrack.com.br/api/devices',
-            'https://app.xtrack.com.br/api/positions',
-            'https://app.xtrack.com.br/api/veiculos',
-            'https://app.xtrack.com.br/api/dispositivos'
-        ];
+            const res = await fetch('https://tela.xtrack.app.br/mapaGeral/atualizaMapa', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'Cookie': cachedXtrackSession.cookie,
+                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                    'Referer': 'https://tela.xtrack.app.br/mapaGeral',
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                body: formData.toString()
+            });
 
-        let targetDevice = null;
-        for (const ep of endpoints) {
-            try {
-                const r = await fetch(ep, { headers: authHeaders });
-                if (r.ok) {
-                    const json = await r.json();
-                    const list = Array.isArray(json) ? json : (json.data || json.devices || json.veiculos || []);
-                    if (Array.isArray(list) && list.length > 0) {
-                        targetDevice = list.find(v => {
-                            const dId = String(v.id || v.deviceId || v.serial || v.imei || '').toUpperCase();
-                            const p = String(v.placa || v.plate || '').toUpperCase();
-                            return dId.includes(idLimpo) || p.includes(targetPlaca.toUpperCase());
-                        }) || list[0];
-                        break;
-                    }
+            const json = await res.json().catch(() => null);
+            if (json && json.status === true && Array.isArray(json.dados) && json.dados.length > 0) {
+                const motoData = json.dados[0];
+                const loc = motoData.loc || [];
+                const lat = parseFloat(loc[0]);
+                const lng = parseFloat(loc[1]);
+                const vel = parseInt(motoData.ras_eve_velocidade) || 0;
+                const ignicao = parseInt(motoData.ras_eve_ignicao) === 1;
+                const odo = parseInt(motoData.ras_veiculos?.ras_vei_odometro) || current.kmAtual;
+
+                if (!isNaN(lat) && !isNaN(lng)) {
+                    current.lat = lat;
+                    current.lng = lng;
                 }
-            } catch (e) {}
-        }
-
-        if (targetDevice) {
-            const lat = parseFloat(targetDevice.latitude ?? targetDevice.lat);
-            const lng = parseFloat(targetDevice.longitude ?? targetDevice.lng);
-            const speed = parseFloat(targetDevice.speed ?? targetDevice.velocidade ?? 0);
-            const ignicao = Boolean(targetDevice.ignition ?? targetDevice.ignicao ?? (speed > 2));
-            const tensao = parseFloat(targetDevice.voltage ?? targetDevice.tensao ?? 12.6);
-
-            if (!isNaN(lat) && !isNaN(lng)) {
-                if (!isNaN(current.lat) && !isNaN(current.lng)) {
-                    const delta = calcularDistanciaGpsKm(current.lat, current.lng, lat, lng);
-                    current.kmGpsAcumulado = (parseFloat(current.kmGpsAcumulado) || 0) + delta;
-                }
-                current.lat = lat;
-                current.lng = lng;
+                current.velocidade = vel;
+                current.ignicao = ignicao;
+                current.kmAtual = odo;
+                current.updatedAt = new Date().toISOString();
+                current.provedor = "App Xtrack Oficial (Tempo Real)";
+                memoryTelemetryStore[idLimpo] = current;
+                return { ok: true, device: current };
             }
-            current.velocidade = isNaN(speed) ? 0 : Math.round(speed);
-            current.ignicao = ignicao;
-            current.tensaoExterna = tensao;
-            if (targetDevice.address || targetDevice.endereco) {
-                current.endereco = targetDevice.address || targetDevice.endereco;
-            }
-            if (targetDevice.odometer || targetDevice.hodometroKm) {
-                current.kmAtual = parseFloat(targetDevice.odometer || targetDevice.hodometroKm);
-            }
-            current.updatedAt = new Date().toISOString();
-            current.provedor = "App Xtrack (Tempo Real)";
-            memoryTelemetryStore[idLimpo] = current;
-            return { ok: true, device: current };
         }
 
         return { ok: true, device: current };
