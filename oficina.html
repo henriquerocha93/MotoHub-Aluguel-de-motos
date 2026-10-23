@@ -813,17 +813,53 @@
             carregarHistoricoOficina();
         }
 
-        function realizarLoginOficina(e) {
+        // Sincronização em tempo real com a Nuvem Firestore (Oficinas, Motos e Histórico)
+        if (db) {
+            ['crm_admins', 'crm_motos', 'crm_clientes', 'crm_contratos', 'crm_historico_oficina'].forEach(colName => {
+                db.collection(colName).onSnapshot((snapshot) => {
+                    const arr = [];
+                    snapshot.forEach(doc => arr.push(doc.data()));
+                    if (arr.length > 0) {
+                        localStorage.setItem(colName, JSON.stringify(arr));
+                        if (sessaoOficina) {
+                            carregarMotosNoSelect();
+                            carregarHistoricoOficina();
+                        }
+                    }
+                }, (error) => {
+                    console.warn(`[Oficina Cloud Sync]: Status Firestore (${colName}):`, error.message);
+                });
+            });
+        }
+
+        async function realizarLoginOficina(e) {
             e.preventDefault();
             const email = (document.getElementById('login-email').value || '').trim().toLowerCase();
             const senha = (document.getElementById('login-senha').value || '').trim();
 
-            const admins = getDb('crm_admins');
-            const user = admins.find(u => 
+            let admins = getDb('crm_admins');
+            let user = admins.find(u => 
                 (u.email || '').toLowerCase() === email && 
                 u.senha === senha &&
                 (u.role === 'oficina' || u.role === 'admin')
             );
+
+            // Se não encontrou no cache local, busca na nuvem Firestore em tempo real
+            if (!user && db) {
+                try {
+                    const snap = await db.collection('crm_admins').where('email', '==', email).get();
+                    snap.forEach(doc => {
+                        const d = doc.data();
+                        if (d && d.senha === senha && (d.role === 'oficina' || d.role === 'admin')) {
+                            user = d;
+                            admins.push(d);
+                            localStorage.setItem('crm_admins', JSON.stringify(admins));
+                        }
+                    });
+                } catch(err) {
+                    console.warn('[Login Cloud Search]:', err.message);
+                }
+            }
 
             if (user) {
                 sessaoOficina = {
@@ -834,6 +870,7 @@
                     role: user.role
                 };
                 localStorage.setItem('crm_session_oficina', JSON.stringify(sessaoOficina));
+                document.getElementById('login-error').style.display = 'none';
                 exibirPainelOficina();
             } else {
                 document.getElementById('login-error').style.display = 'block';

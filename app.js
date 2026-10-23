@@ -6790,12 +6790,28 @@ document.getElementById('form-oficina')?.addEventListener('submit', function(e) 
             criadoEm: new Date().toISOString()
         };
         admins.push(novaOficina);
-        if (!window.isFirebaseSyncing && window.db) {
-            window.db.collection('crm_admins').doc(novaOficina.id).set(novaOficina);
-        }
     }
 
     saveDb('crm_admins', admins);
+
+    // Garante sincronização direta na nuvem Firestore para o documento da oficina
+    if (!window.isFirebaseSyncing && window.db) {
+        const docId = id || (admins[admins.length - 1]?.id);
+        const docObj = admins.find(a => a.id === docId);
+        if (docObj) {
+            window.db.collection('crm_admins').doc(docId).set(docObj).then(() => {
+                console.log('✅ [Oficina Cloud Sync]: Oficina sincronizada com sucesso na nuvem Firestore!');
+            }).catch(err => {
+                console.error('⚠️ [Oficina Cloud Sync Error]:', err);
+                if (err.code === 'permission-denied' || String(err).includes('permission')) {
+                    alert('⚠️ ATENÇÃO - SINCRONIZAÇÃO EM NUVEM:
+A oficina parceira foi salva neste computador, mas a nuvem Firebase recusou a gravação porque as Regras de Segurança expiraram no Console Firebase.
+
+Para que a oficina sincronize automaticamente em celulares e outros computadores de vez, acesse console.firebase.google.com > motohub-9e839 > Firestore Database > Regras e clique em "Publicar" com "allow read, write: if true;".');
+                }
+            });
+        }
+    }
     closeModal('modal-oficina');
     renderOficinas();
     renderUsuarios();
