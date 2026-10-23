@@ -53,6 +53,11 @@
                 <button class="menu-toggle" onclick="toggleSidebar()"><i class="fa-solid fa-bars"></i></button>
                 <h1 id="page-title">Dashboard</h1>
                 <div style="display:flex; align-items:center; gap:14px;">
+                    <!-- Botão Testar Sirene Roubo/Furto & Desbloquear Áudio do Navegador -->
+                    <button type="button" class="btn btn-secondary btn-sm" onclick="testarSireneEmergenciaManualmente()" style="background:#7f1d1d; color:#fca5a5; border:1px solid #ef4444; padding:6px 12px; border-radius:999px; font-weight:700; font-size:0.78rem; display:flex; align-items:center; gap:6px; cursor:pointer;" title="Clique para testar o som da sirene de roubo/furto e ativar alertas sonoros">
+                        <i class="fa-solid fa-bullhorn"></i> Testar Sirene
+                    </button>
+
                     <!-- Botão Sino da Central de Notificações (Pagamentos, Troca de Óleo e Rastreador) -->
                     <div style="position:relative;">
                         <button type="button" id="btn-sino-notificacoes" onclick="togglePainelNotificacoes(event)" class="btn btn-secondary btn-sm" style="position:relative; padding:8px 12px; border-radius:999px; display:flex; align-items:center; gap:6px; background:#f8fafc; border:1px solid var(--border);" title="Abrir Central de Notificações (Pagamentos e Troca de Óleo)">
@@ -2141,6 +2146,6 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <!-- Firebase Firestore -->
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
-    <script src="app.js?v=20261022_wa_oficial_autonomo"></script>
+    <script src="app.js?v=20261023_sirene_roubo_v6"></script>
 </body>
 </html>
