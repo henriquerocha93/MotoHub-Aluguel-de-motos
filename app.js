@@ -679,7 +679,7 @@ function sincronizarDadosPadraoRastreadoresFrota() {
                 m.rastreadorModelo = 'Chip IoT M2M';
                 mudou = true;
             }
-        } else if (m.placa === 'IMJ6E36') {
+        } else if (placaLimpa === 'IMJ6E36') {
             // Moto IMJ6E36 (HONDA/CG 150 TITAN ESD • 2005) com rastreador BWS NB2
             if (m.rastreadorImei !== '00016415') {
                 m.rastreadorImei = '00016415';
@@ -689,14 +689,19 @@ function sincronizarDadosPadraoRastreadoresFrota() {
                 m.rastreadorChip = '5521959604209';
                 mudou = true;
             }
-            if (!m.rastreadorModelo || m.rastreadorModelo === 'Traccar / GPS') {
+            if (!m.rastreadorModelo || m.rastreadorModelo === 'Traccar / GPS' || m.rastreadorModelo === 'Chip IoT M2M') {
                 m.rastreadorModelo = 'BWS NB2 (BWS IOT TIM)';
                 mudou = true;
             }
-            if (!m.rastreadorLat || m.rastreadorLat === '') {
+            // Corrige contaminação de dados se copiou localização/km da IPU2I57
+            const latF = parseFloat(m.rastreadorLat);
+            if (parseInt(m.kmAtual) > 200000 || !m.rastreadorLat || Math.abs(latF - (-30.074847)) > 0.04) {
                 m.rastreadorLat = -30.074847;
                 m.rastreadorLng = -51.169472;
                 m.rastreadorEndereco = 'Vila São José, Porto Alegre - RS';
+                m.kmAtual = 0;
+                m.kmUltimaTroca = 0;
+                m.kmProximaTroca = 1000;
                 mudou = true;
             }
             m.rastreadorProvedor = 'xtrack';
@@ -2757,6 +2762,14 @@ function sincronizarTelemetriaAutonomaMoto(motoId, silencioso = true) {
         .then(data => {
             if (!data || !data.device) return;
             const dev = data.device;
+
+            // Bloqueio rigoroso de contaminação cruzada entre rastreadores
+            const devPlaca = (dev.placa || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+            const targetPlaca = (moto.placa || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+            if (devPlaca && targetPlaca && devPlaca !== targetPlaca) {
+                console.warn(`[Anti-Contaminação]: Resposta da placa ${devPlaca} rejeitada para moto ${targetPlaca}`);
+                return;
+            }
             // dev.updatedAt verificado
 
             let alterou = false;

@@ -205,46 +205,92 @@ async function syncFromXtrackApp(login, senha, targetPlaca = 'IPU2I57', targetId
         }
 
         if (cachedXtrackSession.cookie) {
-            const formData = new URLSearchParams();
-            formData.append('clientes[]', '600696');
+            let vehiclesList = [];
+            try {
+                const mapHtmlRes = await fetch('https://tela.xtrack.app.br/mapaGeral', {
+                    headers: {
+                        'Cookie': cachedXtrackSession.cookie,
+                        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                        'Referer': 'https://tela.xtrack.app.br/emp/tela'
+                    }
+                });
+                const mapHtml = await mapHtmlRes.text();
+                const idx = mapHtml.indexOf('id="dados-lista-clientes"');
+                if (idx !== -1) {
+                    const start = mapHtml.indexOf('>', idx) + 1;
+                    const end = mapHtml.indexOf('</div>', start);
+                    const jsonStr = mapHtml.substring(start, end).trim();
+                    const parsed = JSON.parse(jsonStr);
+                    const regs = parsed?.registros || parsed;
+                    if (regs && typeof regs === 'object') {
+                        for (const cliKey of Object.keys(regs)) {
+                            const cliObj = regs[cliKey];
+                            if (cliObj && typeof cliObj === 'object') {
+                                for (const autKey of Object.keys(cliObj)) {
+                                    if (cliObj[autKey] && typeof cliObj[autKey] === 'object') {
+                                        vehiclesList.push(cliObj[autKey]);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            } catch (e) {}
 
-            const res = await fetch('https://tela.xtrack.app.br/mapaGeral/atualizaMapa', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/x-www-form-urlencoded',
-                    'Cookie': cachedXtrackSession.cookie,
-                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-                    'Referer': 'https://tela.xtrack.app.br/mapaGeral',
-                    'X-Requested-With': 'XMLHttpRequest'
-                },
-                body: formData.toString()
-            });
+            if (vehiclesList.length === 0) {
+                const formData = new URLSearchParams();
+                formData.append('clientes[]', '600696');
 
-            const json = await res.json().catch(() => null);
-            if (json && json.status === true && Array.isArray(json.dados) && json.dados.length > 0) {
-                const motoData = json.dados.find(d => (d.ras_veiculos?.ras_vei_placa || "").toUpperCase() === targetPlaca || String(d.ras_eve_aut_id || "") === idLimpo) || json.dados[0];
+                const res = await fetch('https://tela.xtrack.app.br/mapaGeral/atualizaMapa', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                        'Cookie': cachedXtrackSession.cookie,
+                        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                        'Referer': 'https://tela.xtrack.app.br/mapaGeral',
+                        'X-Requested-With': 'XMLHttpRequest'
+                    },
+                    body: formData.toString()
+                });
+
+                const json = await res.json().catch(() => null);
+                if (json && json.status === true && Array.isArray(json.dados)) {
+                    vehiclesList = json.dados;
+                }
+            }
+
+            for (const motoData of vehiclesList) {
+                const placa = (motoData.ras_veiculos?.ras_vei_placa || '').toUpperCase().trim();
+                const autId = String(motoData.ras_eve_aut_id || '');
                 const loc = motoData.loc || [];
                 const lat = parseFloat(loc[0]);
                 const lng = parseFloat(loc[1]);
                 const vel = parseInt(motoData.ras_eve_velocidade) || 0;
                 const ignicao = parseInt(motoData.ras_eve_ignicao) === 1;
-                const odo = parseInt(motoData.ras_veiculos?.ras_vei_odometro) || current.kmAtual;
+                const odo = parseInt(motoData.ras_veiculos?.ras_vei_odometro) || 0;
 
-                if (!isNaN(lat) && !isNaN(lng)) {
-                    current.lat = lat;
-                    current.lng = lng;
+                let targetDevKey = null;
+                if (placa === 'IPU2I57' || autId === '1568143') targetDevKey = '00018E1B';
+                else if (placa === 'IMJ6E36' || autId === '1568606') targetDevKey = '00016415';
+
+                if (targetDevKey && memoryTelemetryStore[targetDevKey]) {
+                    const devStore = memoryTelemetryStore[targetDevKey];
+                    if (!isNaN(lat) && !isNaN(lng)) {
+                        devStore.lat = lat;
+                        devStore.lng = lng;
+                    }
+                    devStore.velocidade = vel;
+                    devStore.ignicao = ignicao;
+                    devStore.kmAtual = odo;
+                    devStore.updatedAt = new Date().toISOString();
+                    devStore.provedor = "App Xtrack Oficial (Tempo Real)";
                 }
-                current.velocidade = vel;
-                current.ignicao = ignicao;
-                current.kmAtual = odo;
-                current.updatedAt = new Date().toISOString();
-                current.provedor = "App Xtrack Oficial (Tempo Real)";
-                memoryTelemetryStore[idLimpo] = current;
-                return { ok: true, device: current };
             }
+
+            const targetDev = memoryTelemetryStore[idLimpo] || Object.values(memoryTelemetryStore).find(d => d.placa === targetPlaca) || current;
+            return { ok: true, device: targetDev };
         }
 
-        return { ok: true, device: current };
     } catch (err) {
         return { ok: false, error: err.message, device: current };
     }
