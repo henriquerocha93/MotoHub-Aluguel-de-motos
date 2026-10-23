@@ -1146,7 +1146,7 @@
                     <td><strong>${parseInt(r.km || 0).toLocaleString('pt-BR')} km</strong></td>
                     <td><span style="color:#10b981; font-weight:700;">${parseInt(r.proxKm || 0).toLocaleString('pt-BR')} km</span></td>
                     <td>
-                        <strong style="color:#f8fafc;">${(r.oleo || 'Mobil 20W-50').replace(/\ufffd/g, 'ó').replace(/Troca de\s*\?*leo/i, 'Troca de Óleo')}</strong>
+                        <strong style="color:#f8fafc;">${(r.oleo || 'Mobil 20W-50').replace(/\ufffd/g, 'ó').replace('Troca de leo', 'Troca de Óleo')}</strong>
                         ${Array.isArray(r.servicos) && r.servicos.length > 0 ? `
                             <div style="margin-top:4px; font-size:0.75rem; color:#94a3b8;">
                                 ${r.servicos.map(s => `<span class="badge" style="background:#1e293b; color:#cbd5e1; margin-right:3px; padding:2px 6px;">${s.descricao} (R$ ${parseFloat(s.valor || 0).toFixed(2).replace('.', ',')})</span>`).join('')}
