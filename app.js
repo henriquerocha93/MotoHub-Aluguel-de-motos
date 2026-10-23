@@ -6346,7 +6346,11 @@ function exibirModalEmergenciaRoubo(alertData) {
         document.body.appendChild(modal);
     }
 
-    const numLimpo = String(alertData.clienteTelefone || '').replace(/\D/g, '');
+    let numLimpo = String(alertData.clienteTelefone || '').replace(/\D/g, '');
+    if (numLimpo.length === 10 || numLimpo.length === 11) numLimpo = `55${numLimpo}`;
+    if (numLimpo.startsWith('55') && numLimpo.length === 12) {
+        numLimpo = `55${numLimpo.substring(2, 4)}9${numLimpo.substring(4)}`;
+    }
     const waLink = `https://wa.me/${numLimpo}`;
 
     modal.innerHTML = `
