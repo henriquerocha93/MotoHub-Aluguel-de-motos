@@ -151,6 +151,29 @@ body {
     justify-content: space-between;
     padding: 0 30px;
     z-index: 5;
+    position: relative;
+}
+
+.topbar-left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-width: 0;
+}
+
+.topbar-right {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-shrink: 0;
+}
+
+.hide-mobile {
+    display: inline-flex;
+}
+
+.desktop-only-btn {
+    display: inline-flex !important;
 }
 
 .topbar h1 {
@@ -706,12 +729,78 @@ textarea {
         z-index: 9998 !important;
     }
 
+    .hide-mobile,
+    .desktop-only-btn {
+        display: none !important;
+    }
+
     .topbar {
-        padding: 8px 12px !important;
-        height: auto !important;
-        min-height: 58px !important;
-        flex-wrap: wrap !important;
+        padding: 6px 12px !important;
+        height: 56px !important;
+        min-height: 56px !important;
+        flex-wrap: nowrap !important;
+        gap: 6px !important;
+        align-items: center !important;
+        justify-content: space-between !important;
+        position: sticky !important;
+        top: 0 !important;
+        z-index: 1000 !important;
+        background-color: var(--bg-surface) !important;
+        box-shadow: 0 1px 4px rgba(0,0,0,0.06) !important;
+        max-width: 100vw !important;
+        box-sizing: border-box !important;
+    }
+
+    .topbar-left {
         gap: 8px !important;
+        flex: 1 1 auto !important;
+        min-width: 0 !important;
+    }
+
+    .topbar-right {
+        gap: 6px !important;
+        flex-shrink: 0 !important;
+        display: flex !important;
+        align-items: center !important;
+    }
+
+    .topbar-right .btn-sm {
+        padding: 6px 10px !important;
+        font-size: 0.74rem !important;
+        min-height: 36px !important;
+        display: inline-flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+    }
+
+    #painel-notificacoes-dropdown {
+        position: fixed !important;
+        top: 60px !important;
+        left: 10px !important;
+        right: 10px !important;
+        width: auto !important;
+        max-width: calc(100vw - 20px) !important;
+        max-height: 80dvh !important;
+        z-index: 99999 !important;
+    }
+
+    .section-card-header {
+        flex-direction: column !important;
+        align-items: stretch !important;
+        gap: 12px !important;
+        padding: 14px 12px !important;
+    }
+
+    .section-card-header > div:last-child {
+        display: flex !important;
+        flex-direction: column !important;
+        width: 100% !important;
+        gap: 8px !important;
+    }
+
+    .section-card-header .btn {
+        width: 100% !important;
+        justify-content: center !important;
     }
 
     #page-title {

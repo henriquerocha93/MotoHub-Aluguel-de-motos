@@ -15,7 +15,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <link rel="stylesheet" href="style.css?v=20261022_iot">
+    <link rel="stylesheet" href="style.css?v=20261023_mobile_v2">
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 </head>
@@ -46,44 +46,40 @@
                 <a href="#" data-target="usuarios" class="nav-item"><i class="fa-solid fa-user-shield"></i> Usuários</a>
                 <a href="#" data-target="oficina" class="nav-item"><i class="fa-solid fa-wrench"></i> Portal da Oficina</a>
                 <a href="#" onclick="acionarInstalacaoApp(); return false;" class="nav-item" style="color:#10b981; font-weight:600;"><i class="fa-solid fa-circle-down"></i> Criar App (PC / Celular)</a>
+                <a href="#" onclick="restaurarBackupCompletoManualmente(); return false;" class="nav-item" style="color:#059669; font-weight:600;"><i class="fa-solid fa-cloud-arrow-down"></i> Restaurar Dados (Backup)</a>
+                <a href="#" onclick="testarSireneEmergenciaManualmente(); return false;" class="nav-item" style="color:#ef4444; font-weight:600;"><i class="fa-solid fa-bullhorn"></i> Testar Sirene de Alerta</a>
             </nav>
-            <div class="sidebar-footer">
-                <button class="btn-whatsapp" onclick="openModal('modal-config-rastreador-global')" style="background-color:#0f172a; margin-bottom:8px;" title="Configurar API de Rastreador GPS">
-                    <i class="fa-solid fa-satellite-dish" style="color:#38bdf8;"></i> Config. Rastreador GPS
-                </button>
-                <button class="btn-whatsapp" title="Integração WhatsApp - Ativa nos botões de cobrança e avisos">
-                    <i class="fa-brands fa-whatsapp"></i> Integrar WhatsApp
-                </button>
-            </div>
         </aside>
 
         <!-- Main Content -->
         <main class="main-content">
-            <header class="topbar" style="position:relative;">
-                <button class="menu-toggle" onclick="toggleSidebar()"><i class="fa-solid fa-bars"></i></button>
-                <h1 id="page-title">Dashboard</h1>
-                <div style="display:flex; align-items:center; gap:14px;">
-                    <!-- Botão Restaurar Dados & Backup -->
-                    <button type="button" class="btn btn-secondary btn-sm" onclick="restaurarBackupCompletoManualmente()" style="background:#065f46; color:#a7f3d0; border:1px solid #10b981; padding:6px 12px; border-radius:999px; font-weight:700; font-size:0.78rem; display:flex; align-items:center; gap:6px; cursor:pointer;" title="Clique para restaurar todos os clientes, motos e contratos">
-                        <i class="fa-solid fa-cloud-arrow-down"></i> Restaurar Dados
+            <header class="topbar">
+                <div class="topbar-left">
+                    <button class="menu-toggle" onclick="toggleSidebar()" aria-label="Abrir Menu"><i class="fa-solid fa-bars"></i></button>
+                    <h1 id="page-title">Dashboard</h1>
+                </div>
+                <div class="topbar-right">
+                    <!-- Botão Restaurar Dados & Backup (Desktop) -->
+                    <button type="button" class="btn btn-secondary btn-sm desktop-only-btn" onclick="restaurarBackupCompletoManualmente()" style="background:#065f46; color:#a7f3d0; border:1px solid #10b981; padding:6px 12px; border-radius:999px; font-weight:700; font-size:0.78rem; display:flex; align-items:center; gap:6px; cursor:pointer;" title="Clique para restaurar todos os clientes, motos e contratos">
+                        <i class="fa-solid fa-cloud-arrow-down"></i> <span>Restaurar Dados</span>
                     </button>
 
-                    <!-- Botão Testar Sirene Roubo/Furto & Desbloquear Áudio do Navegador -->
-                    <button type="button" class="btn btn-secondary btn-sm" onclick="testarSireneEmergenciaManualmente()" style="background:#7f1d1d; color:#fca5a5; border:1px solid #ef4444; padding:6px 12px; border-radius:999px; font-weight:700; font-size:0.78rem; display:flex; align-items:center; gap:6px; cursor:pointer;" title="Clique para testar o som da sirene de roubo/furto e ativar alertas sonoros">
-                        <i class="fa-solid fa-bullhorn"></i> Testar Sirene
+                    <!-- Botão Testar Sirene Roubo/Furto (Desktop) -->
+                    <button type="button" class="btn btn-secondary btn-sm desktop-only-btn" onclick="testarSireneEmergenciaManualmente()" style="background:#7f1d1d; color:#fca5a5; border:1px solid #ef4444; padding:6px 12px; border-radius:999px; font-weight:700; font-size:0.78rem; display:flex; align-items:center; gap:6px; cursor:pointer;" title="Clique para testar o som da sirene de roubo/furto e ativar alertas sonoros">
+                        <i class="fa-solid fa-bullhorn"></i> <span>Testar Sirene</span>
                     </button>
 
                     <!-- Botão Criar App (PWA PC / Celular) -->
-                    <button type="button" class="btn btn-secondary btn-sm" onclick="acionarInstalacaoApp()" style="background:#0f172a; color:#38bdf8; border:1px solid #334155; border-radius:999px; padding:6px 12px; font-weight:700; font-size:0.78rem; display:flex; align-items:center; gap:6px; cursor:pointer;" title="Instalar App no PC, iPhone ou Android">
-                        <i class="fa-solid fa-mobile-screen-button"></i> Criar App
+                    <button type="button" class="btn btn-secondary btn-sm" onclick="acionarInstalacaoApp()" style="background:#0f172a; color:#38bdf8; border:1px solid #334155; border-radius:999px; padding:6px 10px; font-weight:700; font-size:0.78rem; display:flex; align-items:center; gap:6px; cursor:pointer;" title="Instalar App no PC, iPhone ou Android">
+                        <i class="fa-solid fa-mobile-screen-button"></i> <span class="hide-mobile">Criar App</span>
                     </button>
 
-                    <!-- Botão Sino da Central de Notificações (Pagamentos, Troca de Óleo e Rastreador) -->
+                    <!-- Botão Sino da Central de Notificações -->
                     <div style="position:relative;">
-                        <button type="button" id="btn-sino-notificacoes" onclick="togglePainelNotificacoes(event)" class="btn btn-secondary btn-sm" style="position:relative; padding:8px 12px; border-radius:999px; display:flex; align-items:center; gap:6px; background:#f8fafc; border:1px solid var(--border);" title="Abrir Central de Notificações (Pagamentos e Troca de Óleo)">
+                        <button type="button" id="btn-sino-notificacoes" onclick="togglePainelNotificacoes(event)" class="btn btn-secondary btn-sm" style="position:relative; padding:7px 11px; border-radius:999px; display:flex; align-items:center; gap:6px; background:#f8fafc; border:1px solid var(--border);" title="Abrir Central de Notificações">
                             <i class="fa-solid fa-bell" id="icone-sino-notif" style="font-size:1.05rem; color:var(--primary);"></i>
-                            <span style="font-size:0.8rem; font-weight:700; color:var(--text-main);">Notificações</span>
-                            <span id="topbar-notif-badge" style="display:none; background:#dc2626; color:#fff; font-size:0.7rem; font-weight:800; padding:1px 7px; border-radius:999px;">0</span>
+                            <span class="hide-mobile" style="font-size:0.8rem; font-weight:700; color:var(--text-main);">Notificações</span>
+                            <span id="topbar-notif-badge" style="display:none; background:#dc2626; color:#fff; font-size:0.7rem; font-weight:800; padding:1px 6px; border-radius:999px;">0</span>
                         </button>
 
                         <!-- Dropdown da Central de Notificações -->
@@ -94,7 +90,7 @@
                                     <span style="font-size:0.73rem; color:#94a3b8;">Avisos automáticos de Pagamentos, Troca de Óleo (1.000 km) e Frota</span>
                                 </div>
                                 <button type="button" class="btn btn-secondary btn-sm" style="padding:3px 8px; font-size:0.7rem; background:#1e293b; color:#38bdf8; border:1px solid #334155;" onclick="ativarNotificacoesNavegador()">
-                                    <i class="fa-solid fa-volume-high"></i> Ativar Alerta PC/Celular
+                                    <i class="fa-solid fa-volume-high"></i> Ativar Alerta
                                 </button>
                             </div>
                             <div id="lista-notificacoes-container" style="max-height:390px; overflow-y:auto; padding:10px; display:flex; flex-direction:column; gap:8px; background:#f8fafc;">
@@ -105,17 +101,17 @@
                                     <i class="fa-solid fa-sack-dollar"></i> Ver Pagamentos
                                 </a>
                                 <a href="#" onclick="navegarParaView('oleo'); togglePainelNotificacoes(); return false;" style="color:#d97706; font-weight:700; text-decoration:none;">
-                                    <i class="fa-solid fa-oil-can"></i> Ver Trocas de Óleo (1.000 km)
+                                    <i class="fa-solid fa-oil-can"></i> Ver Trocas de Óleo
                                 </a>
                             </div>
                         </div>
                     </div>
 
-                    <div class="user-profile" onclick="abrirMeuPerfil()" style="cursor: pointer; padding: 5px; border-radius: var(--radius-md); transition: var(--transition);" onmouseover="this.style.backgroundColor='#f1f5f9'" onmouseout="this.style.backgroundColor='transparent'">
-                        <img src="https://ui-avatars.com/api/?name=Admin&background=6366f1&color=fff" alt="Admin" class="avatar" id="logged-user-avatar">
-                        <span id="logged-user-name" style="font-weight: 600;">Administrador</span>
-                        <i class="fa-solid fa-chevron-down" style="font-size: 0.7rem; color: var(--text-muted); margin-left: 2px;"></i>
-                        <button class="btn btn-secondary btn-sm" onclick="fazerLogout(); event.stopPropagation();" style="margin-left: 10px;" title="Sair do Sistema"><i class="fa-solid fa-arrow-right-from-bracket"></i> Sair</button>
+                    <div class="user-profile" onclick="abrirMeuPerfil()" style="cursor: pointer; padding: 4px 6px; border-radius: var(--radius-md); transition: var(--transition); display:flex; align-items:center; gap:6px;" onmouseover="this.style.backgroundColor='#f1f5f9'" onmouseout="this.style.backgroundColor='transparent'" title="Meu Perfil e Ações">
+                        <img src="https://ui-avatars.com/api/?name=Admin&background=6366f1&color=fff" alt="Admin" class="avatar" id="logged-user-avatar" style="width:34px; height:34px; border-radius:50%;">
+                        <span id="logged-user-name" class="hide-mobile" style="font-weight: 600;">Administrador</span>
+                        <i class="fa-solid fa-chevron-down hide-mobile" style="font-size: 0.7rem; color: var(--text-muted); margin-left: 2px;"></i>
+                        <button class="btn btn-secondary btn-sm hide-mobile" onclick="fazerLogout(); event.stopPropagation();" style="margin-left: 6px;" title="Sair do Sistema"><i class="fa-solid fa-arrow-right-from-bracket"></i> Sair</button>
                     </div>
                 </div>
             </header>
@@ -173,7 +169,7 @@
                                 <h3><i class="fa-solid fa-microchip" style="color:var(--primary);"></i> Controle de Frota em Operação: Condutor Atual, Vencimento do Aluguel & Rastreador Chip IoT</h3>
                                 <span style="font-size:0.8rem; color:var(--text-muted);">Acompanhe com quem está cada moto, próximo vencimento semanal, controle de troca de óleo (1.000 km) e telemetria via Chip IoT M2M.</span>
                             </div>
-                            <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                            <div class="section-actions" style="display:flex; gap:8px; flex-wrap:wrap;">
                                 <button class="btn btn-secondary btn-sm" onclick="sincronizarTodosRastreadores()">
                                     <i class="fa-solid fa-rotate"></i> Sincronizar Chips IoT / KM
                                 </button>
@@ -2021,6 +2017,18 @@
                     </div>
 
                     <button type="submit" class="btn btn-primary btn-block">Salvar Perfil</button>
+                    <hr style="margin: 16px 0; border: 0; border-top: 1px solid var(--border);">
+                    <div style="display: flex; flex-direction: column; gap: 8px;">
+                        <button type="button" class="btn btn-secondary btn-sm" onclick="restaurarBackupCompletoManualmente(); closeModal('modal-meu-perfil');" style="background:#065f46; color:#a7f3d0; border:1px solid #10b981; width:100%; justify-content:center; padding:10px;">
+                            <i class="fa-solid fa-cloud-arrow-down"></i> Restaurar Dados (Backup de Segurança)
+                        </button>
+                        <button type="button" class="btn btn-secondary btn-sm" onclick="testarSireneEmergenciaManualmente()" style="background:#7f1d1d; color:#fca5a5; border:1px solid #ef4444; width:100%; justify-content:center; padding:10px;">
+                            <i class="fa-solid fa-bullhorn"></i> Testar Sirene de Emergência
+                        </button>
+                        <button type="button" class="btn btn-secondary btn-sm" onclick="fazerLogout()" style="width:100%; justify-content:center; color:var(--danger); border-color:#fca5a5; padding:10px;">
+                            <i class="fa-solid fa-arrow-right-from-bracket"></i> Sair do Sistema
+                        </button>
+                    </div>
                 </form>
             </div>
         </div>
