@@ -985,23 +985,31 @@ function renderDashboard() {
                             </div>
                         </div>
                     `;
+                    const isBloq = m.rastreadorBloqueado === true;
                     btnRastrearHtml = `
                         <button class="btn btn-primary btn-sm" onclick="abrirPainelRastreadorMoto('${m.id}')" title="Abrir Mapa, Telemetria e Bloqueio do Rastreador (${m.placa})" style="background:#0284c7;">
                             <i class="fa-solid fa-location-crosshairs"></i> Rastrear
+                        </button>
+                        <button class="btn ${isBloq ? 'btn-success' : 'btn-danger'} btn-sm" onclick="alternarBloqueioRemotoMoto('${m.id}')" title="${isBloq ? 'Desbloquear Motocicleta' : 'Bloquear Motocicleta Agora'}" style="font-weight:700;">
+                            <i class="fa-solid ${isBloq ? 'fa-lock-open' : 'fa-lock'}"></i> ${isBloq ? 'Desbloquear' : 'Bloquear'}
                         </button>
                     `;
                 } else {
                     rastreadorHtml = `
                         <div>
-                            <span class="gps-pill" style="background:#f1f5f9; color:#64748b; border:1px solid #cbd5e1;">
-                                <i class="fa-solid fa-ban" style="font-size:0.68rem;"></i> Sem Rastreador
-                            </span>
+                            <button type="button" class="btn btn-outline-primary btn-sm" onclick="abrirModalConfigurarRastreadorIndividual('${m.id}')" style="border:1px dashed #38bdf8; background:#f0f9ff; color:#0284c7; padding:4px 8px; border-radius:6px; font-size:0.73rem; font-weight:600; cursor:pointer;" title="Instalar / Vincular Rastreador nesta moto">
+                                <i class="fa-solid fa-satellite-dish"></i> + Instalar Rastreador
+                            </button>
                             <div style="font-size:0.72rem; color:#94a3b8; margin-top:4px; line-height:1.3;">
                                 Não instalado nesta moto
                             </div>
                         </div>
                     `;
-                    btnRastrearHtml = '';
+                    btnRastrearHtml = `
+                        <button class="btn btn-secondary btn-sm" onclick="abrirModalConfigurarRastreadorIndividual('${m.id}')" title="Configurar Rastreador Xtrack nesta Moto" style="border:1px dashed #38bdf8; color:#0284c7; background:#f0f9ff;">
+                            <i class="fa-solid fa-satellite-dish"></i> + GPS
+                        </button>
+                    `;
                 }
 
                 const tr = document.createElement('tr');
@@ -3045,12 +3053,14 @@ function abrirPainelRastreadorMoto(motoId) {
     const isBloq = temRastreador && moto.rastreadorBloqueado === true;
     const statusBloqEl = document.getElementById('rast-status-bloqueio');
     const btnBloq = document.getElementById('btn-toggle-bloqueio-moto');
+    const btnBloqTop = document.getElementById('btn-toggle-bloqueio-moto-top');
     if (!temRastreador) {
         if (statusBloqEl) {
             statusBloqEl.innerText = 'Indisponível (Sem Rastreador)';
             statusBloqEl.style.color = '#64748b';
         }
         if (btnBloq) btnBloq.style.display = 'none';
+        if (btnBloqTop) btnBloqTop.style.display = 'none';
     } else if (isBloq) {
         if (statusBloqEl) {
             statusBloqEl.innerText = moto.bloqueadoPorInadimplencia
@@ -3065,6 +3075,12 @@ function abrirPainelRastreadorMoto(motoId) {
                 : '<i class="fa-solid fa-unlock"></i> Desbloquear Motocicleta via App Xtrack';
             btnBloq.className = 'btn btn-primary btn-sm';
         }
+        if (btnBloqTop) {
+            btnBloqTop.style.display = 'inline-flex';
+            btnBloqTop.innerHTML = '<i class="fa-solid fa-unlock"></i> DESBLOQUEAR MOTOCICLETA AGORA (XTRACK)';
+            btnBloqTop.className = 'btn btn-success';
+            btnBloqTop.style.background = '#16a34a';
+        }
     } else {
         if (statusBloqEl) {
             statusBloqEl.innerText = '🔓 Desbloqueada (Operação Normal)';
@@ -3074,6 +3090,12 @@ function abrirPainelRastreadorMoto(motoId) {
             btnBloq.style.display = 'inline-flex';
             btnBloq.innerHTML = '<i class="fa-solid fa-lock"></i> Enviar Bloqueio Preventivo via App Xtrack (Cláusula 11ª)';
             btnBloq.className = 'btn btn-danger btn-sm';
+        }
+        if (btnBloqTop) {
+            btnBloqTop.style.display = 'inline-flex';
+            btnBloqTop.innerHTML = '<i class="fa-solid fa-lock"></i> BLOQUEAR MOTOCICLETA AGORA (XTRACK)';
+            btnBloqTop.className = 'btn btn-danger';
+            btnBloqTop.style.background = '#dc2626';
         }
     }
 
@@ -3209,8 +3231,9 @@ function abrirModalPixDaMotoRastreador() {
     }
 }
 
-function alternarBloqueioRemotoMoto() {
-    const motoId = document.getElementById('rast-moto-id').value;
+function alternarBloqueioRemotoMoto(paramMotoId) {
+    const motoId = paramMotoId || document.getElementById('rast-moto-id')?.value;
+    if (!motoId) return;
     let motos = getDb('crm_motos');
     const idx = motos.findIndex(m => m.id === motoId);
     if (idx === -1) return;
@@ -6840,4 +6863,112 @@ function copiarLinkPortalOficina() {
     } else {
         prompt('Copie o link do Portal da Oficina:', link);
     }
+}
+
+
+// --- GESTÃO E VINCULAÇÃO INDIVIDUAL DE RASTREADORES XTRACK ---
+function abrirModalConfigurarRastreadorIndividual(motoId) {
+    const motos = getDb('crm_motos');
+    const selEl = document.getElementById('vinc-rast-moto-id');
+    if (!selEl) return;
+    selEl.innerHTML = '<option value="">-- Selecione uma moto --</option>';
+    motos.forEach(m => {
+        const opt = document.createElement('option');
+        opt.value = m.id;
+        const rastTag = m.rastreadorImei ? `(GPS ID: ${m.rastreadorImei})` : '(Sem Rastreador)';
+        opt.textContent = `${m.modelo} • ${m.placa} ${rastTag}`;
+        selEl.appendChild(opt);
+    });
+
+    if (motoId) {
+        selEl.value = motoId;
+    } else if (motos.length > 0) {
+        selEl.value = motos[0].id;
+    }
+    onSelectMotoVincularRastreador();
+    openModal('modal-configurar-rastreador-individual');
+}
+
+function onSelectMotoVincularRastreador() {
+    const motoId = document.getElementById('vinc-rast-moto-id').value;
+    const motos = getDb('crm_motos');
+    const moto = motos.find(m => m.id === motoId);
+    const btnDesvinc = document.getElementById('btn-desvincular-rast');
+    if (!moto) {
+        document.getElementById('vinc-rast-placa').value = '';
+        document.getElementById('vinc-rast-imei').value = '';
+        document.getElementById('vinc-rast-iccid').value = '';
+        document.getElementById('vinc-rast-km').value = '';
+        if (btnDesvinc) btnDesvinc.style.display = 'none';
+        return;
+    }
+
+    document.getElementById('vinc-rast-placa').value = moto.placa || '';
+    document.getElementById('vinc-rast-imei').value = moto.rastreadorImei || '';
+    document.getElementById('vinc-rast-iccid').value = moto.rastreadorChip || '89555480000080813880';
+    document.getElementById('vinc-rast-km').value = moto.kmAtual || 0;
+
+    if (btnDesvinc) {
+        btnDesvinc.style.display = moto.rastreadorImei ? 'inline-flex' : 'none';
+    }
+}
+
+function salvarVinculoRastreadorIndividual(e) {
+    e.preventDefault();
+    const motoId = document.getElementById('vinc-rast-moto-id').value;
+    if (!motoId) return;
+
+    let motos = getDb('crm_motos');
+    const idx = motos.findIndex(m => m.id === motoId);
+    if (idx === -1) return;
+
+    const novaPlaca = (document.getElementById('vinc-rast-placa').value || '').trim().toUpperCase();
+    const novoImei = (document.getElementById('vinc-rast-imei').value || '').trim().toUpperCase();
+    const novoIccid = (document.getElementById('vinc-rast-iccid').value || '').trim();
+    const novoKm = parseInt(document.getElementById('vinc-rast-km').value) || motos[idx].kmAtual || 0;
+
+    motos[idx].placa = novaPlaca || motos[idx].placa;
+    motos[idx].rastreadorImei = novoImei;
+    motos[idx].rastreadorChip = novoIccid;
+    motos[idx].kmAtual = novoKm;
+    motos[idx].rastreadorProvedor = 'xtrack';
+    motos[idx].rastreadorBloqueado = false;
+    motos[idx].rastreadorUltimaSync = new Date().toISOString();
+
+    saveDb('crm_motos', motos);
+    closeModal('modal-configurar-rastreador-individual');
+    updateViews();
+
+    sincronizarTelemetriaAutonomaMoto(motoId, false);
+
+    mostrarToastNotificacao({
+        titulo: `📡 Rastreador Vinculado à ${motos[idx].placa}!`,
+        mensagem: `Rastreador (ID: ${novoImei}) configurado com sucesso. O robô coletor 24h já está monitorando esta moto na plataforma Xtrack!`,
+        cor: '#0284c7',
+        icone: 'fa-satellite-dish'
+    });
+}
+
+function desvincularRastreadorDaMoto() {
+    const motoId = document.getElementById('vinc-rast-moto-id').value;
+    if (!motoId) return;
+    if (!confirm('Deseja realmente desvincular o rastreador desta motocicleta? Ela voltará ao status "Sem Rastreador".')) return;
+
+    let motos = getDb('crm_motos');
+    const idx = motos.findIndex(m => m.id === motoId);
+    if (idx === -1) return;
+
+    motos[idx].rastreadorImei = '';
+    motos[idx].rastreadorChip = '';
+    motos[idx].rastreadorBloqueado = false;
+    saveDb('crm_motos', motos);
+    closeModal('modal-configurar-rastreador-individual');
+    updateViews();
+
+    mostrarToastNotificacao({
+        titulo: `Rastreador Desvinculado`,
+        mensagem: `A moto ${motos[idx].placa} agora está marcada como sem rastreador instalado.`,
+        cor: '#64748b',
+        icone: 'fa-ban'
+    });
 }

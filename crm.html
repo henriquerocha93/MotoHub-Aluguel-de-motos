@@ -166,8 +166,11 @@
                                 <button class="btn btn-secondary btn-sm" onclick="sincronizarTodosRastreadores()">
                                     <i class="fa-solid fa-rotate"></i> Sincronizar Chips IoT / KM
                                 </button>
+                                <button class="btn btn-secondary btn-sm" onclick="abrirModalConfigurarRastreadorIndividual()">
+                                    <i class="fa-solid fa-satellite-dish"></i> + Novo Rastreador Xtrack
+                                </button>
                                 <button class="btn btn-secondary btn-sm" onclick="openModal('modal-config-rastreador-global')">
-                                    <i class="fa-solid fa-sim-card"></i> Configurar Chips IoT
+                                    <i class="fa-solid fa-gear"></i> Configurações Xtrack
                                 </button>
                                 <button class="btn btn-primary btn-sm" onclick="navegarParaView('oleo')">
                                     <i class="fa-solid fa-oil-can"></i> Área Troca de Óleo
@@ -1649,6 +1652,16 @@
                     </div>
                 </div>
 
+                <!-- Barra de Ação Rápida de Bloqueio Imediato & Configuração do Rastreador -->
+                <div style="background:#0f172a; border-radius:10px; padding:12px 16px; margin:14px 0; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+                    <button type="button" class="btn btn-danger" id="btn-toggle-bloqueio-moto-top" onclick="alternarBloqueioRemotoMoto()" style="flex:1; min-width:220px; font-weight:800; font-size:0.95rem; padding:10px 16px; box-shadow:0 4px 12px rgba(220,38,38,0.35); display:inline-flex; align-items:center; justify-content:center; gap:8px;">
+                        <i class="fa-solid fa-lock"></i> BLOQUEAR MOTOCICLETA AGORA
+                    </button>
+                    <button type="button" class="btn btn-secondary btn-sm" onclick="abrirModalConfigurarRastreadorIndividual(document.getElementById('rast-moto-id').value)" style="background:#1e293b; color:#38bdf8; border:1px solid #334155; font-weight:700; padding:10px 14px;">
+                        <i class="fa-solid fa-gear"></i> Configurar Rastreador desta Moto
+                    </button>
+                </div>
+
                 <!-- Aviso quando a motocicleta NÃO possui rastreador instalado -->
                 <div id="rast-sem-rastreador-card" style="display:none; background:#fffbeb; border:2px dashed #f59e0b; border-radius:12px; padding:22px; margin-bottom:16px; text-align:center;">
                     <div style="font-size:2rem; color:#d97706; margin-bottom:8px;">
@@ -2341,6 +2354,62 @@
     </div>
 
     <!-- Container de Toasts de Notificação Automática (Pagamentos e Troca de Óleo) -->
+    
+    <!-- Modal Central de Instalação e Configuração Individual de Rastreador Xtrack -->
+    <div class="modal" id="modal-configurar-rastreador-individual">
+        <div class="modal-content">
+            <div class="modal-header" style="background:#0f172a; color:#fff; border-radius:12px 12px 0 0;">
+                <h3 style="display:flex; align-items:center; gap:10px;">
+                    <i class="fa-solid fa-satellite-dish" style="color:#38bdf8;"></i> Central de Rastreadores Xtrack • Vincular à Moto
+                </h3>
+                <span class="close-btn" style="color:#fff;" onclick="closeModal('modal-configurar-rastreador-individual')">&times;</span>
+            </div>
+            <div class="modal-body">
+                <div style="background:#ecfdf5; border:1px solid #a7f3d0; border-radius:8px; padding:12px 14px; margin-bottom:14px; font-size:0.83rem; color:#065f46;">
+                    <div style="display:flex; align-items:center; gap:8px; font-weight:700; margin-bottom:4px;">
+                        <i class="fa-solid fa-circle-check" style="color:#10b981; font-size:1.1rem;"></i> Plataforma Xtrack Oficial Ativa (tela.xtrack.app.br)
+                    </div>
+                    <div>Todos os rastreadores operam sob a sua mesma conta master (<strong>51986551068</strong>). Ao cadastrar uma moto no app Xtrack, basta colocar a mesma Placa ou o ID do aparelho aqui que o Robô no Render rastreará ao vivo a cada 20 segundos!</div>
+                </div>
+
+                <form id="form-config-rastreador-individual" onsubmit="salvarVinculoRastreadorIndividual(event)">
+                    <div class="form-group">
+                        <label>Selecione a Motocicleta da Frota*</label>
+                        <select id="vinc-rast-moto-id" required onchange="onSelectMotoVincularRastreador()"></select>
+                    </div>
+                    <div class="form-group row">
+                        <div class="col">
+                            <label>Placa no App Xtrack*</label>
+                            <input type="text" id="vinc-rast-placa" required placeholder="Ex: IPU2I57" style="text-transform:uppercase;">
+                        </div>
+                        <div class="col">
+                            <label>ID / Serial do Rastreador*</label>
+                            <input type="text" id="vinc-rast-imei" required placeholder="Ex: 00018E1B (ou serial na etiqueta)">
+                        </div>
+                    </div>
+                    <div class="form-group row">
+                        <div class="col">
+                            <label>ICCID do Chip M2M (Opcional)</label>
+                            <input type="text" id="vinc-rast-iccid" placeholder="Ex: 89555480000080813880">
+                        </div>
+                        <div class="col">
+                            <label>KM Atual de Partida (Painel)</label>
+                            <input type="number" id="vinc-rast-km" placeholder="Ex: 270186" min="0">
+                        </div>
+                    </div>
+                    <div style="display:flex; gap:10px; margin-top:16px;">
+                        <button type="submit" class="btn btn-primary" style="flex:2; font-weight:700; padding:10px 16px;">
+                            <i class="fa-solid fa-check"></i> Salvar e Ativar Rastreamento ao Vivo
+                        </button>
+                        <button type="button" class="btn btn-danger btn-sm" id="btn-desvincular-rast" onclick="desvincularRastreadorDaMoto()" style="display:none; font-weight:700; padding:10px 14px;">
+                            <i class="fa-solid fa-trash"></i> Desvincular GPS
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
     <div id="toast-notif-container" style="position:fixed; bottom:20px; right:20px; z-index:9999; display:flex; flex-direction:column; gap:10px; max-width:370px; pointer-events:none;"></div>
 
     <!-- Firebase Firebase App (the core Firebase SDK) -->
