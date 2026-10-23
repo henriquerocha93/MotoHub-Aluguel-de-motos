@@ -1,1025 +1,1034 @@
-<!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="theme-color" content="#090d16">
-    <title>FACILITA MOTO • Portal da Oficina Parceira Credenciada</title>
-    <!-- Favicon Oficial Facilita Moto (Quadrado Moto + GPS Sem Distorção) -->
-    <link rel="icon" type="image/x-icon" href="favicon.ico?v=2">
-    <link rel="icon" type="image/png" sizes="32x32" href="favicon.png?v=2">
-    <link rel="apple-touch-icon" href="favicon.png?v=2">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <style>
-        :root {
-            --primary: #f97316;
-            --primary-hover: #ea580c;
-            --bg-dark: #090d16;
-            --bg-card: #131b2e;
-            --bg-card-hover: #1e293b;
-            --border: #223049;
-            --text-main: #f8fafc;
-            --text-muted: #94a3b8;
-            --success: #10b981;
-            --danger: #ef4444;
-            --warning: #f59e0b;
-            --info: #38bdf8;
-        }
-
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            font-family: 'Inter', sans-serif;
-        }
-
-        body {
-            background-color: var(--bg-dark);
-            color: var(--text-main);
-            min-height: 100vh;
-            display: flex;
-            flex-direction: column;
-            overflow-x: hidden;
-        }
-
-        /* Topbar Header */
-        .topbar {
-            background: rgba(19, 27, 46, 0.95);
-            backdrop-filter: blur(12px);
-            border-bottom: 1px solid var(--border);
-            padding: 12px 24px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            position: sticky;
-            top: 0;
-            z-index: 50;
-        }
-
-        .brand-container {
-            display: flex;
-            align-items: center;
-            gap: 14px;
-        }
-
-        .brand-logo {
-            height: 48px;
-            width: auto;
-            border-radius: 8px;
-            object-fit: contain;
-            background: #fff;
-            padding: 3px;
-        }
-
-        .brand-text h1 {
-            font-size: 1.15rem;
-            font-weight: 800;
-            letter-spacing: -0.5px;
-            color: #fff;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .brand-text span {
-            font-size: 0.76rem;
-            color: var(--primary);
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 0.8px;
-        }
-
-        .oficina-badge {
-            background: #1e293b;
-            border: 1px solid #334155;
-            padding: 6px 14px;
-            border-radius: 999px;
-            font-size: 0.82rem;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .oficina-badge strong {
-            color: #38bdf8;
-        }
-
-        .btn-logout {
-            background: #271414;
-            color: #fca5a5;
-            border: 1px solid #7f1d1d;
-            padding: 7px 14px;
-            border-radius: 8px;
-            font-size: 0.8rem;
-            font-weight: 600;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            transition: 0.2s;
-        }
-
-        .btn-logout:hover {
-            background: #7f1d1d;
-            color: #fff;
-        }
-
-        /* Container Principal */
-        .container {
-            max-width: 1050px;
-            width: 100%;
-            margin: 0 auto;
-            padding: 24px 16px;
-            flex: 1;
-        }
-
-        /* Login Card */
-        .login-card {
-            max-width: 440px;
-            margin: 60px auto;
-            background: var(--bg-card);
-            border: 1px solid var(--border);
-            border-radius: 16px;
-            padding: 36px 28px;
-            box-shadow: 0 20px 40px rgba(0,0,0,0.4);
-            text-align: center;
-        }
-
-        .login-card .logo {
-            max-width: 170px;
-            margin-bottom: 20px;
-            border-radius: 10px;
-            background: #fff;
-            padding: 6px;
-        }
-
-        .form-group {
-            margin-bottom: 18px;
-            text-align: left;
-        }
-
-        .form-group label {
-            display: block;
-            font-size: 0.84rem;
-            font-weight: 600;
-            color: var(--text-muted);
-            margin-bottom: 6px;
-        }
-
-        .form-control {
-            width: 100%;
-            background: #0f172a;
-            border: 1px solid var(--border);
-            border-radius: 8px;
-            padding: 12px 14px;
-            color: #fff;
-            font-size: 0.95rem;
-            outline: none;
-            transition: 0.2s;
-        }
-
-        .form-control:focus {
-            border-color: var(--primary);
-            box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.2);
-        }
-
-        .btn-primary {
-            width: 100%;
-            background: linear-gradient(135deg, #f97316, #ea580c);
-            color: #fff;
-            border: none;
-            padding: 13px;
-            border-radius: 8px;
-            font-size: 0.95rem;
-            font-weight: 700;
-            cursor: pointer;
-            transition: 0.2s;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-        }
-
-        .btn-primary:hover {
-            filter: brightness(1.1);
-            transform: translateY(-1px);
-        }
-
-        /* Grid de Troca de Óleo */
-        .card {
-            background: var(--bg-card);
-            border: 1px solid var(--border);
-            border-radius: 14px;
-            padding: 22px;
-            margin-bottom: 22px;
-            box-shadow: 0 8px 24px rgba(0,0,0,0.25);
-        }
-
-        .card-header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            margin-bottom: 18px;
-            padding-bottom: 14px;
-            border-bottom: 1px solid var(--border);
-        }
-
-        .card-header h2 {
-            font-size: 1.15rem;
-            font-weight: 700;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .moto-preview-box {
-            background: #0f172a;
-            border: 1px solid var(--border);
-            border-radius: 10px;
-            padding: 16px;
-            margin-bottom: 20px;
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 14px;
-        }
-
-        .preview-item {
-            display: flex;
-            flex-direction: column;
-            gap: 3px;
-        }
-
-        .preview-item span {
-            font-size: 0.74rem;
-            color: var(--text-muted);
-            text-transform: uppercase;
-            font-weight: 600;
-        }
-
-        .preview-item strong {
-            font-size: 1rem;
-            color: #fff;
-        }
-
-        .status-badge {
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            padding: 4px 10px;
-            border-radius: 999px;
-            font-size: 0.78rem;
-            font-weight: 700;
-        }
-
-        .status-bloqueada {
-            background: #7f1d1d;
-            color: #fecaca;
-            border: 1px solid #ef4444;
-            animation: pulse-red 1.8s infinite;
-        }
-
-        .status-liberada {
-            background: #064e3b;
-            color: #a7f3d0;
-            border: 1px solid #10b981;
-        }
-
-        @keyframes pulse-red {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.6; }
-        }
-
-        /* Chips rápidos para o óleo */
-        .chips-container {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 8px;
-            margin-top: 8px;
-        }
-
-        .chip-btn {
-            background: #1e293b;
-            color: #cbd5e1;
-            border: 1px solid #334155;
-            padding: 6px 12px;
-            border-radius: 999px;
-            font-size: 0.78rem;
-            font-weight: 600;
-            cursor: pointer;
-            transition: 0.15s;
-        }
-
-        .chip-btn:hover, .chip-btn.active {
-            background: #f97316;
-            color: #fff;
-            border-color: #f97316;
-        }
-
-        .calc-box {
-            background: #1e293b;
-            border: 1px solid #334155;
-            border-radius: 8px;
-            padding: 12px;
-            margin-top: 10px;
-            display: flex;
-            align-items: center;
-            justify-content: space-around;
-            text-align: center;
-        }
-
-        .calc-box div strong {
-            display: block;
-            font-size: 1.15rem;
-            color: #38bdf8;
-            margin-top: 2px;
-        }
-
-        .calc-box div span {
-            font-size: 0.73rem;
-            color: var(--text-muted);
-            text-transform: uppercase;
-        }
-
-        /* Tabela Histórico */
-        .table-responsive {
-            width: 100%;
-            overflow-x: auto;
-        }
-
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            font-size: 0.88rem;
-            text-align: left;
-        }
-
-        th {
-            background: #0f172a;
-            color: var(--text-muted);
-            font-weight: 600;
-            padding: 12px 14px;
-            border-bottom: 1px solid var(--border);
-            font-size: 0.78rem;
-            text-transform: uppercase;
-        }
-
-        td {
-            padding: 12px 14px;
-            border-bottom: 1px solid #1a253c;
-            color: #e2e8f0;
-        }
-
-        tr:hover td {
-            background: rgba(30, 41, 59, 0.4);
-        }
-
-        /* Modal Sucesso */
-        .modal-overlay {
-            position: fixed;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.8);
-            backdrop-filter: blur(8px);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            z-index: 100;
-            opacity: 0;
-            pointer-events: none;
-            transition: 0.2s;
-        }
-
-        .modal-overlay.show {
-            opacity: 1;
-            pointer-events: auto;
-        }
-
-        .modal-box {
-            background: var(--bg-card);
-            border: 1px solid var(--border);
-            border-radius: 16px;
-            padding: 30px;
-            max-width: 480px;
-            width: 90%;
-            text-align: center;
-            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.6);
-            transform: scale(0.95);
-            transition: 0.2s;
-        }
-
-        .modal-overlay.show .modal-box {
-            transform: scale(1);
-        }
-
-        .modal-icon-success {
-            width: 70px;
-            height: 70px;
-            border-radius: 50%;
-            background: #064e3b;
-            color: #10b981;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 2rem;
-            margin: 0 auto 16px;
-            border: 2px solid #10b981;
-        }
-
-        .footer {
-            text-align: center;
-            padding: 16px;
-            font-size: 0.76rem;
-            color: var(--text-muted);
-            border-top: 1px solid var(--border);
-            background: #0b101d;
-        }
-    </style>
-</head>
-<body>
-
-    <!-- TOPBAR -->
-    <header class="topbar">
-        <div class="brand-container">
-            <img src="logo.png.png" alt="FACILITA MOTO" class="brand-logo">
-            <div class="brand-text">
-                <h1>FACILITA MOTO</h1>
-                <span>Portal da Oficina Parceira</span>
-            </div>
-        </div>
-
-        <div id="topbar-user-section" style="display:none; align-items:center; gap:12px;">
-            <div class="oficina-badge">
-                <i class="fa-solid fa-wrench" style="color:var(--primary);"></i>
-                <span>Oficina: <strong id="header-oficina-nome">Oficina Parceira</strong></span>
-            </div>
-            <button class="btn-logout" onclick="fazerLogoutOficina()">
-                <i class="fa-solid fa-right-from-bracket"></i> Sair
-            </button>
-        </div>
-    </header>
-
-    <!-- ÁREA 1: LOGIN DA OFICINA PARCEIRA -->
-    <div id="section-login" class="container" style="display:none;">
-        <div class="login-card">
-            <img src="logo.png.png" alt="FACILITA MOTO" class="logo">
-            <h2 style="font-size:1.35rem; font-weight:800; margin-bottom:6px;">Acesso da Oficina Credenciada</h2>
-            <p style="font-size:0.83rem; color:var(--text-muted); margin-bottom:24px;">Informe seu login e senha cadastrados pelo administrador da Facilita Moto.</p>
-
-            <form id="form-login-oficina" onsubmit="realizarLoginOficina(event)">
-                <div class="form-group">
-                    <label>E-mail ou Login de Acesso*</label>
-                    <input type="text" id="login-email" class="form-control" required placeholder="oficina@exemplo.com">
-                </div>
-                <div class="form-group">
-                    <label>Senha*</label>
-                    <input type="password" id="login-senha" class="form-control" required placeholder="••••••••">
-                </div>
-                <p id="login-error" style="color:var(--danger); font-size:0.82rem; margin-bottom:12px; display:none; font-weight:600;">E-mail ou senha incorretos!</p>
-                <button type="submit" class="btn-primary">
-                    <i class="fa-solid fa-right-to-bracket"></i> Entrar no Painel da Oficina
-                </button>
-            </form>
-
-            <div style="margin-top:20px; font-size:0.78rem; color:var(--text-muted);">
-                Esqueceu a senha? Solicite à administração da Facilita Moto.
-            </div>
-        </div>
-    </div>
-
-    <!-- ÁREA 2: PAINEL DA OFICINA -->
-    <main id="section-app" class="container" style="display:none;">
-
-        <!-- Banner com a Identidade da Oficina e da Facilita Moto -->
-        <div style="background: linear-gradient(135deg, #1e293b, #0f172a); border:1px solid #334155; border-radius:14px; padding:18px 22px; margin-bottom:22px; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:14px;">
-            <div style="display:flex; align-items:center; gap:16px;">
-                <div style="width:52px; height:52px; border-radius:12px; background:rgba(249, 115, 22, 0.15); border:1px solid rgba(249, 115, 22, 0.3); display:flex; align-items:center; justify-content:center; font-size:1.6rem; color:var(--primary);">
-                    <i class="fa-solid fa-motorcycle"></i>
-                </div>
-                <div>
-                    <h2 style="font-size:1.25rem; font-weight:800; color:#fff;" id="banner-oficina-nome">Oficina Parceira Credenciada</h2>
-                    <p style="font-size:0.83rem; color:#94a3b8;">Oficina autorizada para manutenção preventiva, troca de óleo e liberação de veículos da <strong>Facilita Moto</strong>.</p>
-                </div>
-            </div>
-            <div style="display:flex; align-items:center; gap:8px;">
-                <span class="status-badge status-liberada" style="font-size:0.82rem; padding:6px 14px;">
-                    <i class="fa-solid fa-shield-check"></i> Sistema Integrado & Operacional
-                </span>
-            </div>
-        </div>
-
-        <!-- Card de Registro de Troca de Óleo -->
-        <div class="card">
-            <div class="card-header">
-                <h2><i class="fa-solid fa-oil-can" style="color:var(--primary);"></i> Registrar Troca de Óleo & Liberar Moto</h2>
-                <span style="font-size:0.8rem; color:var(--text-muted); font-weight:600;">Ciclo Oficial: 1.000 KM</span>
-            </div>
-
-            <form id="form-registro-troca" onsubmit="processarTrocaOleo(event)">
-                <!-- 1. Seleção da Motocicleta -->
-                <div class="form-group">
-                    <label>Selecione a Motocicleta da Frota*</label>
-                    <select id="select-moto" class="form-control" required onchange="aoSelecionarMoto(this.value)" style="font-size:1rem; font-weight:600; color:#38bdf8;">
-                        <option value="">-- Selecione uma moto para iniciar o atendimento --</option>
-                    </select>
-                </div>
-
-                <!-- Preview Dinâmico da Moto -->
-                <div id="moto-preview" class="moto-preview-box" style="display:none;">
-                    <div class="preview-item">
-                        <span>Placa do Veículo</span>
-                        <strong id="prev-placa" style="font-size:1.15rem; color:#f97316;">---</strong>
-                    </div>
-                    <div class="preview-item">
-                        <span>Modelo da Moto</span>
-                        <strong id="prev-modelo">---</strong>
-                    </div>
-                    <div class="preview-item">
-                        <span>Condutor / Locatário</span>
-                        <strong id="prev-condutor">---</strong>
-                    </div>
-                    <div class="preview-item">
-                        <span>Última Troca Registrada</span>
-                        <strong id="prev-km-ultima">0 km</strong>
-                    </div>
-                    <div class="preview-item">
-                        <span>Status Atual de Bloqueio</span>
-                        <div id="prev-status-bloqueio">
-                            <span class="status-badge status-liberada">Liberada</span>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- 2. Detalhes do Serviço -->
-                <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap:18px;">
-                    <!-- KM de Chegada -->
-                    <div class="form-group">
-                        <label>KM Atual no Hodômetro (Chegada na Oficina)*</label>
-                        <input type="number" id="input-km" class="form-control" required min="0" placeholder="Ex: 27150" oninput="calcularProximasMetas(this.value)">
-                        <small style="display:block; font-size:0.75rem; color:var(--text-muted); margin-top:4px;">
-                            Digite o KM exato marcado no painel da moto no momento do serviço.
-                        </small>
-                    </div>
-
-                    <!-- Data da Troca -->
-                    <div class="form-group">
-                        <label>Data do Serviço*</label>
-                        <input type="date" id="input-data" class="form-control" required>
-                    </div>
-                </div>
-
-                <!-- Cálculo em Tempo Real do Novo Ciclo -->
-                <div class="calc-box">
-                    <div>
-                        <span>KM Registrado Agora</span>
-                        <strong id="calc-km-atual">-- km</strong>
-                    </div>
-                    <div style="font-size:1.5rem; color:#475569;">➔</div>
-                    <div>
-                        <span>Próxima Troca Obrigatória (+1.000 km)</span>
-                        <strong id="calc-km-prox" style="color:#10b981;">-- km</strong>
-                    </div>
-                    <div style="font-size:1.5rem; color:#475569;">➔</div>
-                    <div>
-                        <span>Bloqueio de Proteção (+1.100 km)</span>
-                        <strong id="calc-km-bloq" style="color:#f59e0b;">-- km</strong>
-                    </div>
-                </div>
-
-                <!-- Óleo Utilizado -->
-                <div class="form-group" style="margin-top:18px;">
-                    <label>Marca e Especificação do Óleo Utilizado*</label>
-                    <input type="text" id="input-oleo" class="form-control" required placeholder="Ex: Mobil 20W-50 4T Mineral">
-                    <div class="chips-container">
-                        <span style="font-size:0.75rem; color:var(--text-muted); align-self:center; margin-right:4px;">Sugestões Rápidas:</span>
-                        <button type="button" class="chip-btn" onclick="selecionarOleoRapido('Mobil 20W-50 4T Mineral')">Mobil 20W-50</button>
-                        <button type="button" class="chip-btn" onclick="selecionarOleoRapido('Havoline 20W-50 4T Mineral')">Havoline 20W-50</button>
-                        <button type="button" class="chip-btn" onclick="selecionarOleoRapido('Honda Genuíno 10W-30 Semissintético')">Honda 10W-30</button>
-                        <button type="button" class="chip-btn" onclick="selecionarOleoRapido('Motul 3000 20W-50 4T')">Motul 3000 20W-50</button>
-                        <button type="button" class="chip-btn" onclick="selecionarOleoRapido('Ipiranga Moto 20W-50 4T')">Ipiranga 20W-50</button>
-                    </div>
-                </div>
-
-                <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap:18px;">
-                    <!-- Mecânico Responsável -->
-                    <div class="form-group">
-                        <label>Mecânico / Técnico Responsável</label>
-                        <input type="text" id="input-mecanico" class="form-control" placeholder="Nome do mecânico">
-                    </div>
-
-                    <!-- Observações -->
-                    <div class="form-group">
-                        <label>Observações do Serviço (Opcional)</label>
-                        <input type="text" id="input-obs" class="form-control" placeholder="Ex: Filtro trocado, corrente ajustada e lubrificada">
-                    </div>
-                </div>
-
-                <!-- Botão de Confirmação -->
-                <div style="margin-top:10px;">
-                    <button type="submit" class="btn-primary" style="padding:16px; font-size:1.05rem; background:linear-gradient(135deg, #16a34a, #15803d);">
-                        <i class="fa-solid fa-check-double"></i> Confirmar Troca de Óleo e Liberar Moto na Hora (+1.000 KM)
-                    </button>
-                </div>
-            </form>
-        </div>
-
-        <!-- Tabela de Histórico de Trocas Feitas Pela Oficina -->
-        <div class="card">
-            <div class="card-header">
-                <h2><i class="fa-solid fa-clock-rotate-left" style="color:var(--info);"></i> Histórico de Revisões Realizadas por Esta Oficina</h2>
-                <span id="historico-total-count" style="font-size:0.8rem; color:var(--text-muted);">0 registros</span>
-            </div>
-
-            <div class="table-responsive">
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Data</th>
-                            <th>Placa</th>
-                            <th>Modelo</th>
-                            <th>KM da Troca</th>
-                            <th>Próxima Troca</th>
-                            <th>Óleo Utilizado</th>
-                            <th>Técnico</th>
-                            <th>Status no Sistema</th>
-                        </tr>
-                    </thead>
-                    <tbody id="tabela-historico-oficina">
-                        <tr>
-                            <td colspan="8" style="text-align:center; color:var(--text-muted); padding:24px;">
-                                Nenhuma troca de óleo registrada por esta oficina ainda.
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-        </div>
-
-    </main>
-
-    <!-- MODAL DE SUCESSO -->
-    <div id="modal-sucesso" class="modal-overlay">
-        <div class="modal-box">
-            <div class="modal-icon-success">
-                <i class="fa-solid fa-check"></i>
-            </div>
-            <h2 style="font-size:1.4rem; font-weight:800; color:#fff; margin-bottom:8px;">Serviço Confirmado com Sucesso!</h2>
-            <p id="modal-sucesso-msg" style="font-size:0.92rem; color:#cbd5e1; line-height:1.5; margin-bottom:20px;">
-                A moto foi liberada para mais 1.000 KM no sistema.
-            </p>
-            <div id="modal-sucesso-destaque" style="background:#0f172a; border:1px solid #10b981; border-radius:10px; padding:14px; margin-bottom:22px; text-align:left; font-size:0.85rem;">
-                <!-- Preenchido dinamicamente -->
-            </div>
-            <button type="button" class="btn-primary" onclick="fecharModalSucesso()">
-                <i class="fa-solid fa-thumbs-up"></i> Entendido / Concluir Atendimento
-            </button>
-        </div>
-    </div>
-
-    <footer class="footer">
-        Facilita Moto Locações Inteligentes • Portal de Telemetria e Manutenção Preventiva da Oficina Parceira
-    </footer>
-
-    <!-- Firebase SDK Compat v8 para sincronização híbrida com CRM -->
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
-
-    <script>
-        const firebaseConfig = {
-            apiKey: "AIzaSyDp8U3HYT_XAbZ30dSQlKoh8zw02DLeIvc",
-            authDomain: "motohub-9e839.firebaseapp.com",
-            projectId: "motohub-9e839",
-            storageBucket: "motohub-9e839.firebasestorage.app",
-            messagingSenderId: "200673709108",
-            appId: "1:200673709108:web:e84d8fdb824cf18fd5ce61"
-        };
-        if (typeof firebase !== 'undefined' && !firebase.apps.length) {
-            try { firebase.initializeApp(firebaseConfig); } catch(e) {}
-        }
-        const db = (typeof firebase !== 'undefined') ? firebase.firestore() : null;
-
-        // Sessão da Oficina
-        let sessaoOficina = null;
-
-        function getDb(key) {
-            try { return JSON.parse(localStorage.getItem(key)) || []; } catch(e) { return []; }
-        }
-        function saveDb(key, data) {
-            try {
-                localStorage.setItem(key, JSON.stringify(data));
-                if (db) {
-                    const batch = db.batch();
-                    data.forEach(item => {
-                        if (item && item.id) {
-                            batch.set(db.collection(key).doc(item.id), item);
-                        }
-                    });
-                    batch.commit().catch(() => {});
-                }
-            } catch(e) {}
-        }
-
-        // Inicialização
-        document.addEventListener('DOMContentLoaded', () => {
-            document.getElementById('input-data').value = new Date().toISOString().split('T')[0];
-            verificarAutenticacao();
-        });
-
-        function verificarAutenticacao() {
-            try {
-                const s = JSON.parse(localStorage.getItem('crm_session_oficina')) || JSON.parse(localStorage.getItem('crm_session'));
-                if (s && (s.role === 'oficina' || s.role === 'admin')) {
-                    sessaoOficina = s;
-                    exibirPainelOficina();
-                    return;
-                }
-            } catch(e) {}
-            exibirTelaLogin();
-        }
-
-        function exibirTelaLogin() {
-            document.getElementById('section-login').style.display = 'block';
-            document.getElementById('section-app').style.display = 'none';
-            document.getElementById('topbar-user-section').style.display = 'none';
-        }
-
-        function exibirPainelOficina() {
-            document.getElementById('section-login').style.display = 'none';
-            document.getElementById('section-app').style.display = 'block';
-            document.getElementById('topbar-user-section').style.display = 'flex';
-
-            const nomeOficina = sessaoOficina.oficinaNome || sessaoOficina.nome || 'Oficina Credenciada';
-            document.getElementById('header-oficina-nome').innerText = nomeOficina;
-            document.getElementById('banner-oficina-nome').innerText = nomeOficina;
-
-            carregarMotosNoSelect();
-            carregarHistoricoOficina();
-        }
-
-        function realizarLoginOficina(e) {
-            e.preventDefault();
-            const email = (document.getElementById('login-email').value || '').trim().toLowerCase();
-            const senha = (document.getElementById('login-senha').value || '').trim();
-
-            const admins = getDb('crm_admins');
-            const user = admins.find(u => 
-                (u.email || '').toLowerCase() === email && 
-                u.senha === senha &&
-                (u.role === 'oficina' || u.role === 'admin')
-            );
-
-            if (user) {
-                sessaoOficina = {
-                    id: user.id,
-                    nome: user.nome,
-                    oficinaNome: user.nome,
-                    email: user.email,
-                    role: user.role
-                };
-                localStorage.setItem('crm_session_oficina', JSON.stringify(sessaoOficina));
-                exibirPainelOficina();
-            } else {
-                document.getElementById('login-error').style.display = 'block';
-            }
-        }
-
-        function fazerLogoutOficina() {
-            localStorage.removeItem('crm_session_oficina');
-            sessaoOficina = null;
-            exibirTelaLogin();
-        }
-
-        function carregarMotosNoSelect() {
-            const motos = getDb('crm_motos');
-            const clientes = getDb('crm_clientes');
-            const select = document.getElementById('select-moto');
-            select.innerHTML = '<option value="">-- Selecione a moto pelo modelo ou placa --</option>';
-
-            motos.forEach(m => {
-                const c = clientes.find(cli => cli.id === m.clienteId);
-                const condutor = c ? c.nome : (m.status === 'alugada' ? 'Locada' : 'No Pátio');
-                const km = parseInt(m.kmAtual) || 0;
-                const statusBloq = (m.bloqueadoPorKmOleo || (m.rastreadorBloqueado && !m.bloqueadoPorInadimplencia)) ? ' 🚨 [BLOQUEADA]' : '';
-                select.innerHTML += `<option value="${m.id}">🏍️ ${m.placa} — ${m.modelo} (Condutor: ${condutor}) ${statusBloq}</option>`;
-            });
-        }
-
-        function aoSelecionarMoto(motoId) {
-            const preview = document.getElementById('moto-preview');
-            if (!motoId) {
-                preview.style.display = 'none';
-                return;
-            }
-
-            const motos = getDb('crm_motos');
-            const clientes = getDb('crm_clientes');
-            const m = motos.find(x => x.id === motoId);
-            if (!m) return;
-
-            const c = clientes.find(cli => cli.id === m.clienteId);
-            const condutor = c ? `${c.nome} (${c.telefone || ''})` : 'Disponível no Pátio';
-
-            document.getElementById('prev-placa').innerText = m.placa;
-            document.getElementById('prev-modelo').innerText = m.modelo;
-            document.getElementById('prev-condutor').innerText = condutor;
-            document.getElementById('prev-km-ultima').innerText = `${m.kmUltimaTroca || m.kmAtual || 0} km`;
-
-            const isBloqueada = m.bloqueadoPorKmOleo === true || (m.rastreadorBloqueado === true && !m.bloqueadoPorInadimplencia);
-            const statusDiv = document.getElementById('prev-status-bloqueio');
-            if (isBloqueada) {
-                statusDiv.innerHTML = `<span class="status-badge status-bloqueada"><i class="fa-solid fa-lock"></i> BLOQUEADA POR FALTA DE TROCA DE ÓLEO</span>`;
-            } else {
-                statusDiv.innerHTML = `<span class="status-badge status-liberada"><i class="fa-solid fa-circle-check"></i> Liberada / Circulando</span>`;
-            }
-
-            preview.style.display = 'grid';
-
-            // Pré-preenche o KM de chegada com o KM atual estimado se houver
-            const kmAtualEst = parseInt(m.kmAtual) || 0;
-            if (kmAtualEst > 0 && !document.getElementById('input-km').value) {
-                document.getElementById('input-km').value = kmAtualEst;
-                calcularProximasMetas(kmAtualEst);
-            }
-        }
-
-        function calcularProximasMetas(val) {
-            const km = parseInt(val) || 0;
-            if (km <= 0) {
-                document.getElementById('calc-km-atual').innerText = '-- km';
-                document.getElementById('calc-km-prox').innerText = '-- km';
-                document.getElementById('calc-km-bloq').innerText = '-- km';
-                return;
-            }
-
-            document.getElementById('calc-km-atual').innerText = `${km.toLocaleString('pt-BR')} km`;
-            document.getElementById('calc-km-prox').innerText = `${(km + 1000).toLocaleString('pt-BR')} km`;
-            document.getElementById('calc-km-bloq').innerText = `${(km + 1100).toLocaleString('pt-BR')} km`;
-        }
-
-        function selecionarOleoRapido(nomeOleo) {
-            document.getElementById('input-oleo').value = nomeOleo;
-            document.querySelectorAll('.chip-btn').forEach(btn => {
-                btn.classList.toggle('active', btn.innerText.includes(nomeOleo.split(' ')[0]));
-            });
-        }
-
-        function processarTrocaOleo(e) {
-            e.preventDefault();
-            const motoId = document.getElementById('select-moto').value;
-            const kmChegada = parseInt(document.getElementById('input-km').value) || 0;
-            const dataTroca = document.getElementById('input-data').value;
-            const oleo = document.getElementById('input-oleo').value.trim();
-            const mecanico = document.getElementById('input-mecanico').value.trim() || 'Técnico Autorizado';
-            const obs = document.getElementById('input-obs').value.trim();
-
-            if (!motoId) {
-                alert('Por favor, selecione uma moto!');
-                return;
-            }
-            if (kmChegada <= 0) {
-                alert('Informe um KM válido registrado no painel da moto!');
-                return;
-            }
-
-            let motos = getDb('crm_motos');
-            const idx = motos.findIndex(m => m.id === motoId);
-            if (idx === -1) return;
-
-            const moto = motos[idx];
-            const estavaBloqueada = moto.bloqueadoPorKmOleo === true || (moto.rastreadorBloqueado === true && !moto.bloqueadoPorInadimplencia);
-            const proxKm = kmChegada + 1000;
-            const limiteBloq = kmChegada + 1100;
-            const nomeOficina = sessaoOficina?.oficinaNome || sessaoOficina?.nome || 'Oficina Parceira Credenciada';
-
-            // 1. Atualiza os dados da moto para mais 1.000 KM
-            moto.kmAtual = Math.max(parseInt(moto.kmAtual) || 0, kmChegada);
-            moto.kmUltimaTroca = kmChegada;
-            moto.kmProximaTroca = proxKm;
-            moto.bloqueadoPorKmOleo = false;
-            moto.bloqueioOleoDisparado = false;
-
-            // 2. Se a moto estava bloqueada por falta de troca, DESBLOQUEIA NA HORA!
-            let mensagemDesbloqueio = '';
-            if (estavaBloqueada) {
-                moto.rastreadorBloqueado = false;
-                if (!moto.bloqueadoPorInadimplencia) {
-                    moto.motivoBloqueioAutomatico = '';
-                }
-                mensagemDesbloqueio = '🚨 A moto estava bloqueada e foi DESBLOQUEADA IMEDIATAMENTE via satélite!';
-
-                // Disparo de comando de desbloqueio via API de telemetria
-                fetch('/api/telemetry', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        action: 'command_block',
-                        id: moto.rastreadorImei || '00018E1B',
-                        placa: moto.placa,
-                        bloquear: false,
-                        motivo: `Troca de óleo realizada na ${nomeOficina} — Motor 100% liberado`
-                    })
-                }).catch(() => {});
-            }
-
-            // 3. Registra no Histórico Oficial da Moto
-            if (!Array.isArray(moto.historicoOleo)) moto.historicoOleo = [];
-            moto.historicoOleo.unshift({
-                id: 'REV-' + Date.now(),
-                data: dataTroca,
-                km: kmChegada,
-                proxKm: proxKm,
-                oleo: oleo,
-                oficinaNome: nomeOficina,
-                mecanico: mecanico,
-                obs: obs || 'Troca de óleo e revisão preventiva 1.000 km realizada com sucesso.',
-                desbloqueada: estavaBloqueada,
-                registradoEm: new Date().toISOString()
-            });
-
-            // 4. Salva no banco de dados
-            motos[idx] = moto;
-            saveDb('crm_motos', motos);
-
-            // 5. Exibe Modal de Sucesso
-            document.getElementById('modal-sucesso-msg').innerHTML = `
-                A revisão da moto <strong>${moto.placa}</strong> (${moto.modelo}) foi registrada pela <strong>${nomeOficina}</strong>.<br>
-                ${mensagemDesbloqueio ? `<span style="color:#34d399; font-weight:700; display:block; margin-top:8px;">${mensagemDesbloqueio}</span>` : ''}
-            `;
-
-            document.getElementById('modal-sucesso-destaque').innerHTML = `
-                • <strong>Veículo:</strong> ${moto.placa} — ${moto.modelo}<br>
-                • <strong>KM da Troca:</strong> ${kmChegada.toLocaleString('pt-BR')} km<br>
-                • <strong>Próxima Troca Agendada:</strong> <span style="color:#10b981; font-weight:700;">${proxKm.toLocaleString('pt-BR')} km</span><br>
-                • <strong>Óleo Utilizado:</strong> ${oleo}<br>
-                • <strong>Técnico Responsável:</strong> ${mecanico}<br>
-                • <strong>Status:</strong> <span style="color:#38bdf8; font-weight:700;">MOTO 100% LIBERADA PARA RODAR</span>
-            `;
-
-            document.getElementById('modal-sucesso').classList.add('show');
-
-            // Atualiza a visualização
-            aoSelecionarMoto(moto.id);
-            carregarHistoricoOficina();
-            carregarMotosNoSelect();
-            document.getElementById('select-moto').value = moto.id;
-        }
-
-        function fecharModalSucesso() {
-            document.getElementById('modal-sucesso').classList.remove('show');
-            document.getElementById('form-registro-troca').reset();
-            document.getElementById('moto-preview').style.display = 'none';
-            document.getElementById('calc-km-atual').innerText = '-- km';
-            document.getElementById('calc-km-prox').innerText = '-- km';
-            document.getElementById('calc-km-bloq').innerText = '-- km';
-            document.getElementById('input-data').value = new Date().toISOString().split('T')[0];
-        }
-
-        function carregarHistoricoOficina() {
-            const motos = getDb('crm_motos');
-            const tbody = document.getElementById('tabela-historico-oficina');
-            const nomeOficinaAtual = (sessaoOficina?.oficinaNome || sessaoOficina?.nome || '').toLowerCase();
-
-            let registros = [];
-            motos.forEach(m => {
-                if (Array.isArray(m.historicoOleo)) {
-                    m.historicoOleo.forEach(h => {
-                        registros.push(Object.assign({}, h, { motoPlaca: m.placa, motoModelo: m.modelo }));
-                    });
-                }
-            });
-
-            // Ordena pelo mais recente
-            registros.sort((a, b) => new Date(b.registradoEm || b.data) - new Date(a.registradoEm || a.data));
-
-            document.getElementById('historico-total-count').innerText = `${registros.length} revisões cadastradas`;
-
-            if (registros.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; color:var(--text-muted); padding:24px;">Nenhuma troca de óleo registrada ainda.</td></tr>`;
-                return;
-            }
-
-            tbody.innerHTML = '';
-            registros.forEach(r => {
-                const tr = document.createElement('tr');
-                const dataFmt = r.data ? r.data.split('-').reverse().join('/') : '--/--/----';
-                tr.innerHTML = `
-                    <td><strong>${dataFmt}</strong></td>
-                    <td><span style="background:#1e293b; padding:4px 8px; border-radius:6px; font-weight:700; color:#f97316;">${r.motoPlaca}</span></td>
-                    <td>${r.motoModelo}</td>
-                    <td><strong>${parseInt(r.km || 0).toLocaleString('pt-BR')} km</strong></td>
-                    <td><span style="color:#10b981; font-weight:700;">${parseInt(r.proxKm || 0).toLocaleString('pt-BR')} km</span></td>
-                    <td>${r.oleo || r.obs || 'Mobil 20W-50'}</td>
-                    <td>${r.mecanico || r.oficinaNome || 'Oficina Parceira'}</td>
-                    <td>
-                        <span class="status-badge status-liberada">
-                            <i class="fa-solid fa-check"></i> Liberada
-                        </span>
-                    </td>
-                `;
-                tbody.appendChild(tr);
-            });
-        }
-    </script>
-</body>
-</html>
+ó<ó!óDóOóCóTóYóPóEó óhótómóló>ó
+ó<óhótómóló ólóaónógó=ó"ópótó-óBóRó"ó>ó
+ó<óhóeóaódó>ó
+ó ó ó ó ó<ómóeótóaó ócóhóaórósóeótó=ó"óUóTóFó-ó8ó"ó>ó
+ó ó ó ó ó<ómóeótóaó ónóaómóeó=ó"óvóióeówópóoórótó"ó ócóoónótóeónótó=ó"ówóiódótóhó=ódóeóvóiócóeó-ówóiódótóhó,ó óiónóiótóióaóló-ósócóaólóeó=ó1ó.ó0ó,ó ómóaóxóiómóuómó-ósócóaólóeó=ó1ó.ó0ó,ó óuósóeóró-ósócóaólóaóbólóeó=ónóoó,ó óvóióeówópóoórótó-ófóiótó=ócóoóvóeóró"ó>ó
+ó ó ó ó ó<ómóeótóaó ónóaómóeó=ó"óaópópólóeó-ómóoóbóiólóeó-ówóeóbó-óaópópó-ócóaópóaóbólóeó"ó ócóoónótóeónótó=ó"óyóeósó"ó>ó
+ó ó ó ó ó<ómóeótóaó ónóaómóeó=ó"óaópópólóeó-ómóoóbóiólóeó-ówóeóbó-óaópópó-ósótóaótóuósó-óbóaóró-ósótóyólóeó"ó ócóoónótóeónótó=ó"óbólóaócókó-ótóróaónósólóuócóeónótó"ó>ó
+ó ó ó ó ó<ómóeótóaó ónóaómóeó=ó"ótóhóeómóeó-ócóoólóoóró"ó ócóoónótóeónótó=ó"ó#ó0ó9ó0ódó1ó6ó"ó>ó
+ó ó ó ó ó<ótóiótólóeó>óFóAóCóIóLóIóTóAó óMóOóTóOó ó•ó óPóoórótóaóló ódóaó óOófóiócóiónóaó óPóaórócóeóióróaó óCóróeódóeónócóióaódóaó<ó/ótóiótólóeó>ó
+ó ó ó ó ó<ó!ó-ó-ó óFóaóvóiócóoónó óOófóiócóióaóló óFóaócóiólóiótóaó óMóoótóoó ó(óQóuóaódóróaódóoó óMóoótóoó ó+ó óGóPóSó óSóeómó óDóiósótóoóróçóãóoó)ó ó-ó-ó>ó
+ó ó ó ó ó<ólóiónókó óróeóló=ó"ómóaónóiófóeósótó"ó óhóróeófó=ó"ómóaónóiófóeósótó.ójósóoónó"ó>ó
+ó ó ó ó ó<ólóiónókó óróeóló=ó"óiócóoónó"ó ótóyópóeó=ó"óiómóaógóeó/óxó-óiócóoónó"ó óhóróeófó=ó"ófóaóvóiócóoónó.óiócóoó?óvó=ó2ó"ó>ó
+ó ó ó ó ó<ólóiónókó óróeóló=ó"óiócóoónó"ó ótóyópóeó=ó"óiómóaógóeó/ópónógó"ó ósóiózóeósó=ó"ó3ó2óxó3ó2ó"ó óhóróeófó=ó"ófóaóvóiócóoónó.ópónógó?óvó=ó2ó"ó>ó
+ó ó ó ó ó<ólóiónókó óróeóló=ó"óaópópólóeó-ótóoóuócóhó-óiócóoónó"ó óhóróeófó=ó"ófóaóvóiócóoónó.ópónógó?óvó=ó2ó"ó>ó
+ó ó ó ó ó<ólóiónókó óhóróeófó=ó"óhótótópósó:ó/ó/ófóoónótósó.ógóoóoógólóeóaópóiósó.ócóoómó/ócósósó2ó?ófóaómóiólóyó=óIónótóeóró:ówógóhótó@ó3ó0ó0ó;ó4ó0ó0ó;ó5ó0ó0ó;ó6ó0ó0ó;ó7ó0ó0ó;ó8ó0ó0ó&ódóiósópólóaóyó=ósówóaópó"ó óróeóló=ó"ósótóyólóeósóhóeóeótó"ó>ó
+ó ó ó ó ó<ólóiónókó óróeóló=ó"ósótóyólóeósóhóeóeótó"ó óhóróeófó=ó"óhótótópósó:ó/ó/ócódónójósó.ócólóoóuódófólóaóróeó.ócóoómó/óaójóaóxó/ólóióbósó/ófóoónótó-óaówóeósóoómóeó/ó6ó.ó4ó.ó0ó/ócósósó/óaólóló.ómóiónó.ócósósó"ó>ó
+ó ó ó ó ó<ósótóyólóeó>ó
+ó ó ó ó ó ó ó ó ó:óróoóoótó ó{ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó-ó-ópóróiómóaóróyó:ó ó#ófó9ó7ó3ó1ó6ó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó-ó-ópóróiómóaóróyó-óhóoóvóeóró:ó ó#óeóaó5ó8ó0ócó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó-ó-óbógó-ódóaórókó:ó ó#ó0ó9ó0ódó1ó6ó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó-ó-óbógó-ócóaóródó:ó ó#ó1ó3ó1óbó2óeó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó-ó-óbógó-ócóaóródó-óhóoóvóeóró:ó ó#ó1óeó2ó9ó3óbó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó-ó-óbóoóródóeóró:ó ó#ó2ó2ó3ó0ó4ó9ó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó-ó-ótóeóxótó-ómóaóiónó:ó ó#ófó8ófóaófócó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó-ó-ótóeóxótó-ómóuótóeódó:ó ó#ó9ó4óaó3óbó8ó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó-ó-ósóuócócóeósósó:ó ó#ó1ó0óbó9ó8ó1ó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó-ó-ódóaónógóeóró:ó ó#óeófó4ó4ó4ó4ó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó-ó-ówóaórónóiónógó:ó ó#ófó5ó9óeó0óbó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó-ó-óiónófóoó:ó ó#ó3ó8óbódófó8ó;ó
+ó ó ó ó ó ó ó ó ó}ó
+ó
+ó ó ó ó ó ó ó ó ó*ó ó{ó
+ó ó ó ó ó ó ó ó ó ó ó ó ómóaórógóiónó:ó ó0ó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó ópóaódódóiónógó:ó ó0ó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó óbóoóxó-ósóiózóiónógó:ó óbóoóródóeóró-óbóoóxó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó ófóoónótó-ófóaómóiólóyó:ó ó'óIónótóeóró'ó,ó ósóaónósó-ósóeóróiófó;ó
+ó ó ó ó ó ó ó ó ó}ó
+ó
+ó ó ó ó ó ó ó ó óbóoódóyó ó{ó
+ó ó ó ó ó ó ó ó ó ó ó ó óbóaócókógóróoóuónódó-ócóoólóoóró:ó óvóaóró(ó-ó-óbógó-ódóaórókó)ó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó ócóoólóoóró:ó óvóaóró(ó-ó-ótóeóxótó-ómóaóiónó)ó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó ómóiónó-óhóeóiógóhótó:ó ó1ó0ó0óvóhó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó ódóiósópólóaóyó:ó ófólóeóxó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó ófólóeóxó-ódóióróeócótóióoónó:ó ócóoólóuómónó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó óoóvóeórófólóoówó-óxó:ó óhóiódódóeónó;ó
+ó ó ó ó ó ó ó ó ó}ó
+ó
+ó ó ó ó ó ó ó ó ó/ó*ó óTóoópóbóaóró óHóeóaódóeóró ó*ó/ó
+ó ó ó ó ó ó ó ó ó.ótóoópóbóaóró ó{ó
+ó ó ó ó ó ó ó ó ó ó ó ó óbóaócókógóróoóuónódó:ó órógóbóaó(ó1ó9ó,ó ó2ó7ó,ó ó4ó6ó,ó ó0ó.ó9ó5ó)ó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó óbóaócókódóróoópó-ófóiólótóeóró:ó óbólóuóró(ó1ó2ópóxó)ó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó óbóoóródóeóró-óbóoótótóoómó:ó ó1ópóxó ósóoólóiódó óvóaóró(ó-ó-óbóoóródóeóró)ó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó ópóaódódóiónógó:ó ó1ó2ópóxó ó2ó4ópóxó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó ódóiósópólóaóyó:ó ófólóeóxó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó óaólóiógónó-óiótóeómósó:ó ócóeónótóeóró;ó
+ó ó ó ó ó ó ó ó ó ó ó ó ójóuósótóiófóyó-ócóoónótóeónótó:ó ósópóaócóeó-óbóeótówóeóeónó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó ópóoósóiótóióoónó:ó ósótóiócókóyó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó ótóoópó:ó ó0ó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó ózó-óiónódóeóxó:ó ó5ó0ó;ó
+ó ó ó ó ó ó ó ó ó}ó
+ó
+ó ó ó ó ó ó ó ó ó.óbóróaónódó-ócóoónótóaóiónóeóró ó{ó
+ó ó ó ó ó ó ó ó ó ó ó ó ódóiósópólóaóyó:ó ófólóeóxó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó óaólóiógónó-óiótóeómósó:ó ócóeónótóeóró;ó
+ó ó ó ó ó ó ó ó ó ó ó ó ógóaópó:ó ó1ó4ópóxó;ó
+ó ó ó ó ó ó ó ó ó}ó
+ó
+ó ó ó ó ó ó ó ó ó.óbóróaónódó-ólóoógóoó ó{ó
+ó ó ó ó ó ó ó ó ó ó ó ó óhóeóiógóhótó:ó ó4ó8ópóxó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó ówóiódótóhó:ó óaóuótóoó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó óbóoóródóeóró-óróaódóióuósó:ó ó8ópóxó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó óoóbójóeócótó-ófóiótó:ó ócóoónótóaóiónó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó óbóaócókógóróoóuónódó:ó ó#ófófófó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó ópóaódódóiónógó:ó ó3ópóxó;ó
+ó ó ó ó ó ó ó ó ó}ó
+ó
+ó ó ó ó ó ó ó ó ó.óbóróaónódó-ótóeóxótó óhó1ó ó{ó
+ó ó ó ó ó ó ó ó ó ó ó ó ófóoónótó-ósóiózóeó:ó ó1ó.ó1ó5óróeómó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó ófóoónótó-ówóeóiógóhótó:ó ó8ó0ó0ó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó ólóeótótóeóró-ósópóaócóiónógó:ó ó-ó0ó.ó5ópóxó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó ócóoólóoóró:ó ó#ófófófó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó ódóiósópólóaóyó:ó ófólóeóxó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó óaólóiógónó-óiótóeómósó:ó ócóeónótóeóró;ó
+ó ó ó ó ó ó ó ó ó ó ó ó ógóaópó:ó ó8ópóxó;ó
+ó ó ó ó ó ó ó ó ó}ó
+ó
+ó ó ó ó ó ó ó ó ó.óbóróaónódó-ótóeóxótó ósópóaónó ó{ó
+ó ó ó ó ó ó ó ó ó ó ó ó ófóoónótó-ósóiózóeó:ó ó0ó.ó7ó6óróeómó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó ócóoólóoóró:ó óvóaóró(ó-ó-ópóróiómóaóróyó)ó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó ófóoónótó-ówóeóiógóhótó:ó ó7ó0ó0ó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó ótóeóxótó-ótóróaónósófóoórómó:ó óuópópóeórócóaósóeó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó ólóeótótóeóró-ósópóaócóiónógó:ó ó0ó.ó8ópóxó;ó
+ó ó ó ó ó ó ó ó ó}ó
+ó
+ó ó ó ó ó ó ó ó ó.óoófóiócóiónóaó-óbóaódógóeó ó{ó
+ó ó ó ó ó ó ó ó ó ó ó ó óbóaócókógóróoóuónódó:ó ó#ó1óeó2ó9ó3óbó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó óbóoóródóeóró:ó ó1ópóxó ósóoólóiódó ó#ó3ó3ó4ó1ó5ó5ó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó ópóaódódóiónógó:ó ó6ópóxó ó1ó4ópóxó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó óbóoóródóeóró-óróaódóióuósó:ó ó9ó9ó9ópóxó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó ófóoónótó-ósóiózóeó:ó ó0ó.ó8ó2óróeómó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó ódóiósópólóaóyó:ó ófólóeóxó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó óaólóiógónó-óiótóeómósó:ó ócóeónótóeóró;ó
+ó ó ó ó ó ó ó ó ó ó ó ó ógóaópó:ó ó8ópóxó;ó
+ó ó ó ó ó ó ó ó ó}ó
+ó
+ó ó ó ó ó ó ó ó ó.óoófóiócóiónóaó-óbóaódógóeó ósótóróoónógó ó{ó
+ó ó ó ó ó ó ó ó ó ó ó ó ócóoólóoóró:ó ó#ó3ó8óbódófó8ó;ó
+ó ó ó ó ó ó ó ó ó}ó
+ó
+ó ó ó ó ó ó ó ó ó.óbótónó-ólóoógóoóuótó ó{ó
+ó ó ó ó ó ó ó ó ó ó ó ó óbóaócókógóróoóuónódó:ó ó#ó2ó7ó1ó4ó1ó4ó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó ócóoólóoóró:ó ó#ófócóaó5óaó5ó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó óbóoóródóeóró:ó ó1ópóxó ósóoólóiódó ó#ó7ófó1ódó1ódó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó ópóaódódóiónógó:ó ó7ópóxó ó1ó4ópóxó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó óbóoóródóeóró-óróaódóióuósó:ó ó8ópóxó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó ófóoónótó-ósóiózóeó:ó ó0ó.ó8óróeómó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó ófóoónótó-ówóeóiógóhótó:ó ó6ó0ó0ó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó ócóuórósóoóró:ó ópóoóiónótóeóró;ó
+ó ó ó ó ó ó ó ó ó ó ó ó ódóiósópólóaóyó:ó ófólóeóxó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó óaólóiógónó-óiótóeómósó:ó ócóeónótóeóró;ó
+ó ó ó ó ó ó ó ó ó ó ó ó ógóaópó:ó ó6ópóxó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó ótóróaónósóiótóióoónó:ó ó0ó.ó2ósó;ó
+ó ó ó ó ó ó ó ó ó}ó
+ó
+ó ó ó ó ó ó ó ó ó.óbótónó-ólóoógóoóuótó:óhóoóvóeóró ó{ó
+ó ó ó ó ó ó ó ó ó ó ó ó óbóaócókógóróoóuónódó:ó ó#ó7ófó1ódó1ódó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó ócóoólóoóró:ó ó#ófófófó;ó
+ó ó ó ó ó ó ó ó ó}ó
+ó
+ó ó ó ó ó ó ó ó ó/ó*ó óCóoónótóaóiónóeóró óPóróiónócóiópóaóló ó*ó/ó
+ó ó ó ó ó ó ó ó ó.ócóoónótóaóiónóeóró ó{ó
+ó ó ó ó ó ó ó ó ó ó ó ó ómóaóxó-ówóiódótóhó:ó ó1ó0ó5ó0ópóxó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó ówóiódótóhó:ó ó1ó0ó0ó%ó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó ómóaórógóiónó:ó ó0ó óaóuótóoó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó ópóaódódóiónógó:ó ó2ó4ópóxó ó1ó6ópóxó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó ófólóeóxó:ó ó1ó;ó
+ó ó ó ó ó ó ó ó ó}ó
+ó
+ó ó ó ó ó ó ó ó ó/ó*ó óLóoógóiónó óCóaóródó ó*ó/ó
+ó ó ó ó ó ó ó ó ó.ólóoógóiónó-ócóaóródó ó{ó
+ó ó ó ó ó ó ó ó ó ó ó ó ómóaóxó-ówóiódótóhó:ó ó4ó4ó0ópóxó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó ómóaórógóiónó:ó ó6ó0ópóxó óaóuótóoó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó óbóaócókógóróoóuónódó:ó óvóaóró(ó-ó-óbógó-ócóaóródó)ó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó óbóoóródóeóró:ó ó1ópóxó ósóoólóiódó óvóaóró(ó-ó-óbóoóródóeóró)ó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó óbóoóródóeóró-óróaódóióuósó:ó ó1ó6ópóxó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó ópóaódódóiónógó:ó ó3ó6ópóxó ó2ó8ópóxó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó óbóoóxó-ósóhóaódóoówó:ó ó0ó ó2ó0ópóxó ó4ó0ópóxó órógóbóaó(ó0ó,ó0ó,ó0ó,ó0ó.ó4ó)ó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó ótóeóxótó-óaólóiógónó:ó ócóeónótóeóró;ó
+ó ó ó ó ó ó ó ó ó}ó
+ó
+ó ó ó ó ó ó ó ó ó.ólóoógóiónó-ócóaóródó ó.ólóoógóoó ó{ó
+ó ó ó ó ó ó ó ó ó ó ó ó ómóaóxó-ówóiódótóhó:ó ó1ó7ó0ópóxó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó ómóaórógóiónó-óbóoótótóoómó:ó ó2ó0ópóxó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó óbóoóródóeóró-óróaódóióuósó:ó ó1ó0ópóxó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó óbóaócókógóróoóuónódó:ó ó#ófófófó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó ópóaódódóiónógó:ó ó6ópóxó;ó
+ó ó ó ó ó ó ó ó ó}ó
+ó
+ó ó ó ó ó ó ó ó ó.ófóoórómó-ógóróoóuópó ó{ó
+ó ó ó ó ó ó ó ó ó ó ó ó ómóaórógóiónó-óbóoótótóoómó:ó ó1ó8ópóxó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó ótóeóxótó-óaólóiógónó:ó ólóeófótó;ó
+ó ó ó ó ó ó ó ó ó}ó
+ó
+ó ó ó ó ó ó ó ó ó.ófóoórómó-ógóróoóuópó ólóaóbóeóló ó{ó
+ó ó ó ó ó ó ó ó ó ó ó ó ódóiósópólóaóyó:ó óbólóoócókó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó ófóoónótó-ósóiózóeó:ó ó0ó.ó8ó4óróeómó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó ófóoónótó-ówóeóiógóhótó:ó ó6ó0ó0ó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó ócóoólóoóró:ó óvóaóró(ó-ó-ótóeóxótó-ómóuótóeódó)ó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó ómóaórógóiónó-óbóoótótóoómó:ó ó6ópóxó;ó
+ó ó ó ó ó ó ó ó ó}ó
+ó
+ó ó ó ó ó ó ó ó ó.ófóoórómó-ócóoónótóróoóló ó{ó
+ó ó ó ó ó ó ó ó ó ó ó ó ówóiódótóhó:ó ó1ó0ó0ó%ó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó óbóaócókógóróoóuónódó:ó ó#ó0ófó1ó7ó2óaó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó óbóoóródóeóró:ó ó1ópóxó ósóoólóiódó óvóaóró(ó-ó-óbóoóródóeóró)ó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó óbóoóródóeóró-óróaódóióuósó:ó ó8ópóxó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó ópóaódódóiónógó:ó ó1ó2ópóxó ó1ó4ópóxó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó ócóoólóoóró:ó ó#ófófófó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó ófóoónótó-ósóiózóeó:ó ó0ó.ó9ó5óróeómó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó óoóuótólóiónóeó:ó ónóoónóeó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó ótóróaónósóiótóióoónó:ó ó0ó.ó2ósó;ó
+ó ó ó ó ó ó ó ó ó}ó
+ó
+ó ó ó ó ó ó ó ó ó.ófóoórómó-ócóoónótóróoóló:ófóoócóuósó ó{ó
+ó ó ó ó ó ó ó ó ó ó ó ó óbóoóródóeóró-ócóoólóoóró:ó óvóaóró(ó-ó-ópóróiómóaóróyó)ó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó óbóoóxó-ósóhóaódóoówó:ó ó0ó ó0ó ó0ó ó3ópóxó órógóbóaó(ó2ó4ó9ó,ó ó1ó1ó5ó,ó ó2ó2ó,ó ó0ó.ó2ó)ó;ó
+ó ó ó ó ó ó ó ó ó}ó
+ó
+ó ó ó ó ó ó ó ó ó.óbótónó-ópóróiómóaóróyó ó{ó
+ó ó ó ó ó ó ó ó ó ó ó ó ówóiódótóhó:ó ó1ó0ó0ó%ó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó óbóaócókógóróoóuónódó:ó ólóiónóeóaóró-ógóróaódóióeónótó(ó1ó3ó5ódóeógó,ó ó#ófó9ó7ó3ó1ó6ó,ó ó#óeóaó5ó8ó0ócó)ó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó ócóoólóoóró:ó ó#ófófófó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó óbóoóródóeóró:ó ónóoónóeó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó ópóaódódóiónógó:ó ó1ó3ópóxó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó óbóoóródóeóró-óróaódóióuósó:ó ó8ópóxó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó ófóoónótó-ósóiózóeó:ó ó0ó.ó9ó5óróeómó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó ófóoónótó-ówóeóiógóhótó:ó ó7ó0ó0ó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó ócóuórósóoóró:ó ópóoóiónótóeóró;ó
+ó ó ó ó ó ó ó ó ó ó ó ó ótóróaónósóiótóióoónó:ó ó0ó.ó2ósó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó ódóiósópólóaóyó:ó ófólóeóxó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó óaólóiógónó-óiótóeómósó:ó ócóeónótóeóró;ó
+ó ó ó ó ó ó ó ó ó ó ó ó ójóuósótóiófóyó-ócóoónótóeónótó:ó ócóeónótóeóró;ó
+ó ó ó ó ó ó ó ó ó ó ó ó ógóaópó:ó ó8ópóxó;ó
+ó ó ó ó ó ó ó ó ó}ó
+ó
+ó ó ó ó ó ó ó ó ó.óbótónó-ópóróiómóaóróyó:óhóoóvóeóró ó{ó
+ó ó ó ó ó ó ó ó ó ó ó ó ófóiólótóeóró:ó óbóróiógóhótónóeósósó(ó1ó.ó1ó)ó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó ótóróaónósófóoórómó:ó ótóróaónósólóaótóeóYó(ó-ó1ópóxó)ó;ó
+ó ó ó ó ó ó ó ó ó}ó
+ó
+ó ó ó ó ó ó ó ó ó/ó*ó óGóróiódó ódóeó óTóróoócóaó ódóeó óÓóóólóeóoó ó*ó/ó
+ó ó ó ó ó ó ó ó ó.ócóaóródó ó{ó
+ó ó ó ó ó ó ó ó ó ó ó ó óbóaócókógóróoóuónódó:ó óvóaóró(ó-ó-óbógó-ócóaóródó)ó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó óbóoóródóeóró:ó ó1ópóxó ósóoólóiódó óvóaóró(ó-ó-óbóoóródóeóró)ó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó óbóoóródóeóró-óróaódóióuósó:ó ó1ó4ópóxó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó ópóaódódóiónógó:ó ó2ó2ópóxó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó ómóaórógóiónó-óbóoótótóoómó:ó ó2ó2ópóxó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó óbóoóxó-ósóhóaódóoówó:ó ó0ó ó8ópóxó ó2ó4ópóxó órógóbóaó(ó0ó,ó0ó,ó0ó,ó0ó.ó2ó5ó)ó;ó
+ó ó ó ó ó ó ó ó ó}ó
+ó
+ó ó ó ó ó ó ó ó ó.ócóaóródó-óhóeóaódóeóró ó{ó
+ó ó ó ó ó ó ó ó ó ó ó ó ódóiósópólóaóyó:ó ófólóeóxó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó óaólóiógónó-óiótóeómósó:ó ócóeónótóeóró;ó
+ó ó ó ó ó ó ó ó ó ó ó ó ójóuósótóiófóyó-ócóoónótóeónótó:ó ósópóaócóeó-óbóeótówóeóeónó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó ómóaórógóiónó-óbóoótótóoómó:ó ó1ó8ópóxó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó ópóaódódóiónógó-óbóoótótóoómó:ó ó1ó4ópóxó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó óbóoóródóeóró-óbóoótótóoómó:ó ó1ópóxó ósóoólóiódó óvóaóró(ó-ó-óbóoóródóeóró)ó;ó
+ó ó ó ó ó ó ó ó ó}ó
+ó
+ó ó ó ó ó ó ó ó ó.ócóaóródó-óhóeóaódóeóró óhó2ó ó{ó
+ó ó ó ó ó ó ó ó ó ó ó ó ófóoónótó-ósóiózóeó:ó ó1ó.ó1ó5óróeómó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó ófóoónótó-ówóeóiógóhótó:ó ó7ó0ó0ó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó ódóiósópólóaóyó:ó ófólóeóxó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó óaólóiógónó-óiótóeómósó:ó ócóeónótóeóró;ó
+ó ó ó ó ó ó ó ó ó ó ó ó ógóaópó:ó ó1ó0ópóxó;ó
+ó ó ó ó ó ó ó ó ó}ó
+ó
+ó ó ó ó ó ó ó ó ó.ómóoótóoó-ópóróeóvóióeówó-óbóoóxó ó{ó
+ó ó ó ó ó ó ó ó ó ó ó ó óbóaócókógóróoóuónódó:ó ó#ó0ófó1ó7ó2óaó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó óbóoóródóeóró:ó ó1ópóxó ósóoólóiódó óvóaóró(ó-ó-óbóoóródóeóró)ó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó óbóoóródóeóró-óróaódóióuósó:ó ó1ó0ópóxó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó ópóaódódóiónógó:ó ó1ó6ópóxó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó ómóaórógóiónó-óbóoótótóoómó:ó ó2ó0ópóxó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó ódóiósópólóaóyó:ó ógóróiódó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó ógóróiódó-ótóeómópólóaótóeó-ócóoólóuómónósó:ó óróeópóeóaótó(óaóuótóoó-ófóiótó,ó ómóiónómóaóxó(ó2ó0ó0ópóxó,ó ó1ófóró)ó)ó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó ógóaópó:ó ó1ó4ópóxó;ó
+ó ó ó ó ó ó ó ó ó}ó
+ó
+ó ó ó ó ó ó ó ó ó.ópóróeóvóióeówó-óiótóeómó ó{ó
+ó ó ó ó ó ó ó ó ó ó ó ó ódóiósópólóaóyó:ó ófólóeóxó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó ófólóeóxó-ódóióróeócótóióoónó:ó ócóoólóuómónó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó ógóaópó:ó ó3ópóxó;ó
+ó ó ó ó ó ó ó ó ó}ó
+ó
+ó ó ó ó ó ó ó ó ó.ópóróeóvóióeówó-óiótóeómó ósópóaónó ó{ó
+ó ó ó ó ó ó ó ó ó ó ó ó ófóoónótó-ósóiózóeó:ó ó0ó.ó7ó4óróeómó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó ócóoólóoóró:ó óvóaóró(ó-ó-ótóeóxótó-ómóuótóeódó)ó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó ótóeóxótó-ótóróaónósófóoórómó:ó óuópópóeórócóaósóeó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó ófóoónótó-ówóeóiógóhótó:ó ó6ó0ó0ó;ó
+ó ó ó ó ó ó ó ó ó}ó
+ó
+ó ó ó ó ó ó ó ó ó.ópóróeóvóióeówó-óiótóeómó ósótóróoónógó ó{ó
+ó ó ó ó ó ó ó ó ó ó ó ó ófóoónótó-ósóiózóeó:ó ó1óróeómó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó ócóoólóoóró:ó ó#ófófófó;ó
+ó ó ó ó ó ó ó ó ó}ó
+ó
+ó ó ó ó ó ó ó ó ó.ósótóaótóuósó-óbóaódógóeó ó{ó
+ó ó ó ó ó ó ó ó ó ó ó ó ódóiósópólóaóyó:ó óiónólóiónóeó-ófólóeóxó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó óaólóiógónó-óiótóeómósó:ó ócóeónótóeóró;ó
+ó ó ó ó ó ó ó ó ó ó ó ó ógóaópó:ó ó6ópóxó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó ópóaódódóiónógó:ó ó4ópóxó ó1ó0ópóxó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó óbóoóródóeóró-óróaódóióuósó:ó ó9ó9ó9ópóxó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó ófóoónótó-ósóiózóeó:ó ó0ó.ó7ó8óróeómó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó ófóoónótó-ówóeóiógóhótó:ó ó7ó0ó0ó;ó
+ó ó ó ó ó ó ó ó ó}ó
+ó
+ó ó ó ó ó ó ó ó ó.ósótóaótóuósó-óbólóoóqóuóeóaódóaó ó{ó
+ó ó ó ó ó ó ó ó ó ó ó ó óbóaócókógóróoóuónódó:ó ó#ó7ófó1ódó1ódó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó ócóoólóoóró:ó ó#ófóeócóaócóaó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó óbóoóródóeóró:ó ó1ópóxó ósóoólóiódó ó#óeófó4ó4ó4ó4ó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó óaónóiómóaótóióoónó:ó ópóuólósóeó-óróeódó ó1ó.ó8ósó óiónófóiónóiótóeó;ó
+ó ó ó ó ó ó ó ó ó}ó
+ó
+ó ó ó ó ó ó ó ó ó.ósótóaótóuósó-ólóióbóeóróaódóaó ó{ó
+ó ó ó ó ó ó ó ó ó ó ó ó óbóaócókógóróoóuónódó:ó ó#ó0ó6ó4óeó3óbó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó ócóoólóoóró:ó ó#óaó7ófó3ódó0ó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó óbóoóródóeóró:ó ó1ópóxó ósóoólóiódó ó#ó1ó0óbó9ó8ó1ó;ó
+ó ó ó ó ó ó ó ó ó}ó
+ó
+ó ó ó ó ó ó ó ó ó@ókóeóyófóróaómóeósó ópóuólósóeó-óróeódó ó{ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó0ó%ó,ó ó1ó0ó0ó%ó ó{ó óoópóaócóiótóyó:ó ó1ó;ó ó}ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó5ó0ó%ó ó{ó óoópóaócóiótóyó:ó ó0ó.ó6ó;ó ó}ó
+ó ó ó ó ó ó ó ó ó}ó
+ó
+ó ó ó ó ó ó ó ó ó/ó*ó óCóhóiópósó óróáópóiódóoósó ópóaóróaó óoó óóóóólóeóoó ó*ó/ó
+ó ó ó ó ó ó ó ó ó.ócóhóiópósó-ócóoónótóaóiónóeóró ó{ó
+ó ó ó ó ó ó ó ó ó ó ó ó ódóiósópólóaóyó:ó ófólóeóxó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó ófólóeóxó-ówóróaópó:ó ówóróaópó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó ógóaópó:ó ó8ópóxó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó ómóaórógóiónó-ótóoópó:ó ó8ópóxó;ó
+ó ó ó ó ó ó ó ó ó}ó
+ó
+ó ó ó ó ó ó ó ó ó.ócóhóiópó-óbótónó ó{ó
+ó ó ó ó ó ó ó ó ó ó ó ó óbóaócókógóróoóuónódó:ó ó#ó1óeó2ó9ó3óbó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó ócóoólóoóró:ó ó#ócóbódó5óeó1ó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó óbóoóródóeóró:ó ó1ópóxó ósóoólóiódó ó#ó3ó3ó4ó1ó5ó5ó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó ópóaódódóiónógó:ó ó6ópóxó ó1ó2ópóxó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó óbóoóródóeóró-óróaódóióuósó:ó ó9ó9ó9ópóxó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó ófóoónótó-ósóiózóeó:ó ó0ó.ó7ó8óróeómó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó ófóoónótó-ówóeóiógóhótó:ó ó6ó0ó0ó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó ócóuórósóoóró:ó ópóoóiónótóeóró;ó
+ó ó ó ó ó ó ó ó ó ó ó ó ótóróaónósóiótóióoónó:ó ó0ó.ó1ó5ósó;ó
+ó ó ó ó ó ó ó ó ó}ó
+ó
+ó ó ó ó ó ó ó ó ó.ócóhóiópó-óbótónó:óhóoóvóeóró,ó ó.ócóhóiópó-óbótónó.óaócótóióvóeó ó{ó
+ó ó ó ó ó ó ó ó ó ó ó ó óbóaócókógóróoóuónódó:ó ó#ófó9ó7ó3ó1ó6ó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó ócóoólóoóró:ó ó#ófófófó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó óbóoóródóeóró-ócóoólóoóró:ó ó#ófó9ó7ó3ó1ó6ó;ó
+ó ó ó ó ó ó ó ó ó}ó
+ó
+ó ó ó ó ó ó ó ó ó.ócóaólócó-óbóoóxó ó{ó
+ó ó ó ó ó ó ó ó ó ó ó ó óbóaócókógóróoóuónódó:ó ó#ó1óeó2ó9ó3óbó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó óbóoóródóeóró:ó ó1ópóxó ósóoólóiódó ó#ó3ó3ó4ó1ó5ó5ó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó óbóoóródóeóró-óróaódóióuósó:ó ó8ópóxó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó ópóaódódóiónógó:ó ó1ó2ópóxó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó ómóaórógóiónó-ótóoópó:ó ó1ó0ópóxó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó ódóiósópólóaóyó:ó ófólóeóxó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó óaólóiógónó-óiótóeómósó:ó ócóeónótóeóró;ó
+ó ó ó ó ó ó ó ó ó ó ó ó ójóuósótóiófóyó-ócóoónótóeónótó:ó ósópóaócóeó-óaóróoóuónódó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó ótóeóxótó-óaólóiógónó:ó ócóeónótóeóró;ó
+ó ó ó ó ó ó ó ó ó}ó
+ó
+ó ó ó ó ó ó ó ó ó.ócóaólócó-óbóoóxó ódóióvó ósótóróoónógó ó{ó
+ó ó ó ó ó ó ó ó ó ó ó ó ódóiósópólóaóyó:ó óbólóoócókó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó ófóoónótó-ósóiózóeó:ó ó1ó.ó1ó5óróeómó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó ócóoólóoóró:ó ó#ó3ó8óbódófó8ó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó ómóaórógóiónó-ótóoópó:ó ó2ópóxó;ó
+ó ó ó ó ó ó ó ó ó}ó
+ó
+ó ó ó ó ó ó ó ó ó.ócóaólócó-óbóoóxó ódóióvó ósópóaónó ó{ó
+ó ó ó ó ó ó ó ó ó ó ó ó ófóoónótó-ósóiózóeó:ó ó0ó.ó7ó3óróeómó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó ócóoólóoóró:ó óvóaóró(ó-ó-ótóeóxótó-ómóuótóeódó)ó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó ótóeóxótó-ótóróaónósófóoórómó:ó óuópópóeórócóaósóeó;ó
+ó ó ó ó ó ó ó ó ó}ó
+ó
+ó ó ó ó ó ó ó ó ó/ó*ó óTóaóbóeólóaó óHóiósótóóóróiócóoó ó*ó/ó
+ó ó ó ó ó ó ó ó ó.ótóaóbólóeó-óróeósópóoónósóióvóeó ó{ó
+ó ó ó ó ó ó ó ó ó ó ó ó ówóiódótóhó:ó ó1ó0ó0ó%ó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó óoóvóeórófólóoówó-óxó:ó óaóuótóoó;ó
+ó ó ó ó ó ó ó ó ó}ó
+ó
+ó ó ó ó ó ó ó ó ótóaóbólóeó ó{ó
+ó ó ó ó ó ó ó ó ó ó ó ó ówóiódótóhó:ó ó1ó0ó0ó%ó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó óbóoóródóeóró-ócóoólólóaópósóeó:ó ócóoólólóaópósóeó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó ófóoónótó-ósóiózóeó:ó ó0ó.ó8ó8óróeómó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó ótóeóxótó-óaólóiógónó:ó ólóeófótó;ó
+ó ó ó ó ó ó ó ó ó}ó
+ó
+ó ó ó ó ó ó ó ó ótóhó ó{ó
+ó ó ó ó ó ó ó ó ó ó ó ó óbóaócókógóróoóuónódó:ó ó#ó0ófó1ó7ó2óaó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó ócóoólóoóró:ó óvóaóró(ó-ó-ótóeóxótó-ómóuótóeódó)ó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó ófóoónótó-ówóeóiógóhótó:ó ó6ó0ó0ó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó ópóaódódóiónógó:ó ó1ó2ópóxó ó1ó4ópóxó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó óbóoóródóeóró-óbóoótótóoómó:ó ó1ópóxó ósóoólóiódó óvóaóró(ó-ó-óbóoóródóeóró)ó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó ófóoónótó-ósóiózóeó:ó ó0ó.ó7ó8óróeómó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó ótóeóxótó-ótóróaónósófóoórómó:ó óuópópóeórócóaósóeó;ó
+ó ó ó ó ó ó ó ó ó}ó
+ó
+ó ó ó ó ó ó ó ó ótódó ó{ó
+ó ó ó ó ó ó ó ó ó ó ó ó ópóaódódóiónógó:ó ó1ó2ópóxó ó1ó4ópóxó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó óbóoóródóeóró-óbóoótótóoómó:ó ó1ópóxó ósóoólóiódó ó#ó1óaó2ó5ó3ócó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó ócóoólóoóró:ó ó#óeó2óeó8ófó0ó;ó
+ó ó ó ó ó ó ó ó ó}ó
+ó
+ó ó ó ó ó ó ó ó ótóró:óhóoóvóeóró ótódó ó{ó
+ó ó ó ó ó ó ó ó ó ó ó ó óbóaócókógóróoóuónódó:ó órógóbóaó(ó3ó0ó,ó ó4ó1ó,ó ó5ó9ó,ó ó0ó.ó4ó)ó;ó
+ó ó ó ó ó ó ó ó ó}ó
+ó
+ó ó ó ó ó ó ó ó ó/ó*ó óMóoódóaóló óSóuócóeósósóoó ó*ó/ó
+ó ó ó ó ó ó ó ó ó.ómóoódóaóló-óoóvóeórólóaóyó ó{ó
+ó ó ó ó ó ó ó ó ó ó ó ó ópóoósóiótóióoónó:ó ófóióxóeódó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó ótóoópó:ó ó0ó;ó ólóeófótó:ó ó0ó;ó ówóiódótóhó:ó ó1ó0ó0ó%ó;ó óhóeóiógóhótó:ó ó1ó0ó0ó%ó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó óbóaócókógóróoóuónódó:ó órógóbóaó(ó0ó,ó0ó,ó0ó,ó0ó.ó8ó)ó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó óbóaócókódóróoópó-ófóiólótóeóró:ó óbólóuóró(ó8ópóxó)ó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó ódóiósópólóaóyó:ó ófólóeóxó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó óaólóiógónó-óiótóeómósó:ó ócóeónótóeóró;ó
+ó ó ó ó ó ó ó ó ó ó ó ó ójóuósótóiófóyó-ócóoónótóeónótó:ó ócóeónótóeóró;ó
+ó ó ó ó ó ó ó ó ó ó ó ó ózó-óiónódóeóxó:ó ó1ó0ó0ó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó óoópóaócóiótóyó:ó ó0ó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó ópóoóiónótóeóró-óeóvóeónótósó:ó ónóoónóeó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó ótóróaónósóiótóióoónó:ó ó0ó.ó2ósó;ó
+ó ó ó ó ó ó ó ó ó}ó
+ó
+ó ó ó ó ó ó ó ó ó.ómóoódóaóló-óoóvóeórólóaóyó.ósóhóoówó ó{ó
+ó ó ó ó ó ó ó ó ó ó ó ó óoópóaócóiótóyó:ó ó1ó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó ópóoóiónótóeóró-óeóvóeónótósó:ó óaóuótóoó;ó
+ó ó ó ó ó ó ó ó ó}ó
+ó
+ó ó ó ó ó ó ó ó ó.ómóoódóaóló-óbóoóxó ó{ó
+ó ó ó ó ó ó ó ó ó ó ó ó óbóaócókógóróoóuónódó:ó óvóaóró(ó-ó-óbógó-ócóaóródó)ó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó óbóoóródóeóró:ó ó1ópóxó ósóoólóiódó óvóaóró(ó-ó-óbóoóródóeóró)ó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó óbóoóródóeóró-óróaódóióuósó:ó ó1ó6ópóxó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó ópóaódódóiónógó:ó ó3ó0ópóxó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó ómóaóxó-ówóiódótóhó:ó ó4ó8ó0ópóxó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó ówóiódótóhó:ó ó9ó0ó%ó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó ótóeóxótó-óaólóiógónó:ó ócóeónótóeóró;ó
+ó ó ó ó ó ó ó ó ó ó ó ó óbóoóxó-ósóhóaódóoówó:ó ó0ó ó2ó5ópóxó ó5ó0ópóxó ó-ó1ó2ópóxó órógóbóaó(ó0ó,ó ó0ó,ó ó0ó,ó ó0ó.ó6ó)ó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó ótóróaónósófóoórómó:ó ósócóaólóeó(ó0ó.ó9ó5ó)ó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó ótóróaónósóiótóióoónó:ó ó0ó.ó2ósó;ó
+ó ó ó ó ó ó ó ó ó}ó
+ó
+ó ó ó ó ó ó ó ó ó.ómóoódóaóló-óoóvóeórólóaóyó.ósóhóoówó ó.ómóoódóaóló-óbóoóxó ó{ó
+ó ó ó ó ó ó ó ó ó ó ó ó ótóróaónósófóoórómó:ó ósócóaólóeó(ó1ó)ó;ó
+ó ó ó ó ó ó ó ó ó}ó
+ó
+ó ó ó ó ó ó ó ó ó.ómóoódóaóló-óiócóoónó-ósóuócócóeósósó ó{ó
+ó ó ó ó ó ó ó ó ó ó ó ó ówóiódótóhó:ó ó7ó0ópóxó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó óhóeóiógóhótó:ó ó7ó0ópóxó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó óbóoóródóeóró-óróaódóióuósó:ó ó5ó0ó%ó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó óbóaócókógóróoóuónódó:ó ó#ó0ó6ó4óeó3óbó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó ócóoólóoóró:ó ó#ó1ó0óbó9ó8ó1ó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó ódóiósópólóaóyó:ó ófólóeóxó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó óaólóiógónó-óiótóeómósó:ó ócóeónótóeóró;ó
+ó ó ó ó ó ó ó ó ó ó ó ó ójóuósótóiófóyó-ócóoónótóeónótó:ó ócóeónótóeóró;ó
+ó ó ó ó ó ó ó ó ó ó ó ó ófóoónótó-ósóiózóeó:ó ó2óróeómó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó ómóaórógóiónó:ó ó0ó óaóuótóoó ó1ó6ópóxó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó óbóoóródóeóró:ó ó2ópóxó ósóoólóiódó ó#ó1ó0óbó9ó8ó1ó;ó
+ó ó ó ó ó ó ó ó ó}ó
+ó
+ó ó ó ó ó ó ó ó ó.ófóoóoótóeóró ó{ó
+ó ó ó ó ó ó ó ó ó ó ó ó ótóeóxótó-óaólóiógónó:ó ócóeónótóeóró;ó
+ó ó ó ó ó ó ó ó ó ó ó ó ópóaódódóiónógó:ó ó1ó6ópóxó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó ófóoónótó-ósóiózóeó:ó ó0ó.ó7ó6óróeómó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó ócóoólóoóró:ó óvóaóró(ó-ó-ótóeóxótó-ómóuótóeódó)ó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó óbóoóródóeóró-ótóoópó:ó ó1ópóxó ósóoólóiódó óvóaóró(ó-ó-óbóoóródóeóró)ó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó óbóaócókógóróoóuónódó:ó ó#ó0óbó1ó0ó1ódó;ó
+ó ó ó ó ó ó ó ó ó}ó
+ó ó ó ó ó<ó/ósótóyólóeó>ó
+ó<ó/óhóeóaódó>ó
+ó<óbóoódóyó>ó
+ó
+ó ó ó ó ó<ó!ó-ó-ó óTóOóPóBóAóRó ó-ó-ó>ó
+ó ó ó ó ó<óhóeóaódóeóró ócólóaósósó=ó"ótóoópóbóaóró"ó>ó
+ó ó ó ó ó ó ó ó ó<ódóióvó ócólóaósósó=ó"óbóróaónódó-ócóoónótóaóiónóeóró"ó>ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó<óiómógó ósórócó=ó"ólóoógóoó.ópónógó.ópónógó"ó óaólótó=ó"óFóAóCóIóLóIóTóAó óMóOóTóOó"ó ócólóaósósó=ó"óbóróaónódó-ólóoógóoó"ó>ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó<ódóióvó ócólóaósósó=ó"óbóróaónódó-ótóeóxótó"ó>ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó<óhó1ó>óFóAóCóIóLóIóTóAó óMóOóTóOó<ó/óhó1ó>ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó<ósópóaónó>óPóoórótóaóló ódóaó óOófóiócóiónóaó óPóaórócóeóióróaó<ó/ósópóaónó>ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó<ó/ódóióvó>ó
+ó ó ó ó ó ó ó ó ó<ó/ódóióvó>ó
+ó
+ó ó ó ó ó ó ó ó ó<ódóióvó óiódó=ó"ótóoópóbóaóró-óuósóeóró-ósóeócótóióoónó"ó ósótóyólóeó=ó"ódóiósópólóaóyó:ónóoónóeó;ó óaólóiógónó-óiótóeómósó:ócóeónótóeóró;ó ógóaópó:ó1ó2ópóxó;ó"ó>ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó<ódóióvó ócólóaósósó=ó"óoófóiócóiónóaó-óbóaódógóeó"ó>ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó<óió ócólóaósósó=ó"ófóaó-ósóoólóiódó ófóaó-ówóróeónócóhó"ó ósótóyólóeó=ó"ócóoólóoóró:óvóaóró(ó-ó-ópóróiómóaóróyó)ó;ó"ó>ó<ó/óió>ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó<ósópóaónó>óOófóiócóiónóaó:ó ó<ósótóróoónógó óiódó=ó"óhóeóaódóeóró-óoófóiócóiónóaó-ónóoómóeó"ó>óOófóiócóiónóaó óPóaórócóeóióróaó<ó/ósótóróoónógó>ó<ó/ósópóaónó>ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó<ó/ódóióvó>ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó<óbóuótótóoónó ócólóaósósó=ó"óbótónó-ólóoógóoóuótó"ó óoónócólóiócókó=ó"ófóaózóeóróLóoógóoóuótóOófóiócóiónóaó(ó)ó"ó>ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó<óió ócólóaósósó=ó"ófóaó-ósóoólóiódó ófóaó-óróiógóhótó-ófóróoómó-óbóróaócókóeótó"ó>ó<ó/óió>ó óSóaóióró
+ó ó ó ó ó ó ó ó ó ó ó ó ó<ó/óbóuótótóoónó>ó
+ó ó ó ó ó ó ó ó ó<ó/ódóióvó>ó
+ó ó ó ó ó<ó/óhóeóaódóeóró>ó
+ó
+ó ó ó ó ó<ó!ó-ó-ó óÁóRóEóAó ó1ó:ó óLóOóGóIóNó óDóAó óOóFóIóCóIóNóAó óPóAóRóCóEóIóRóAó ó-ó-ó>ó
+ó ó ó ó ó<ódóióvó óiódó=ó"ósóeócótóióoónó-ólóoógóiónó"ó ócólóaósósó=ó"ócóoónótóaóiónóeóró"ó ósótóyólóeó=ó"ódóiósópólóaóyó:ónóoónóeó;ó"ó>ó
+ó ó ó ó ó ó ó ó ó<ódóióvó ócólóaósósó=ó"ólóoógóiónó-ócóaóródó"ó>ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó<óiómógó ósórócó=ó"ólóoógóoó.ópónógó.ópónógó"ó óaólótó=ó"óFóAóCóIóLóIóTóAó óMóOóTóOó"ó ócólóaósósó=ó"ólóoógóoó"ó>ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó<óhó2ó ósótóyólóeó=ó"ófóoónótó-ósóiózóeó:ó1ó.ó3ó5óróeómó;ó ófóoónótó-ówóeóiógóhótó:ó8ó0ó0ó;ó ómóaórógóiónó-óbóoótótóoómó:ó6ópóxó;ó"ó>óAócóeósósóoó ódóaó óOófóiócóiónóaó óCóróeódóeónócóióaódóaó<ó/óhó2ó>ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó<ópó ósótóyólóeó=ó"ófóoónótó-ósóiózóeó:ó0ó.ó8ó3óróeómó;ó ócóoólóoóró:óvóaóró(ó-ó-ótóeóxótó-ómóuótóeódó)ó;ó ómóaórógóiónó-óbóoótótóoómó:ó2ó4ópóxó;ó"ó>óIónófóoórómóeó ósóeóuó ólóoógóiónó óeó ósóeónóhóaó ócóaódóaósótóróaódóoósó ópóeólóoó óaódómóiónóiósótóróaódóoóró ódóaó óFóaócóiólóiótóaó óMóoótóoó.ó<ó/ópó>ó
+ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó<ófóoórómó óiódó=ó"ófóoórómó-ólóoógóiónó-óoófóiócóiónóaó"ó óoónósóuóbómóiótó=ó"óróeóaólóiózóaóróLóoógóiónóOófóiócóiónóaó(óeóvóeónótó)ó"ó>ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó<ódóióvó ócólóaósósó=ó"ófóoórómó-ógóróoóuópó"ó>ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó<ólóaóbóeóló>óUósóuóáóróióoó óoóuó óEó-ómóaóióló ódóeó óAócóeósósóoó*ó<ó/ólóaóbóeóló>ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó<óiónópóuótó ótóyópóeó=ó"ótóeóxótó"ó óiódó=ó"ólóoógóiónó-óeómóaóióló"ó ócólóaósósó=ó"ófóoórómó-ócóoónótóróoóló"ó óróeóqóuóióróeódó ópólóaócóeóhóoólódóeóró=ó"óDóiógóiótóeó ósóeóuó óuósóuóáóróióoó óoóuó óeó-ómóaóióló"ó>ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó<ó/ódóióvó>ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó<ódóióvó ócólóaósósó=ó"ófóoórómó-ógóróoóuópó"ó>ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó<ólóaóbóeóló>óSóeónóhóaó*ó<ó/ólóaóbóeóló>ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó<óiónópóuótó ótóyópóeó=ó"ópóaósósówóoóródó"ó óiódó=ó"ólóoógóiónó-ósóeónóhóaó"ó ócólóaósósó=ó"ófóoórómó-ócóoónótóróoóló"ó óróeóqóuóióróeódó ópólóaócóeóhóoólódóeóró=ó"ó•ó•ó•ó•ó•ó•ó•ó•ó"ó>ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó<ó/ódóióvó>ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó<ódóióvó ósótóyólóeó=ó"ódóiósópólóaóyó:ófólóeóxó;ó óaólóiógónó-óiótóeómósó:ócóeónótóeóró;ó ójóuósótóiófóyó-ócóoónótóeónótó:ósópóaócóeó-óbóeótówóeóeónó;ó ómóaórógóiónó-óbóoótótóoómó:ó1ó4ópóxó;ó ófóoónótó-ósóiózóeó:ó0ó.ó8ó4óróeómó;ó ócóoólóoóró:óvóaóró(ó-ó-ótóeóxótó-ómóuótóeódó)ó;ó"ó>ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó<ólóaóbóeóló ósótóyólóeó=ó"ódóiósópólóaóyó:óiónólóiónóeó-ófólóeóxó;ó óaólóiógónó-óiótóeómósó:ócóeónótóeóró;ó ógóaópó:ó8ópóxó;ó ócóuórósóoóró:ópóoóiónótóeóró;ó óuósóeóró-ósóeólóeócótó:ónóoónóeó;ó"ó>ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó<óiónópóuótó ótóyópóeó=ó"ócóhóeócókóbóoóxó"ó óiódó=ó"ólóoógóiónó-ólóeómóbóróaóró"ó ócóhóeócókóeódó ósótóyólóeó=ó"óaócócóeónótó-ócóoólóoóró:óvóaóró(ó-ó-ópóróiómóaóróyó)ó;ó ówóiódótóhó:ó1ó6ópóxó;ó óhóeóiógóhótó:ó1ó6ópóxó;ó ócóuórósóoóró:ópóoóiónótóeóró;ó"ó>ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó óSóaólóvóaóró ólóoógóiónó óeó ómóaónótóeóró ócóoónóeócótóaódóoó
+ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó<ó/ólóaóbóeóló>ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó<ó/ódóióvó>ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó<ópó óiódó=ó"ólóoógóiónó-óeóróróoóró"ó ósótóyólóeó=ó"ócóoólóoóró:óvóaóró(ó-ó-ódóaónógóeóró)ó;ó ófóoónótó-ósóiózóeó:ó0ó.ó8ó2óróeómó;ó ómóaórógóiónó-óbóoótótóoómó:ó1ó2ópóxó;ó ódóiósópólóaóyó:ónóoónóeó;ó ófóoónótó-ówóeóiógóhótó:ó6ó0ó0ó;ó"ó>óEó-ómóaóióló óoóuó ósóeónóhóaó óiónócóoóróróeótóoósó!ó<ó/ópó>ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó<óbóuótótóoónó ótóyópóeó=ó"ósóuóbómóiótó"ó ócólóaósósó=ó"óbótónó-ópóróiómóaóróyó"ó>ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó<óió ócólóaósósó=ó"ófóaó-ósóoólóiódó ófóaó-óróiógóhótó-ótóoó-óbóróaócókóeótó"ó>ó<ó/óió>ó óEónótóróaóró ónóoó óPóaóiónóeóló ódóaó óOófóiócóiónóaó
+ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó<ó/óbóuótótóoónó>ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó<ó/ófóoórómó>ó
+ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó<ódóióvó ósótóyólóeó=ó"ómóaórógóiónó-ótóoópó:ó2ó0ópóxó;ó ófóoónótó-ósóiózóeó:ó0ó.ó7ó8óróeómó;ó ócóoólóoóró:óvóaóró(ó-ó-ótóeóxótó-ómóuótóeódó)ó;ó"ó>ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó óEósóqóuóeócóeóuó óaó ósóeónóhóaó?ó óSóoólóiócóiótóeó óàó óaódómóiónóiósótóróaóçóãóoó ódóaó óFóaócóiólóiótóaó óMóoótóoó.ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó<ó/ódóióvó>ó
+ó ó ó ó ó ó ó ó ó<ó/ódóióvó>ó
+ó ó ó ó ó<ó/ódóióvó>ó
+ó
+ó ó ó ó ó<ó!ó-ó-ó óÁóRóEóAó ó2ó:ó óPóAóIóNóEóLó óDóAó óOóFóIóCóIóNóAó ó-ó-ó>ó
+ó ó ó ó ó<ómóaóiónó óiódó=ó"ósóeócótóióoónó-óaópópó"ó ócólóaósósó=ó"ócóoónótóaóiónóeóró"ó ósótóyólóeó=ó"ódóiósópólóaóyó:ónóoónóeó;ó"ó>ó
+ó
+ó ó ó ó ó ó ó ó ó<ó!ó-ó-ó óBóaónónóeóró ócóoómó óaó óIódóeónótóiódóaódóeó ódóaó óOófóiócóiónóaó óeó ódóaó óFóaócóiólóiótóaó óMóoótóoó ó-ó-ó>ó
+ó ó ó ó ó ó ó ó ó<ódóióvó ósótóyólóeó=ó"óbóaócókógóróoóuónódó:ó ólóiónóeóaóró-ógóróaódóióeónótó(ó1ó3ó5ódóeógó,ó ó#ó1óeó2ó9ó3óbó,ó ó#ó0ófó1ó7ó2óaó)ó;ó óbóoóródóeóró:ó1ópóxó ósóoólóiódó ó#ó3ó3ó4ó1ó5ó5ó;ó óbóoóródóeóró-óróaódóióuósó:ó1ó4ópóxó;ó ópóaódódóiónógó:ó1ó8ópóxó ó2ó2ópóxó;ó ómóaórógóiónó-óbóoótótóoómó:ó2ó2ópóxó;ó ódóiósópólóaóyó:ófólóeóxó;ó óaólóiógónó-óiótóeómósó:ócóeónótóeóró;ó ójóuósótóiófóyó-ócóoónótóeónótó:ósópóaócóeó-óbóeótówóeóeónó;ó ófólóeóxó-ówóróaópó:ówóróaópó;ó ógóaópó:ó1ó4ópóxó;ó"ó>ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó<ódóióvó ósótóyólóeó=ó"ódóiósópólóaóyó:ófólóeóxó;ó óaólóiógónó-óiótóeómósó:ócóeónótóeóró;ó ógóaópó:ó1ó6ópóxó;ó"ó>ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó<ódóióvó ósótóyólóeó=ó"ówóiódótóhó:ó5ó2ópóxó;ó óhóeóiógóhótó:ó5ó2ópóxó;ó óbóoóródóeóró-óróaódóióuósó:ó1ó2ópóxó;ó óbóaócókógóróoóuónódó:órógóbóaó(ó2ó4ó9ó,ó ó1ó1ó5ó,ó ó2ó2ó,ó ó0ó.ó1ó5ó)ó;ó óbóoóródóeóró:ó1ópóxó ósóoólóiódó órógóbóaó(ó2ó4ó9ó,ó ó1ó1ó5ó,ó ó2ó2ó,ó ó0ó.ó3ó)ó;ó ódóiósópólóaóyó:ófólóeóxó;ó óaólóiógónó-óiótóeómósó:ócóeónótóeóró;ó ójóuósótóiófóyó-ócóoónótóeónótó:ócóeónótóeóró;ó ófóoónótó-ósóiózóeó:ó1ó.ó6óróeómó;ó ócóoólóoóró:óvóaóró(ó-ó-ópóróiómóaóróyó)ó;ó"ó>ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó<óió ócólóaósósó=ó"ófóaó-ósóoólóiódó ófóaó-ómóoótóoórócóyócólóeó"ó>ó<ó/óió>ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó<ó/ódóióvó>ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó<ódóióvó>ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó<óhó2ó ósótóyólóeó=ó"ófóoónótó-ósóiózóeó:ó1ó.ó2ó5óróeómó;ó ófóoónótó-ówóeóiógóhótó:ó8ó0ó0ó;ó ócóoólóoóró:ó#ófófófó;ó"ó óiódó=ó"óbóaónónóeóró-óoófóiócóiónóaó-ónóoómóeó"ó>óOófóiócóiónóaó óPóaórócóeóióróaó óCóróeódóeónócóióaódóaó<ó/óhó2ó>ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó<ópó ósótóyólóeó=ó"ófóoónótó-ósóiózóeó:ó0ó.ó8ó3óróeómó;ó ócóoólóoóró:ó#ó9ó4óaó3óbó8ó;ó"ó>óOófóiócóiónóaó óaóuótóoóróiózóaódóaó ópóaóróaó ómóaónóuótóeónóçóãóoó ópóróeóvóeónótóióvóaó,ó ótóróoócóaó ódóeó óóóóólóeóoó óeó ólóióbóeóróaóçóãóoó ódóeó óvóeóíócóuólóoósó ódóaó ó<ósótóróoónógó>óFóaócóiólóiótóaó óMóoótóoó<ó/ósótóróoónógó>ó.ó<ó/ópó>ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó<ó/ódóióvó>ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó<ó/ódóióvó>ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó<ódóióvó ósótóyólóeó=ó"ódóiósópólóaóyó:ófólóeóxó;ó óaólóiógónó-óiótóeómósó:ócóeónótóeóró;ó ógóaópó:ó8ópóxó;ó"ó>ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó<ósópóaónó ócólóaósósó=ó"ósótóaótóuósó-óbóaódógóeó ósótóaótóuósó-ólóióbóeóróaódóaó"ó ósótóyólóeó=ó"ófóoónótó-ósóiózóeó:ó0ó.ó8ó2óróeómó;ó ópóaódódóiónógó:ó6ópóxó ó1ó4ópóxó;ó"ó>ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó<óió ócólóaósósó=ó"ófóaó-ósóoólóiódó ófóaó-ósóhóióeólódó-ócóhóeócókó"ó>ó<ó/óió>ó óSóiósótóeómóaó óIónótóeógóróaódóoó ó&ó óOópóeóróaócóióoónóaóló
+ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó<ó/ósópóaónó>ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó<ó/ódóióvó>ó
+ó ó ó ó ó ó ó ó ó<ó/ódóióvó>ó
+ó
+ó ó ó ó ó ó ó ó ó<ó!ó-ó-ó óCóaóródó ódóeó óRóeógóiósótóróoó ódóeó óTóróoócóaó ódóeó óÓóóólóeóoó ó-ó-ó>ó
+ó ó ó ó ó ó ó ó ó<ódóióvó ócólóaósósó=ó"ócóaóródó"ó>ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó<ódóióvó ócólóaósósó=ó"ócóaóródó-óhóeóaódóeóró"ó>ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó<óhó2ó>ó<óió ócólóaósósó=ó"ófóaó-ósóoólóiódó ófóaó-óoóióló-ócóaónó"ó ósótóyólóeó=ó"ócóoólóoóró:óvóaóró(ó-ó-ópóróiómóaóróyó)ó;ó"ó>ó<ó/óió>ó óRóeógóiósótóróaóró óTóróoócóaó ódóeó óÓóóólóeóoó ó&ó óLóióbóeóróaóró óMóoótóoó<ó/óhó2ó>ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó<ósópóaónó ósótóyólóeó=ó"ófóoónótó-ósóiózóeó:ó0ó.ó8óróeómó;ó ócóoólóoóró:óvóaóró(ó-ó-ótóeóxótó-ómóuótóeódó)ó;ó ófóoónótó-ówóeóiógóhótó:ó6ó0ó0ó;ó"ó>óCóiócólóoó óOófóiócóióaóló:ó ó1ó.ó0ó0ó0ó óKóMó<ó/ósópóaónó>ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó<ó/ódóióvó>ó
+ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó<ófóoórómó óiódó=ó"ófóoórómó-óróeógóiósótóróoó-ótóróoócóaó"ó óoónósóuóbómóiótó=ó"ópóróoócóeósósóaóróTóróoócóaóOóóólóeóoó(óeóvóeónótó)ó"ó>ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó<ó!ó-ó-ó ó1ó.ó óSóeólóeóçóãóoó ódóaó óMóoótóoócóiócólóeótóaó ó-ó-ó>ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó<ódóióvó ócólóaósósó=ó"ófóoórómó-ógóróoóuópó"ó>ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó<ólóaóbóeóló>óSóeólóeócóióoónóeó óaó óMóoótóoócóiócólóeótóaó ódóaó óFóróoótóaó*ó<ó/ólóaóbóeóló>ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó<ósóeólóeócótó óiódó=ó"ósóeólóeócótó-ómóoótóoó"ó ócólóaósósó=ó"ófóoórómó-ócóoónótóróoóló"ó óróeóqóuóióróeódó óoónócóhóaónógóeó=ó"óaóoóSóeólóeócóióoónóaóróMóoótóoó(ótóhóiósó.óvóaólóuóeó)ó"ó ósótóyólóeó=ó"ófóoónótó-ósóiózóeó:ó1óróeómó;ó ófóoónótó-ówóeóiógóhótó:ó6ó0ó0ó;ó ócóoólóoóró:ó#ó3ó8óbódófó8ó;ó"ó>ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó<óoópótóióoónó óvóaólóuóeó=ó"ó"ó>ó-ó-ó óSóeólóeócóióoónóeó óuómóaó ómóoótóoó ópóaóróaó óiónóiócóióaóró óoó óaótóeónódóiómóeónótóoó ó-ó-ó<ó/óoópótóióoónó>ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó<ó/ósóeólóeócótó>ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó<ó/ódóióvó>ó
+ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó<ó!ó-ó-ó óPóróeóvóióeówó óDóiónóâómóiócóoó ódóaó óMóoótóoó ó-ó-ó>ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó<ódóióvó óiódó=ó"ómóoótóoó-ópóróeóvóióeówó"ó ócólóaósósó=ó"ómóoótóoó-ópóróeóvóióeówó-óbóoóxó"ó ósótóyólóeó=ó"ódóiósópólóaóyó:ónóoónóeó;ó"ó>ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó<ódóióvó ócólóaósósó=ó"ópóróeóvóióeówó-óiótóeómó"ó>ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó<ósópóaónó>óPólóaócóaó ódóoó óVóeóíócóuólóoó<ó/ósópóaónó>ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó<ósótóróoónógó óiódó=ó"ópóróeóvó-ópólóaócóaó"ó ósótóyólóeó=ó"ófóoónótó-ósóiózóeó:ó1ó.ó1ó5óróeómó;ó ócóoólóoóró:ó#ófó9ó7ó3ó1ó6ó;ó"ó>ó-ó-ó-ó<ó/ósótóróoónógó>ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó<ó/ódóióvó>ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó<ódóióvó ócólóaósósó=ó"ópóróeóvóióeówó-óiótóeómó"ó>ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó<ósópóaónó>óMóoódóeólóoó ódóaó óMóoótóoó<ó/ósópóaónó>ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó<ósótóróoónógó óiódó=ó"ópóróeóvó-ómóoódóeólóoó"ó>ó-ó-ó-ó<ó/ósótóróoónógó>ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó<ó/ódóióvó>ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó<ódóióvó ócólóaósósó=ó"ópóróeóvóióeówó-óiótóeómó"ó>ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó<ósópóaónó>óCóoónódóuótóoóró ó/ó óLóoócóaótóáóróióoó<ó/ósópóaónó>ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó<ósótóróoónógó óiódó=ó"ópóróeóvó-ócóoónódóuótóoóró"ó>ó-ó-ó-ó<ó/ósótóróoónógó>ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó<ó/ódóióvó>ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó<ódóióvó ócólóaósósó=ó"ópóróeóvóióeówó-óiótóeómó"ó>ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó<ósópóaónó>óÚólótóiómóaó óTóróoócóaó óRóeógóiósótóróaódóaó<ó/ósópóaónó>ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó<ósótóróoónógó óiódó=ó"ópóróeóvó-ókómó-óuólótóiómóaó"ó>ó0ó ókómó<ó/ósótóróoónógó>ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó<ó/ódóióvó>ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó<ódóióvó ócólóaósósó=ó"ópóróeóvóióeówó-óiótóeómó"ó>ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó<ósópóaónó>óSótóaótóuósó óAótóuóaóló ódóeó óBólóoóqóuóeóióoó<ó/ósópóaónó>ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó<ódóióvó óiódó=ó"ópóróeóvó-ósótóaótóuósó-óbólóoóqóuóeóióoó"ó>ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó<ósópóaónó ócólóaósósó=ó"ósótóaótóuósó-óbóaódógóeó ósótóaótóuósó-ólóióbóeóróaódóaó"ó>óLóióbóeóróaódóaó<ó/ósópóaónó>ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó<ó/ódóióvó>ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó<ó/ódóióvó>ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó<ó/ódóióvó>ó
+ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó<ó!ó-ó-ó ó2ó.ó óDóeótóaólóhóeósó ódóoó óSóeóróvóióçóoó ó-ó-ó>ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó<ódóióvó ósótóyólóeó=ó"ódóiósópólóaóyó:ógóróiódó;ó ógóróiódó-ótóeómópólóaótóeó-ócóoólóuómónósó:ó óróeópóeóaótó(óaóuótóoó-ófóiótó,ó ómóiónómóaóxó(ó2ó6ó0ópóxó,ó ó1ófóró)ó)ó;ó ógóaópó:ó1ó8ópóxó;ó"ó>ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó<ó!ó-ó-ó óKóMó ódóeó óCóhóeógóaódóaó ó-ó-ó>ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó<ódóióvó ócólóaósósó=ó"ófóoórómó-ógóróoóuópó"ó>ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó<ólóaóbóeóló>óKóMó óAótóuóaóló ónóoó óHóoódóôómóeótóróoó ó(óCóhóeógóaódóaó ónóaó óOófóiócóiónóaó)ó*ó<ó/ólóaóbóeóló>ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó<óiónópóuótó ótóyópóeó=ó"ónóuómóbóeóró"ó óiódó=ó"óiónópóuótó-ókómó"ó ócólóaósósó=ó"ófóoórómó-ócóoónótóróoóló"ó óróeóqóuóióróeódó ómóiónó=ó"ó0ó"ó ópólóaócóeóhóoólódóeóró=ó"óEóxó:ó ó2ó7ó1ó5ó0ó"ó óoónóiónópóuótó=ó"ócóaólócóuólóaóróPóróoóxóiómóaósóMóeótóaósó(ótóhóiósó.óvóaólóuóeó)ó"ó>ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó<ósómóaólóló ósótóyólóeó=ó"ódóiósópólóaóyó:óbólóoócókó;ó ófóoónótó-ósóiózóeó:ó0ó.ó7ó5óróeómó;ó ócóoólóoóró:óvóaóró(ó-ó-ótóeóxótó-ómóuótóeódó)ó;ó ómóaórógóiónó-ótóoópó:ó4ópóxó;ó"ó>ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó óDóiógóiótóeó óoó óKóMó óeóxóaótóoó ómóaórócóaódóoó ónóoó ópóaóiónóeóló ódóaó ómóoótóoó ónóoó ómóoómóeónótóoó ódóoó ósóeóróvóióçóoó.ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó<ó/ósómóaólóló>ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó<ó/ódóióvó>ó
+ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó<ó!ó-ó-ó óDóaótóaó ódóaó óTóróoócóaó ó-ó-ó>ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó<ódóióvó ócólóaósósó=ó"ófóoórómó-ógóróoóuópó"ó>ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó<ólóaóbóeóló>óDóaótóaó ódóoó óSóeóróvóióçóoó*ó<ó/ólóaóbóeóló>ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó<óiónópóuótó ótóyópóeó=ó"ódóaótóeó"ó óiódó=ó"óiónópóuótó-ódóaótóaó"ó ócólóaósósó=ó"ófóoórómó-ócóoónótóróoóló"ó óróeóqóuóióróeódó>ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó<ó/ódóióvó>ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó<ó/ódóióvó>ó
+ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó<ó!ó-ó-ó óCóáólócóuólóoó óeómó óTóeómópóoó óRóeóaóló ódóoó óNóoóvóoó óCóiócólóoó ó-ó-ó>ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó<ódóióvó ócólóaósósó=ó"ócóaólócó-óbóoóxó"ó>ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó<ódóióvó>ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó<ósópóaónó>óKóMó óRóeógóiósótóróaódóoó óAógóoóróaó<ó/ósópóaónó>ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó<ósótóróoónógó óiódó=ó"ócóaólócó-ókómó-óaótóuóaóló"ó>ó-ó-ó ókómó<ó/ósótóróoónógó>ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó<ó/ódóióvó>ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó<ódóióvó ósótóyólóeó=ó"ófóoónótó-ósóiózóeó:ó1ó.ó5óróeómó;ó ócóoólóoóró:ó#ó4ó7ó5ó5ó6ó9ó;ó"ó>ó➔ó<ó/ódóióvó>ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó<ódóióvó>ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó<ósópóaónó>óPóróóóxóiómóaó óTóróoócóaó óOóbóróiógóaótóóóróióaó ó(ó+ó1ó.ó0ó0ó0ó ókómó)ó<ó/ósópóaónó>ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó<ósótóróoónógó óiódó=ó"ócóaólócó-ókómó-ópóróoóxó"ó ósótóyólóeó=ó"ócóoólóoóró:ó#ó1ó0óbó9ó8ó1ó;ó"ó>ó-ó-ó ókómó<ó/ósótóróoónógó>ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó<ó/ódóióvó>ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó<ódóióvó ósótóyólóeó=ó"ófóoónótó-ósóiózóeó:ó1ó.ó5óróeómó;ó ócóoólóoóró:ó#ó4ó7ó5ó5ó6ó9ó;ó"ó>ó➔ó<ó/ódóióvó>ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó<ódóióvó>ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó<ósópóaónó>óBólóoóqóuóeóióoó ódóeó óPóróoótóeóçóãóoó ó(ó+ó1ó.ó1ó0ó0ó ókómó)ó<ó/ósópóaónó>ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó<ósótóróoónógó óiódó=ó"ócóaólócó-ókómó-óbólóoóqó"ó ósótóyólóeó=ó"ócóoólóoóró:ó#ófó5ó9óeó0óbó;ó"ó>ó-ó-ó ókómó<ó/ósótóróoónógó>ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó<ó/ódóióvó>ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó<ó/ódóióvó>ó
+ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó<ó!ó-ó-ó óÓóóólóeóoó óUótóiólóiózóaódóoó ó-ó-ó>ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó<ódóióvó ócólóaósósó=ó"ófóoórómó-ógóróoóuópó"ó ósótóyólóeó=ó"ómóaórógóiónó-ótóoópó:ó1ó8ópóxó;ó"ó>ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó<ólóaóbóeóló>óMóaórócóaó óeó óEósópóeócóiófóiócóaóçóãóoó ódóoó óÓóóólóeóoó óUótóiólóiózóaódóoó*ó<ó/ólóaóbóeóló>ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó<óiónópóuótó ótóyópóeó=ó"ótóeóxótó"ó óiódó=ó"óiónópóuótó-óoóóólóeóoó"ó ócólóaósósó=ó"ófóoórómó-ócóoónótóróoóló"ó óróeóqóuóióróeódó ópólóaócóeóhóoólódóeóró=ó"óEóxó:ó óMóoóbóióló ó2ó0óWó-ó5ó0ó ó4óTó óMóiónóeóróaóló"ó>ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó<ódóióvó ócólóaósósó=ó"ócóhóiópósó-ócóoónótóaóiónóeóró"ó>ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó<ósópóaónó ósótóyólóeó=ó"ófóoónótó-ósóiózóeó:ó0ó.ó7ó5óróeómó;ó ócóoólóoóró:óvóaóró(ó-ó-ótóeóxótó-ómóuótóeódó)ó;ó óaólóiógónó-ósóeólófó:ócóeónótóeóró;ó ómóaórógóiónó-óróiógóhótó:ó4ópóxó;ó"ó>óSóuógóeósótóõóeósó óRóáópóiódóaósó:ó<ó/ósópóaónó>ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó<óbóuótótóoónó ótóyópóeó=ó"óbóuótótóoónó"ó ócólóaósósó=ó"ócóhóiópó-óbótónó"ó óoónócólóiócókó=ó"ósóeólóeócóióoónóaóróOóóólóeóoóRóaópóiódóoó(ó'óMóoóbóióló ó2ó0óWó-ó5ó0ó ó4óTó óMóiónóeóróaóló'ó)ó"ó>óMóoóbóióló ó2ó0óWó-ó5ó0ó<ó/óbóuótótóoónó>ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó<óbóuótótóoónó ótóyópóeó=ó"óbóuótótóoónó"ó ócólóaósósó=ó"ócóhóiópó-óbótónó"ó óoónócólóiócókó=ó"ósóeólóeócóióoónóaóróOóóólóeóoóRóaópóiódóoó(ó'óHóaóvóoólóiónóeó ó2ó0óWó-ó5ó0ó ó4óTó óMóiónóeóróaóló'ó)ó"ó>óHóaóvóoólóiónóeó ó2ó0óWó-ó5ó0ó<ó/óbóuótótóoónó>ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó<óbóuótótóoónó ótóyópóeó=ó"óbóuótótóoónó"ó ócólóaósósó=ó"ócóhóiópó-óbótónó"ó óoónócólóiócókó=ó"ósóeólóeócóióoónóaóróOóóólóeóoóRóaópóiódóoó(ó'óHóoónódóaó óGóeónóuóíónóoó ó1ó0óWó-ó3ó0ó óSóeómóiósósóiónótóéótóiócóoó'ó)ó"ó>óHóoónódóaó ó1ó0óWó-ó3ó0ó<ó/óbóuótótóoónó>ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó<óbóuótótóoónó ótóyópóeó=ó"óbóuótótóoónó"ó ócólóaósósó=ó"ócóhóiópó-óbótónó"ó óoónócólóiócókó=ó"ósóeólóeócóióoónóaóróOóóólóeóoóRóaópóiódóoó(ó'óMóoótóuóló ó3ó0ó0ó0ó ó2ó0óWó-ó5ó0ó ó4óTó'ó)ó"ó>óMóoótóuóló ó3ó0ó0ó0ó ó2ó0óWó-ó5ó0ó<ó/óbóuótótóoónó>ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó<óbóuótótóoónó ótóyópóeó=ó"óbóuótótóoónó"ó ócólóaósósó=ó"ócóhóiópó-óbótónó"ó óoónócólóiócókó=ó"ósóeólóeócóióoónóaóróOóóólóeóoóRóaópóiódóoó(ó'óIópóióróaónógóaó óMóoótóoó ó2ó0óWó-ó5ó0ó ó4óTó'ó)ó"ó>óIópóióróaónógóaó ó2ó0óWó-ó5ó0ó<ó/óbóuótótóoónó>ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó<ó/ódóióvó>ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó<ó/ódóióvó>ó
+ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó<ódóióvó ósótóyólóeó=ó"ódóiósópólóaóyó:ógóróiódó;ó ógóróiódó-ótóeómópólóaótóeó-ócóoólóuómónósó:ó óróeópóeóaótó(óaóuótóoó-ófóiótó,ó ómóiónómóaóxó(ó2ó6ó0ópóxó,ó ó1ófóró)ó)ó;ó ógóaópó:ó1ó8ópóxó;ó"ó>ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó<ó!ó-ó-ó óMóeócóâónóiócóoó óRóeósópóoónósóáóvóeóló ó-ó-ó>ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó<ódóióvó ócólóaósósó=ó"ófóoórómó-ógóróoóuópó"ó>ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó<ólóaóbóeóló>óMóeócóâónóiócóoó ó/ó óTóéócónóiócóoó óRóeósópóoónósóáóvóeóló<ó/ólóaóbóeóló>ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó<óiónópóuótó ótóyópóeó=ó"ótóeóxótó"ó óiódó=ó"óiónópóuótó-ómóeócóaónóiócóoó"ó ócólóaósósó=ó"ófóoórómó-ócóoónótóróoóló"ó ópólóaócóeóhóoólódóeóró=ó"óNóoómóeó ódóoó ómóeócóâónóiócóoó"ó>ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó<ó/ódóióvó>ó
+ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó<ó!ó-ó-ó óOóbósóeóróvóaóçóõóeósó ó-ó-ó>ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó<ódóióvó ócólóaósósó=ó"ófóoórómó-ógóróoóuópó"ó>ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó<ólóaóbóeóló>óOóbósóeóróvóaóçóõóeósó ódóoó óSóeóróvóióçóoó ó(óOópócóióoónóaóló)ó<ó/ólóaóbóeóló>ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó<óiónópóuótó ótóyópóeó=ó"ótóeóxótó"ó óiódó=ó"óiónópóuótó-óoóbósó"ó ócólóaósósó=ó"ófóoórómó-ócóoónótóróoóló"ó ópólóaócóeóhóoólódóeóró=ó"óEóxó:ó óFóiólótóróoó ótóróoócóaódóoó,ó ócóoóróróeónótóeó óaójóuósótóaódóaó óeó ólóuóbóróiófóiócóaódóaó"ó>ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó<ó/ódóióvó>ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó<ó/ódóióvó>ó
+ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó<ó!ó-ó-ó óBóoótóãóoó ódóeó óCóoónófóiórómóaóçóãóoó ó-ó-ó>ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó<ódóióvó ósótóyólóeó=ó"ómóaórógóiónó-ótóoópó:ó1ó0ópóxó;ó"ó>ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó<óbóuótótóoónó ótóyópóeó=ó"ósóuóbómóiótó"ó ócólóaósósó=ó"óbótónó-ópóróiómóaóróyó"ó ósótóyólóeó=ó"ópóaódódóiónógó:ó1ó6ópóxó;ó ófóoónótó-ósóiózóeó:ó1ó.ó0ó5óróeómó;ó óbóaócókógóróoóuónódó:ólóiónóeóaóró-ógóróaódóióeónótó(ó1ó3ó5ódóeógó,ó ó#ó1ó6óaó3ó4óaó,ó ó#ó1ó5ó8ó0ó3ódó)ó;ó"ó>ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó<óió ócólóaósósó=ó"ófóaó-ósóoólóiódó ófóaó-ócóhóeócókó-ódóoóuóbólóeó"ó>ó<ó/óió>ó óCóoónófóiórómóaóró óTóróoócóaó ódóeó óÓóóólóeóoó óeó óLóióbóeóróaóró óMóoótóoó ónóaó óHóoóróaó ó(ó+ó1ó.ó0ó0ó0ó óKóMó)ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó<ó/óbóuótótóoónó>ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó<ó/ódóióvó>ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó<ó/ófóoórómó>ó
+ó ó ó ó ó ó ó ó ó<ó/ódóióvó>ó
+ó
+ó ó ó ó ó ó ó ó ó<ó!ó-ó-ó óTóaóbóeólóaó ódóeó óHóiósótóóóróiócóoó ódóeó óTóróoócóaósó óFóeóiótóaósó óPóeólóaó óOófóiócóiónóaó ó-ó-ó>ó
+ó ó ó ó ó ó ó ó ó<ódóióvó ócólóaósósó=ó"ócóaóródó"ó>ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó<ódóióvó ócólóaósósó=ó"ócóaóródó-óhóeóaódóeóró"ó>ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó<óhó2ó>ó<óió ócólóaósósó=ó"ófóaó-ósóoólóiódó ófóaó-ócólóoócókó-óróoótóaótóeó-ólóeófótó"ó ósótóyólóeó=ó"ócóoólóoóró:óvóaóró(ó-ó-óiónófóoó)ó;ó"ó>ó<ó/óió>ó óHóiósótóóóróiócóoó ódóeó óRóeóvóiósóõóeósó óRóeóaólóiózóaódóaósó ópóoóró óEósótóaó óOófóiócóiónóaó<ó/óhó2ó>ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó<ósópóaónó óiódó=ó"óhóiósótóoóróiócóoó-ótóoótóaóló-ócóoóuónótó"ó ósótóyólóeó=ó"ófóoónótó-ósóiózóeó:ó0ó.ó8óróeómó;ó ócóoólóoóró:óvóaóró(ó-ó-ótóeóxótó-ómóuótóeódó)ó;ó"ó>ó0ó óróeógóiósótóróoósó<ó/ósópóaónó>ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó<ó/ódóióvó>ó
+ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó<ódóióvó ócólóaósósó=ó"ótóaóbólóeó-óróeósópóoónósóióvóeó"ó>ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó<ótóaóbólóeó>ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó<ótóhóeóaódó>ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó<ótóró>ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó<ótóhó>óDóaótóaó<ó/ótóhó>ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó<ótóhó>óPólóaócóaó<ó/ótóhó>ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó<ótóhó>óMóoódóeólóoó<ó/ótóhó>ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó<ótóhó>óKóMó ódóaó óTóróoócóaó<ó/ótóhó>ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó<ótóhó>óPóróóóxóiómóaó óTóróoócóaó<ó/ótóhó>ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó<ótóhó>óÓóóólóeóoó óUótóiólóiózóaódóoó<ó/ótóhó>ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó<ótóhó>óTóéócónóiócóoó<ó/ótóhó>ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó<ótóhó>óSótóaótóuósó ónóoó óSóiósótóeómóaó<ó/ótóhó>ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó<ó/ótóró>ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó<ó/ótóhóeóaódó>ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó<ótóbóoódóyó óiódó=ó"ótóaóbóeólóaó-óhóiósótóoóróiócóoó-óoófóiócóiónóaó"ó>ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó<ótóró>ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó<ótódó ócóoólósópóaónó=ó"ó8ó"ó ósótóyólóeó=ó"ótóeóxótó-óaólóiógónó:ócóeónótóeóró;ó ócóoólóoóró:óvóaóró(ó-ó-ótóeóxótó-ómóuótóeódó)ó;ó ópóaódódóiónógó:ó2ó4ópóxó;ó"ó>ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó óNóeónóhóuómóaó ótóróoócóaó ódóeó óóóóólóeóoó óróeógóiósótóróaódóaó ópóoóró óeósótóaó óoófóiócóiónóaó óaóiónódóaó.ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó<ó/ótódó>ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó<ó/ótóró>ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó<ó/ótóbóoódóyó>ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó<ó/ótóaóbólóeó>ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó<ó/ódóióvó>ó
+ó ó ó ó ó ó ó ó ó<ó/ódóióvó>ó
+ó
+ó ó ó ó ó<ó/ómóaóiónó>ó
+ó
+ó ó ó ó ó<ó!ó-ó-ó óMóOóDóAóLó óDóEó óSóUóCóEóSóSóOó ó-ó-ó>ó
+ó ó ó ó ó<ódóióvó óiódó=ó"ómóoódóaóló-ósóuócóeósósóoó"ó ócólóaósósó=ó"ómóoódóaóló-óoóvóeórólóaóyó"ó>ó
+ó ó ó ó ó ó ó ó ó<ódóióvó ócólóaósósó=ó"ómóoódóaóló-óbóoóxó"ó>ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó<ódóióvó ócólóaósósó=ó"ómóoódóaóló-óiócóoónó-ósóuócócóeósósó"ó>ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó<óió ócólóaósósó=ó"ófóaó-ósóoólóiódó ófóaó-ócóhóeócókó"ó>ó<ó/óió>ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó<ó/ódóióvó>ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó<óhó2ó ósótóyólóeó=ó"ófóoónótó-ósóiózóeó:ó1ó.ó4óróeómó;ó ófóoónótó-ówóeóiógóhótó:ó8ó0ó0ó;ó ócóoólóoóró:ó#ófófófó;ó ómóaórógóiónó-óbóoótótóoómó:ó8ópóxó;ó"ó>óSóeóróvóióçóoó óCóoónófóiórómóaódóoó ócóoómó óSóuócóeósósóoó!ó<ó/óhó2ó>ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó<ópó óiódó=ó"ómóoódóaóló-ósóuócóeósósóoó-ómósógó"ó ósótóyólóeó=ó"ófóoónótó-ósóiózóeó:ó0ó.ó9ó2óróeómó;ó ócóoólóoóró:ó#ócóbódó5óeó1ó;ó ólóiónóeó-óhóeóiógóhótó:ó1ó.ó5ó;ó ómóaórógóiónó-óbóoótótóoómó:ó2ó0ópóxó;ó"ó>ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó óAó ómóoótóoó ófóoóió ólóióbóeóróaódóaó ópóaóróaó ómóaóiósó ó1ó.ó0ó0ó0ó óKóMó ónóoó ósóiósótóeómóaó.ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó<ó/ópó>ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó<ódóióvó óiódó=ó"ómóoódóaóló-ósóuócóeósósóoó-ódóeósótóaóqóuóeó"ó ósótóyólóeó=ó"óbóaócókógóróoóuónódó:ó#ó0ófó1ó7ó2óaó;ó óbóoóródóeóró:ó1ópóxó ósóoólóiódó ó#ó1ó0óbó9ó8ó1ó;ó óbóoóródóeóró-óróaódóióuósó:ó1ó0ópóxó;ó ópóaódódóiónógó:ó1ó4ópóxó;ó ómóaórógóiónó-óbóoótótóoómó:ó2ó2ópóxó;ó ótóeóxótó-óaólóiógónó:ólóeófótó;ó ófóoónótó-ósóiózóeó:ó0ó.ó8ó5óróeómó;ó"ó>ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó<ó!ó-ó-ó óPóróeóeónócóhóiódóoó ódóiónóaómóiócóaómóeónótóeó ó-ó-ó>ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó<ó/ódóióvó>ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó<óbóuótótóoónó ótóyópóeó=ó"óbóuótótóoónó"ó ócólóaósósó=ó"óbótónó-ópóróiómóaóróyó"ó óoónócólóiócókó=ó"ófóeócóhóaóróMóoódóaólóSóuócóeósósóoó(ó)ó"ó>ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó<óió ócólóaósósó=ó"ófóaó-ósóoólóiódó ófóaó-ótóhóuómóbósó-óuópó"ó>ó<ó/óió>ó óEónótóeónódóiódóoó ó/ó óCóoónócólóuóióró óAótóeónódóiómóeónótóoó
+ó ó ó ó ó ó ó ó ó ó ó ó ó<ó/óbóuótótóoónó>ó
+ó ó ó ó ó ó ó ó ó<ó/ódóióvó>ó
+ó ó ó ó ó<ó/ódóióvó>ó
+ó
+ó ó ó ó ó<ófóoóoótóeóró ócólóaósósó=ó"ófóoóoótóeóró"ó>ó
+ó ó ó ó ó ó ó ó óFóaócóiólóiótóaó óMóoótóoó óLóoócóaóçóõóeósó óIónótóeólóiógóeónótóeósó ó•ó óPóoórótóaóló ódóeó óTóeólóeómóeótóróióaó óeó óMóaónóuótóeónóçóãóoó óPóróeóvóeónótóióvóaó ódóaó óOófóiócóiónóaó óPóaórócóeóióróaó
+ó ó ó ó ó<ó/ófóoóoótóeóró>ó
+ó
+ó ó ó ó ó<ó!ó-ó-ó óFóióróeóbóaósóeó óSóDóKó óCóoómópóaótó óvó8ó ópóaóróaó ósóiónócóróoónóiózóaóçóãóoó óhóíóbóróiódóaó ócóoómó óCóRóMó ó-ó-ó>ó
+ó ó ó ó ó<ósócóróiópótó ósórócó=ó"óhótótópósó:ó/ó/ówówówó.ógósótóaótóiócó.ócóoómó/ófóióróeóbóaósóeójósó/ó8ó.ó1ó0ó.ó1ó/ófóióróeóbóaósóeó-óaópópó.ójósó"ó>ó<ó/ósócóróiópótó>ó
+ó ó ó ó ó<ósócóróiópótó ósórócó=ó"óhótótópósó:ó/ó/ówówówó.ógósótóaótóiócó.ócóoómó/ófóióróeóbóaósóeójósó/ó8ó.ó1ó0ó.ó1ó/ófóióróeóbóaósóeó-ófóióróeósótóoóróeó.ójósó"ó>ó<ó/ósócóróiópótó>ó
+ó
+ó ó ó ó ó<ósócóróiópótó>ó
+ó ó ó ó ó ó ó ó ócóoónósótó ófóióróeóbóaósóeóCóoónófóiógó ó=ó ó{ó
+ó ó ó ó ó ó ó ó ó ó ó ó óaópóióKóeóyó:ó ó"óAóIózóaóSóyóDópó8óUó3óHóYóTó_óXóAóbóZó3ó0ódóSóQólóKóoóhó8ózówó0ó2óDóLóeóIóvócó"ó,ó
+ó ó ó ó ó ó ó ó ó ó ó ó óaóuótóhóDóoómóaóiónó:ó ó"ómóoótóoóhóuóbó-ó9óeó8ó3ó9ó.ófóióróeóbóaósóeóaópópó.ócóoómó"ó,ó
+ó ó ó ó ó ó ó ó ó ó ó ó ópóróoójóeócótóIódó:ó ó"ómóoótóoóhóuóbó-ó9óeó8ó3ó9ó"ó,ó
+ó ó ó ó ó ó ó ó ó ó ó ó ósótóoóróaógóeóBóuócókóeótó:ó ó"ómóoótóoóhóuóbó-ó9óeó8ó3ó9ó.ófóióróeóbóaósóeósótóoóróaógóeó.óaópópó"ó,ó
+ó ó ó ó ó ó ó ó ó ó ó ó ómóeósósóaógóiónógóSóeónódóeóróIódó:ó ó"ó2ó0ó0ó6ó7ó3ó7ó0ó9ó1ó0ó8ó"ó,ó
+ó ó ó ó ó ó ó ó ó ó ó ó óaópópóIódó:ó ó"ó1ó:ó2ó0ó0ó6ó7ó3ó7ó0ó9ó1ó0ó8ó:ówóeóbó:óeó8ó4ódó8ófódóbó8ó2ó4ócófó1ó8ófódó5ócóeó6ó1ó"ó
+ó ó ó ó ó ó ó ó ó}ó;ó
+ó ó ó ó ó ó ó ó óiófó ó(ótóyópóeóoófó ófóióróeóbóaósóeó ó!ó=ó=ó ó'óuónódóeófóiónóeódó'ó ó&ó&ó ó!ófóióróeóbóaósóeó.óaópópósó.ólóeónógótóhó)ó ó{ó
+ó ó ó ó ó ó ó ó ó ó ó ó ótóróyó ó{ó ófóióróeóbóaósóeó.óiónóiótóióaólóiózóeóAópópó(ófóióróeóbóaósóeóCóoónófóiógó)ó;ó ó}ó ócóaótócóhó(óeó)ó ó{ó}ó
+ó ó ó ó ó ó ó ó ó}ó
+ó ó ó ó ó ó ó ó ócóoónósótó ódóbó ó=ó ó(ótóyópóeóoófó ófóióróeóbóaósóeó ó!ó=ó=ó ó'óuónódóeófóiónóeódó'ó)ó ó?ó ófóióróeóbóaósóeó.ófóióróeósótóoóróeó(ó)ó ó:ó ónóuólóló;ó
+ó
+ó ó ó ó ó ó ó ó ó/ó/ó óSóeósósóãóoó ódóaó óOófóiócóiónóaó
+ó ó ó ó ó ó ó ó ólóeótó ósóeósósóaóoóOófóiócóiónóaó ó=ó ónóuólóló;ó
+ó
+ó ó ó ó ó ó ó ó ófóuónócótóióoónó ógóeótóDóbó(ókóeóyó)ó ó{ó
+ó ó ó ó ó ó ó ó ó ó ó ó ótóróyó ó{ó óróeótóuórónó óJóSóOóNó.ópóaórósóeó(ólóoócóaólóSótóoóróaógóeó.ógóeótóIótóeómó(ókóeóyó)ó)ó ó|ó|ó ó[ó]ó;ó ó}ó ócóaótócóhó(óeó)ó ó{ó óróeótóuórónó ó[ó]ó;ó ó}ó
+ó ó ó ó ó ó ó ó ó}ó
+ó ó ó ó ó ó ó ó ófóuónócótóióoónó ósóaóvóeóDóbó(ókóeóyó,ó ódóaótóaó)ó ó{ó
+ó ó ó ó ó ó ó ó ó ó ó ó ótóróyó ó{ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ólóoócóaólóSótóoóróaógóeó.ósóeótóIótóeómó(ókóeóyó,ó óJóSóOóNó.ósótóróiónógóiófóyó(ódóaótóaó)ó)ó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó óiófó ó(ódóbó)ó ó{ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ócóoónósótó óbóaótócóhó ó=ó ódóbó.óbóaótócóhó(ó)ó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ódóaótóaó.ófóoóróEóaócóhó(óiótóeómó ó=ó>ó ó{ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó óiófó ó(óiótóeómó ó&ó&ó óiótóeómó.óiódó)ó ó{ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó óbóaótócóhó.ósóeótó(ódóbó.ócóoólólóeócótóióoónó(ókóeóyó)ó.ódóoócó(óiótóeómó.óiódó)ó,ó óiótóeómó)ó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó}ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó}ó)ó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó óbóaótócóhó.ócóoómómóiótó(ó)ó.ócóaótócóhó(ó(ó)ó ó=ó>ó ó{ó}ó)ó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó}ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó}ó ócóaótócóhó(óeó)ó ó{ó}ó
+ó ó ó ó ó ó ó ó ó}ó
+ó
+ó ó ó ó ó ó ó ó ó/ó/ó óIónóiócóióaólóiózóaóçóãóoó
+ó ó ó ó ó ó ó ó ódóoócóuómóeónótó.óaódódóEóvóeónótóLóiósótóeónóeóró(ó'óDóOóMóCóoónótóeónótóLóoóaódóeódó'ó,ó ó(ó)ó ó=ó>ó ó{ó
+ó ó ó ó ó ó ó ó ó ó ó ó ódóoócóuómóeónótó.ógóeótóEólóeómóeónótóBóyóIódó(ó'óiónópóuótó-ódóaótóaó'ó)ó.óvóaólóuóeó ó=ó ónóeówó óDóaótóeó(ó)ó.ótóoóIóSóOóSótóróiónógó(ó)ó.ósópólóiótó(ó'óTó'ó)ó[ó0ó]ó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó óvóeóróiófóiócóaóróAóuótóeónótóiócóaócóaóoó(ó)ó;ó
+ó ó ó ó ó ó ó ó ó}ó)ó;ó
+ó
+ó ó ó ó ó ó ó ó ófóuónócótóióoónó óvóeóróiófóiócóaóróAóuótóeónótóiócóaócóaóoó(ó)ó ó{ó
+ó ó ó ó ó ó ó ó ó ó ó ó ótóróyó ó{ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ócóoónósótó ósó ó=ó óJóSóOóNó.ópóaórósóeó(ólóoócóaólóSótóoóróaógóeó.ógóeótóIótóeómó(ó'ócórómó_ósóeósósóióoónó_óoófóiócóiónóaó'ó)ó)ó ó|ó|ó óJóSóOóNó.ópóaórósóeó(ólóoócóaólóSótóoóróaógóeó.ógóeótóIótóeómó(ó'ócórómó_ósóeósósóióoónó'ó)ó)ó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó óiófó ó(ósó ó&ó&ó ó(ósó.óróoólóeó ó=ó=ó=ó ó'óoófóiócóiónóaó'ó ó|ó|ó ósó.óróoólóeó ó=ó=ó=ó ó'óaódómóiónó'ó)ó)ó ó{ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ósóeósósóaóoóOófóiócóiónóaó ó=ó ósó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó óeóxóióbóióróPóaóiónóeólóOófóiócóiónóaó(ó)ó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó óróeótóuórónó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó}ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó}ó ócóaótócóhó(óeó)ó ó{ó}ó
+ó ó ó ó ó ó ó ó ó ó ó ó óeóxóióbóióróTóeólóaóLóoógóiónó(ó)ó;ó
+ó ó ó ó ó ó ó ó ó}ó
+ó
+ó ó ó ó ó ó ó ó ófóuónócótóióoónó óeóxóióbóióróTóeólóaóLóoógóiónó(ó)ó ó{ó
+ó ó ó ó ó ó ó ó ó ó ó ó ódóoócóuómóeónótó.ógóeótóEólóeómóeónótóBóyóIódó(ó'ósóeócótóióoónó-ólóoógóiónó'ó)ó.ósótóyólóeó.ódóiósópólóaóyó ó=ó ó'óbólóoócókó'ó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó ódóoócóuómóeónótó.ógóeótóEólóeómóeónótóBóyóIódó(ó'ósóeócótóióoónó-óaópópó'ó)ó.ósótóyólóeó.ódóiósópólóaóyó ó=ó ó'ónóoónóeó'ó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó ódóoócóuómóeónótó.ógóeótóEólóeómóeónótóBóyóIódó(ó'ótóoópóbóaóró-óuósóeóró-ósóeócótóióoónó'ó)ó.ósótóyólóeó.ódóiósópólóaóyó ó=ó ó'ónóoónóeó'ó;ó
+ó ó ó ó ó ó ó ó ó}ó
+ó
+ó ó ó ó ó ó ó ó ófóuónócótóióoónó óeóxóióbóióróPóaóiónóeólóOófóiócóiónóaó(ó)ó ó{ó
+ó ó ó ó ó ó ó ó ó ó ó ó ódóoócóuómóeónótó.ógóeótóEólóeómóeónótóBóyóIódó(ó'ósóeócótóióoónó-ólóoógóiónó'ó)ó.ósótóyólóeó.ódóiósópólóaóyó ó=ó ó'ónóoónóeó'ó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó ódóoócóuómóeónótó.ógóeótóEólóeómóeónótóBóyóIódó(ó'ósóeócótóióoónó-óaópópó'ó)ó.ósótóyólóeó.ódóiósópólóaóyó ó=ó ó'óbólóoócókó'ó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó ódóoócóuómóeónótó.ógóeótóEólóeómóeónótóBóyóIódó(ó'ótóoópóbóaóró-óuósóeóró-ósóeócótóióoónó'ó)ó.ósótóyólóeó.ódóiósópólóaóyó ó=ó ó'ófólóeóxó'ó;ó
+ó
+ó ó ó ó ó ó ó ó ó ó ó ó ócóoónósótó ónóoómóeóOófóiócóiónóaó ó=ó ósóeósósóaóoóOófóiócóiónóaó.óoófóiócóiónóaóNóoómóeó ó|ó|ó ósóeósósóaóoóOófóiócóiónóaó.ónóoómóeó ó|ó|ó ó'óOófóiócóiónóaó óCóróeódóeónócóióaódóaó'ó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó ódóoócóuómóeónótó.ógóeótóEólóeómóeónótóBóyóIódó(ó'óhóeóaódóeóró-óoófóiócóiónóaó-ónóoómóeó'ó)ó.óiónónóeóróTóeóxótó ó=ó ónóoómóeóOófóiócóiónóaó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó ódóoócóuómóeónótó.ógóeótóEólóeómóeónótóBóyóIódó(ó'óbóaónónóeóró-óoófóiócóiónóaó-ónóoómóeó'ó)ó.óiónónóeóróTóeóxótó ó=ó ónóoómóeóOófóiócóiónóaó;ó
+ó
+ó ó ó ó ó ó ó ó ó ó ó ó ócóaóróróeógóaóróMóoótóoósóNóoóSóeólóeócótó(ó)ó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó ócóaóróróeógóaóróHóiósótóoóróiócóoóOófóiócóiónóaó(ó)ó;ó
+ó ó ó ó ó ó ó ó ó}ó
+ó
+ó ó ó ó ó ó ó ó ófóuónócótóióoónó óróeóaólóiózóaóróLóoógóiónóOófóiócóiónóaó(óeó)ó ó{ó
+ó ó ó ó ó ó ó ó ó ó ó ó óeó.ópóróeóvóeónótóDóeófóaóuólótó(ó)ó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó ócóoónósótó óeómóaóióló ó=ó ó(ódóoócóuómóeónótó.ógóeótóEólóeómóeónótóBóyóIódó(ó'ólóoógóiónó-óeómóaóióló'ó)ó.óvóaólóuóeó ó|ó|ó ó'ó'ó)ó.ótóróiómó(ó)ó.ótóoóLóoówóeóróCóaósóeó(ó)ó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó ócóoónósótó ósóeónóhóaó ó=ó ó(ódóoócóuómóeónótó.ógóeótóEólóeómóeónótóBóyóIódó(ó'ólóoógóiónó-ósóeónóhóaó'ó)ó.óvóaólóuóeó ó|ó|ó ó'ó'ó)ó.ótóróiómó(ó)ó;ó
+ó
+ó ó ó ó ó ó ó ó ó ó ó ó ócóoónósótó óaódómóiónósó ó=ó ógóeótóDóbó(ó'ócórómó_óaódómóiónósó'ó)ó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó ócóoónósótó óuósóeóró ó=ó óaódómóiónósó.ófóiónódó(óuó ó=ó>ó ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó(óuó.óeómóaóióló ó|ó|ó ó'ó'ó)ó.ótóoóLóoówóeóróCóaósóeó(ó)ó ó=ó=ó=ó óeómóaóióló ó&ó&ó ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó óuó.ósóeónóhóaó ó=ó=ó=ó ósóeónóhóaó ó&ó&ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó(óuó.óróoólóeó ó=ó=ó=ó ó'óoófóiócóiónóaó'ó ó|ó|ó óuó.óróoólóeó ó=ó=ó=ó ó'óaódómóiónó'ó)ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó)ó;ó
+ó
+ó ó ó ó ó ó ó ó ó ó ó ó óiófó ó(óuósóeóró)ó ó{ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ósóeósósóaóoóOófóiócóiónóaó ó=ó ó{ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó óiódó:ó óuósóeóró.óiódó,ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ónóoómóeó:ó óuósóeóró.ónóoómóeó,ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó óoófóiócóiónóaóNóoómóeó:ó óuósóeóró.ónóoómóeó,ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó óeómóaóióló:ó óuósóeóró.óeómóaóióló,ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó óróoólóeó:ó óuósóeóró.óróoólóeó
+ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó}ó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ólóoócóaólóSótóoóróaógóeó.ósóeótóIótóeómó(ó'ócórómó_ósóeósósóióoónó_óoófóiócóiónóaó'ó,ó óJóSóOóNó.ósótóróiónógóiófóyó(ósóeósósóaóoóOófóiócóiónóaó)ó)ó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó óeóxóióbóióróPóaóiónóeólóOófóiócóiónóaó(ó)ó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó}ó óeólósóeó ó{ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ódóoócóuómóeónótó.ógóeótóEólóeómóeónótóBóyóIódó(ó'ólóoógóiónó-óeóróróoóró'ó)ó.ósótóyólóeó.ódóiósópólóaóyó ó=ó ó'óbólóoócókó'ó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó}ó
+ó ó ó ó ó ó ó ó ó}ó
+ó
+ó ó ó ó ó ó ó ó ófóuónócótóióoónó ófóaózóeóróLóoógóoóuótóOófóiócóiónóaó(ó)ó ó{ó
+ó ó ó ó ó ó ó ó ó ó ó ó ólóoócóaólóSótóoóróaógóeó.óróeómóoóvóeóIótóeómó(ó'ócórómó_ósóeósósóióoónó_óoófóiócóiónóaó'ó)ó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó ósóeósósóaóoóOófóiócóiónóaó ó=ó ónóuólóló;ó
+ó ó ó ó ó ó ó ó ó ó ó ó óeóxóióbóióróTóeólóaóLóoógóiónó(ó)ó;ó
+ó ó ó ó ó ó ó ó ó}ó
+ó
+ó ó ó ó ó ó ó ó ófóuónócótóióoónó ócóaóróróeógóaóróMóoótóoósóNóoóSóeólóeócótó(ó)ó ó{ó
+ó ó ó ó ó ó ó ó ó ó ó ó ócóoónósótó ómóoótóoósó ó=ó ógóeótóDóbó(ó'ócórómó_ómóoótóoósó'ó)ó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó ócóoónósótó ócólóióeónótóeósó ó=ó ógóeótóDóbó(ó'ócórómó_ócólóióeónótóeósó'ó)ó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó ócóoónósótó ósóeólóeócótó ó=ó ódóoócóuómóeónótó.ógóeótóEólóeómóeónótóBóyóIódó(ó'ósóeólóeócótó-ómóoótóoó'ó)ó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó ósóeólóeócótó.óiónónóeóróHóTóMóLó ó=ó ó'ó<óoópótóióoónó óvóaólóuóeó=ó"ó"ó>ó-ó-ó óSóeólóeócóióoónóeó óaó ómóoótóoó ópóeólóoó ómóoódóeólóoó óoóuó ópólóaócóaó ó-ó-ó<ó/óoópótóióoónó>ó'ó;ó
+ó
+ó ó ó ó ó ó ó ó ó ó ó ó ómóoótóoósó.ófóoóróEóaócóhó(ómó ó=ó>ó ó{ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ócóoónósótó ócó ó=ó ócólóióeónótóeósó.ófóiónódó(ócólóió ó=ó>ó ócólóió.óiódó ó=ó=ó=ó ómó.ócólóióeónótóeóIódó)ó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ócóoónósótó ócóoónódóuótóoóró ó=ó ócó ó?ó ócó.ónóoómóeó ó:ó ó(ómó.ósótóaótóuósó ó=ó=ó=ó ó'óaólóuógóaódóaó'ó ó?ó ó'óLóoócóaódóaó'ó ó:ó ó'óNóoó óPóáótóióoó'ó)ó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ócóoónósótó ókómó ó=ó ópóaórósóeóIónótó(ómó.ókómóAótóuóaóló)ó ó|ó|ó ó0ó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ócóoónósótó ósótóaótóuósóBólóoóqó ó=ó ó(ómó.óbólóoóqóuóeóaódóoóPóoóróKómóOóóólóeóoó ó|ó|ó ó(ómó.óróaósótóróeóaódóoóróBólóoóqóuóeóaódóoó ó&ó&ó ó!ómó.óbólóoóqóuóeóaódóoóPóoóróIónóaódóiómópólóeónócóióaó)ó)ó ó?ó ó'ó ó🚨ó ó[óBóLóOóQóUóEóAóDóAó]ó'ó ó:ó ó'ó'ó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ósóeólóeócótó.óiónónóeóróHóTóMóLó ó+ó=ó ó`ó<óoópótóióoónó óvóaólóuóeó=ó"ó$ó{ómó.óiódó}ó"ó>ó🏍ó️ó ó$ó{ómó.ópólóaócóaó}ó ó—ó ó$ó{ómó.ómóoódóeólóoó}ó ó(óCóoónódóuótóoóró:ó ó$ó{ócóoónódóuótóoóró}ó)ó ó$ó{ósótóaótóuósóBólóoóqó}ó<ó/óoópótóióoónó>ó`ó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó}ó)ó;ó
+ó ó ó ó ó ó ó ó ó}ó
+ó
+ó ó ó ó ó ó ó ó ófóuónócótóióoónó óaóoóSóeólóeócóióoónóaóróMóoótóoó(ómóoótóoóIódó)ó ó{ó
+ó ó ó ó ó ó ó ó ó ó ó ó ócóoónósótó ópóróeóvóióeówó ó=ó ódóoócóuómóeónótó.ógóeótóEólóeómóeónótóBóyóIódó(ó'ómóoótóoó-ópóróeóvóióeówó'ó)ó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó óiófó ó(ó!ómóoótóoóIódó)ó ó{ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ópóróeóvóióeówó.ósótóyólóeó.ódóiósópólóaóyó ó=ó ó'ónóoónóeó'ó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó óróeótóuórónó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó}ó
+ó
+ó ó ó ó ó ó ó ó ó ó ó ó ócóoónósótó ómóoótóoósó ó=ó ógóeótóDóbó(ó'ócórómó_ómóoótóoósó'ó)ó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó ócóoónósótó ócólóióeónótóeósó ó=ó ógóeótóDóbó(ó'ócórómó_ócólóióeónótóeósó'ó)ó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó ócóoónósótó ómó ó=ó ómóoótóoósó.ófóiónódó(óxó ó=ó>ó óxó.óiódó ó=ó=ó=ó ómóoótóoóIódó)ó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó óiófó ó(ó!ómó)ó óróeótóuórónó;ó
+ó
+ó ó ó ó ó ó ó ó ó ó ó ó ócóoónósótó ócó ó=ó ócólóióeónótóeósó.ófóiónódó(ócólóió ó=ó>ó ócólóió.óiódó ó=ó=ó=ó ómó.ócólóióeónótóeóIódó)ó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó ócóoónósótó ócóoónódóuótóoóró ó=ó ócó ó?ó ó`ó$ó{ócó.ónóoómóeó}ó ó(ó$ó{ócó.ótóeólóeófóoónóeó ó|ó|ó ó'ó'ó}ó)ó`ó ó:ó ó'óDóiósópóoónóíóvóeóló ónóoó óPóáótóióoó'ó;ó
+ó
+ó ó ó ó ó ó ó ó ó ó ó ó ódóoócóuómóeónótó.ógóeótóEólóeómóeónótóBóyóIódó(ó'ópóróeóvó-ópólóaócóaó'ó)ó.óiónónóeóróTóeóxótó ó=ó ómó.ópólóaócóaó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó ódóoócóuómóeónótó.ógóeótóEólóeómóeónótóBóyóIódó(ó'ópóróeóvó-ómóoódóeólóoó'ó)ó.óiónónóeóróTóeóxótó ó=ó ómó.ómóoódóeólóoó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó ódóoócóuómóeónótó.ógóeótóEólóeómóeónótóBóyóIódó(ó'ópóróeóvó-ócóoónódóuótóoóró'ó)ó.óiónónóeóróTóeóxótó ó=ó ócóoónódóuótóoóró;ó
+ó ó ó ó ó ó ó ó ó ó ó ó ódóoócóuómóeónótó.ógóeótóEólóeómóeónótóBóyóIódó(ó'ópóróeóvó-ókómó-óuólótóiómóaó'ó)ó.óiónónóeóróTóeóxótó ó=ó ó`ó$ó{ómó.ókómóUólótóiómóaóTóróoócóaó ó|ó|ó ómó.ókómóAótóuóaóló ó|ó|ó ó0ó}ó ókómó`ó;ó
+ó
+ó ó ó ó ó ó ó ó ó ó ó ó ócóoónósótó óiósóBólóoóqóuóeóaódóaó ó=ó ómó.óbólóoóqóuóeóaódóoóPóoóróKómóOóóólóeóoó ó=ó=ó=ó ótóróuóeó ó|ó|ó ó(ómó.óróaósótóróeóaódóoóróBólóoóqóuóeóaódóoó ó=ó=ó=ó ótóróuóeó ó&ó&ó ó!ómó.óbólóoóqóuóeóaódóoóPóoóróIónóaódóiómópólóeónócóióaó)ó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó ócóoónósótó ósótóaótóuósóDóióvó ó=ó ódóoócóuómóeónótó.ógóeótóEólóeómóeónótóBóyóIódó(ó'ópóróeóvó-ósótóaótóuósó-óbólóoóqóuóeóióoó'ó)ó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó óiófó ó(óiósóBólóoóqóuóeóaódóaó)ó ó{ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ósótóaótóuósóDóióvó.óiónónóeóróHóTóMóLó ó=ó ó`ó<ósópóaónó ócólóaósósó=ó"ósótóaótóuósó-óbóaódógóeó ósótóaótóuósó-óbólóoóqóuóeóaódóaó"ó>ó<óió ócólóaósósó=ó"ófóaó-ósóoólóiódó ófóaó-ólóoócókó"ó>ó<ó/óió>ó óBóLóOóQóUóEóAóDóAó óPóOóRó óFóAóLóTóAó óDóEó óTóRóOóCóAó óDóEó óÓóLóEóOó<ó/ósópóaónó>ó`ó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó}ó óeólósóeó ó{ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ósótóaótóuósóDóióvó.óiónónóeóróHóTóMóLó ó=ó ó`ó<ósópóaónó ócólóaósósó=ó"ósótóaótóuósó-óbóaódógóeó ósótóaótóuósó-ólóióbóeóróaódóaó"ó>ó<óió ócólóaósósó=ó"ófóaó-ósóoólóiódó ófóaó-ócóiórócólóeó-ócóhóeócókó"ó>ó<ó/óió>ó óLóióbóeóróaódóaó ó/ó óCóiórócóuólóaónódóoó<ó/ósópóaónó>ó`ó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó}ó
+ó
+ó ó ó ó ó ó ó ó ó ó ó ó ópóróeóvóióeówó.ósótóyólóeó.ódóiósópólóaóyó ó=ó ó'ógóróiódó'ó;ó
+ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó/ó/ó óPóróéó-ópóróeóeónócóhóeó óoó óKóMó ódóeó ócóhóeógóaódóaó ócóoómó óoó óKóMó óaótóuóaóló óeósótóiómóaódóoó ósóeó óhóoóuóvóeóró
+ó ó ó ó ó ó ó ó ó ó ó ó ócóoónósótó ókómóAótóuóaólóEósótó ó=ó ópóaórósóeóIónótó(ómó.ókómóAótóuóaóló)ó ó|ó|ó ó0ó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó óiófó ó(ókómóAótóuóaólóEósótó ó>ó ó0ó ó&ó&ó ó!ódóoócóuómóeónótó.ógóeótóEólóeómóeónótóBóyóIódó(ó'óiónópóuótó-ókómó'ó)ó.óvóaólóuóeó)ó ó{ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ódóoócóuómóeónótó.ógóeótóEólóeómóeónótóBóyóIódó(ó'óiónópóuótó-ókómó'ó)ó.óvóaólóuóeó ó=ó ókómóAótóuóaólóEósótó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ócóaólócóuólóaóróPóróoóxóiómóaósóMóeótóaósó(ókómóAótóuóaólóEósótó)ó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó}ó
+ó ó ó ó ó ó ó ó ó}ó
+ó
+ó ó ó ó ó ó ó ó ófóuónócótóióoónó ócóaólócóuólóaóróPóróoóxóiómóaósóMóeótóaósó(óvóaóló)ó ó{ó
+ó ó ó ó ó ó ó ó ó ó ó ó ócóoónósótó ókómó ó=ó ópóaórósóeóIónótó(óvóaóló)ó ó|ó|ó ó0ó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó óiófó ó(ókómó ó<ó=ó ó0ó)ó ó{ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ódóoócóuómóeónótó.ógóeótóEólóeómóeónótóBóyóIódó(ó'ócóaólócó-ókómó-óaótóuóaóló'ó)ó.óiónónóeóróTóeóxótó ó=ó ó'ó-ó-ó ókómó'ó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ódóoócóuómóeónótó.ógóeótóEólóeómóeónótóBóyóIódó(ó'ócóaólócó-ókómó-ópóróoóxó'ó)ó.óiónónóeóróTóeóxótó ó=ó ó'ó-ó-ó ókómó'ó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ódóoócóuómóeónótó.ógóeótóEólóeómóeónótóBóyóIódó(ó'ócóaólócó-ókómó-óbólóoóqó'ó)ó.óiónónóeóróTóeóxótó ó=ó ó'ó-ó-ó ókómó'ó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó óróeótóuórónó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó}ó
+ó
+ó ó ó ó ó ó ó ó ó ó ó ó ódóoócóuómóeónótó.ógóeótóEólóeómóeónótóBóyóIódó(ó'ócóaólócó-ókómó-óaótóuóaóló'ó)ó.óiónónóeóróTóeóxótó ó=ó ó`ó$ó{ókómó.ótóoóLóoócóaólóeóSótóróiónógó(ó'ópótó-óBóRó'ó)ó}ó ókómó`ó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó ódóoócóuómóeónótó.ógóeótóEólóeómóeónótóBóyóIódó(ó'ócóaólócó-ókómó-ópóróoóxó'ó)ó.óiónónóeóróTóeóxótó ó=ó ó`ó$ó{ó(ókómó ó+ó ó1ó0ó0ó0ó)ó.ótóoóLóoócóaólóeóSótóróiónógó(ó'ópótó-óBóRó'ó)ó}ó ókómó`ó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó ódóoócóuómóeónótó.ógóeótóEólóeómóeónótóBóyóIódó(ó'ócóaólócó-ókómó-óbólóoóqó'ó)ó.óiónónóeóróTóeóxótó ó=ó ó`ó$ó{ó(ókómó ó+ó ó1ó1ó0ó0ó)ó.ótóoóLóoócóaólóeóSótóróiónógó(ó'ópótó-óBóRó'ó)ó}ó ókómó`ó;ó
+ó ó ó ó ó ó ó ó ó}ó
+ó
+ó ó ó ó ó ó ó ó ófóuónócótóióoónó ósóeólóeócóióoónóaóróOóóólóeóoóRóaópóiódóoó(ónóoómóeóOóóólóeóoó)ó ó{ó
+ó ó ó ó ó ó ó ó ó ó ó ó ódóoócóuómóeónótó.ógóeótóEólóeómóeónótóBóyóIódó(ó'óiónópóuótó-óoóóólóeóoó'ó)ó.óvóaólóuóeó ó=ó ónóoómóeóOóóólóeóoó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó ódóoócóuómóeónótó.óqóuóeóróyóSóeólóeócótóoóróAólóló(ó'ó.ócóhóiópó-óbótónó'ó)ó.ófóoóróEóaócóhó(óbótónó ó=ó>ó ó{ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó óbótónó.ócólóaósósóLóiósótó.ótóoógógólóeó(ó'óaócótóióvóeó'ó,ó óbótónó.óiónónóeóróTóeóxótó.óiónócólóuódóeósó(ónóoómóeóOóóólóeóoó.ósópólóiótó(ó'ó ó'ó)ó[ó0ó]ó)ó)ó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó}ó)ó;ó
+ó ó ó ó ó ó ó ó ó}ó
+ó
+ó ó ó ó ó ó ó ó ófóuónócótóióoónó ópóróoócóeósósóaóróTóróoócóaóOóóólóeóoó(óeó)ó ó{ó
+ó ó ó ó ó ó ó ó ó ó ó ó óeó.ópóróeóvóeónótóDóeófóaóuólótó(ó)ó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó ócóoónósótó ómóoótóoóIódó ó=ó ódóoócóuómóeónótó.ógóeótóEólóeómóeónótóBóyóIódó(ó'ósóeólóeócótó-ómóoótóoó'ó)ó.óvóaólóuóeó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó ócóoónósótó ókómóCóhóeógóaódóaó ó=ó ópóaórósóeóIónótó(ódóoócóuómóeónótó.ógóeótóEólóeómóeónótóBóyóIódó(ó'óiónópóuótó-ókómó'ó)ó.óvóaólóuóeó)ó ó|ó|ó ó0ó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó ócóoónósótó ódóaótóaóTóróoócóaó ó=ó ódóoócóuómóeónótó.ógóeótóEólóeómóeónótóBóyóIódó(ó'óiónópóuótó-ódóaótóaó'ó)ó.óvóaólóuóeó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó ócóoónósótó óoóóólóeóoó ó=ó ódóoócóuómóeónótó.ógóeótóEólóeómóeónótóBóyóIódó(ó'óiónópóuótó-óoóóólóeóoó'ó)ó.óvóaólóuóeó.ótóróiómó(ó)ó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó ócóoónósótó ómóeócóaónóiócóoó ó=ó ódóoócóuómóeónótó.ógóeótóEólóeómóeónótóBóyóIódó(ó'óiónópóuótó-ómóeócóaónóiócóoó'ó)ó.óvóaólóuóeó.ótóróiómó(ó)ó ó|ó|ó ó'óTóéócónóiócóoó óAóuótóoóróiózóaódóoó'ó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó ócóoónósótó óoóbósó ó=ó ódóoócóuómóeónótó.ógóeótóEólóeómóeónótóBóyóIódó(ó'óiónópóuótó-óoóbósó'ó)ó.óvóaólóuóeó.ótóróiómó(ó)ó;ó
+ó
+ó ó ó ó ó ó ó ó ó ó ó ó óiófó ó(ó!ómóoótóoóIódó)ó ó{ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó óaólóeórótó(ó'óPóoóró ófóaóvóoóró,ó ósóeólóeócóióoónóeó óuómóaó ómóoótóoó!ó'ó)ó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó óróeótóuórónó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó}ó
+ó ó ó ó ó ó ó ó ó ó ó ó óiófó ó(ókómóCóhóeógóaódóaó ó<ó=ó ó0ó)ó ó{ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó óaólóeórótó(ó'óIónófóoórómóeó óuómó óKóMó óvóáólóiódóoó óróeógóiósótóróaódóoó ónóoó ópóaóiónóeóló ódóaó ómóoótóoó!ó'ó)ó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó óróeótóuórónó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó}ó
+ó
+ó ó ó ó ó ó ó ó ó ó ó ó ólóeótó ómóoótóoósó ó=ó ógóeótóDóbó(ó'ócórómó_ómóoótóoósó'ó)ó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó ócóoónósótó óiódóxó ó=ó ómóoótóoósó.ófóiónódóIónódóeóxó(ómó ó=ó>ó ómó.óiódó ó=ó=ó=ó ómóoótóoóIódó)ó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó óiófó ó(óiódóxó ó=ó=ó=ó ó-ó1ó)ó óróeótóuórónó;ó
+ó
+ó ó ó ó ó ó ó ó ó ó ó ó ócóoónósótó ómóoótóoó ó=ó ómóoótóoósó[óiódóxó]ó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó ócóoónósótó óeósótóaóvóaóBólóoóqóuóeóaódóaó ó=ó ómóoótóoó.óbólóoóqóuóeóaódóoóPóoóróKómóOóóólóeóoó ó=ó=ó=ó ótóróuóeó ó|ó|ó ó(ómóoótóoó.óróaósótóróeóaódóoóróBólóoóqóuóeóaódóoó ó=ó=ó=ó ótóróuóeó ó&ó&ó ó!ómóoótóoó.óbólóoóqóuóeóaódóoóPóoóróIónóaódóiómópólóeónócóióaó)ó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó ócóoónósótó ópóróoóxóKómó ó=ó ókómóCóhóeógóaódóaó ó+ó ó1ó0ó0ó0ó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó ócóoónósótó ólóiómóiótóeóBólóoóqó ó=ó ókómóCóhóeógóaódóaó ó+ó ó1ó1ó0ó0ó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó ócóoónósótó ónóoómóeóOófóiócóiónóaó ó=ó ósóeósósóaóoóOófóiócóiónóaó?ó.óoófóiócóiónóaóNóoómóeó ó|ó|ó ósóeósósóaóoóOófóiócóiónóaó?ó.ónóoómóeó ó|ó|ó ó'óOófóiócóiónóaó óPóaórócóeóióróaó óCóróeódóeónócóióaódóaó'ó;ó
+ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó/ó/ó ó1ó.ó óAótóuóaólóiózóaó óoósó ódóaódóoósó ódóaó ómóoótóoó ópóaóróaó ómóaóiósó ó1ó.ó0ó0ó0ó óKóMó
+ó ó ó ó ó ó ó ó ó ó ó ó ómóoótóoó.ókómóAótóuóaóló ó=ó óMóaótóhó.ómóaóxó(ópóaórósóeóIónótó(ómóoótóoó.ókómóAótóuóaóló)ó ó|ó|ó ó0ó,ó ókómóCóhóeógóaódóaó)ó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó ómóoótóoó.ókómóUólótóiómóaóTóróoócóaó ó=ó ókómóCóhóeógóaódóaó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó ómóoótóoó.ókómóPóróoóxóiómóaóTóróoócóaó ó=ó ópóróoóxóKómó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó ómóoótóoó.óbólóoóqóuóeóaódóoóPóoóróKómóOóóólóeóoó ó=ó ófóaólósóeó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó ómóoótóoó.óbólóoóqóuóeóióoóOóóólóeóoóDóiósópóaóróaódóoó ó=ó ófóaólósóeó;ó
+ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó/ó/ó ó2ó.ó óSóeó óaó ómóoótóoó óeósótóaóvóaó óbólóoóqóuóeóaódóaó ópóoóró ófóaólótóaó ódóeó ótóróoócóaó,ó óDóEóSóBóLóOóQóUóEóIóAó óNóAó óHóOóRóAó!ó
+ó ó ó ó ó ó ó ó ó ó ó ó ólóeótó ómóeónósóaógóeómóDóeósóbólóoóqóuóeóióoó ó=ó ó'ó'ó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó óiófó ó(óeósótóaóvóaóBólóoóqóuóeóaódóaó)ó ó{ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ómóoótóoó.óróaósótóróeóaódóoóróBólóoóqóuóeóaódóoó ó=ó ófóaólósóeó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó óiófó ó(ó!ómóoótóoó.óbólóoóqóuóeóaódóoóPóoóróIónóaódóiómópólóeónócóióaó)ó ó{ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ómóoótóoó.ómóoótóióvóoóBólóoóqóuóeóióoóAóuótóoómóaótóiócóoó ó=ó ó'ó'ó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó}ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ómóeónósóaógóeómóDóeósóbólóoóqóuóeóióoó ó=ó ó'ó🚨ó óAó ómóoótóoó óeósótóaóvóaó óbólóoóqóuóeóaódóaó óeó ófóoóió óDóEóSóBóLóOóQóUóEóAóDóAó óIóMóEóDóIóAóTóAóMóEóNóTóEó óvóióaó ósóaótóéólóiótóeó!ó'ó;ó
+ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó/ó/ó óDóiósópóaóróoó ódóeó ócóoómóaónódóoó ódóeó ódóeósóbólóoóqóuóeóióoó óvóióaó óAóPóIó ódóeó ótóeólóeómóeótóróióaó
+ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ófóeótócóhó(ó'ó/óaópóió/ótóeólóeómóeótóróyó'ó,ó ó{ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ómóeótóhóoódó:ó ó'óPóOóSóTó'ó,ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó óhóeóaódóeórósó:ó ó{ó ó'óCóoónótóeónótó-óTóyópóeó'ó:ó ó'óaópópólóiócóaótóióoónó/ójósóoónó'ó ó}ó,ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó óbóoódóyó:ó óJóSóOóNó.ósótóróiónógóiófóyó(ó{ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó óaócótóióoónó:ó ó'ócóoómómóaónódó_óbólóoócókó'ó,ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó óiódó:ó ómóoótóoó.óróaósótóróeóaódóoóróIómóeóió ó|ó|ó ó'ó0ó0ó0ó1ó8óEó1óBó'ó,ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ópólóaócóaó:ó ómóoótóoó.ópólóaócóaó,ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó óbólóoóqóuóeóaóró:ó ófóaólósóeó,ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ómóoótóióvóoó:ó ó`óTóróoócóaó ódóeó óóóóólóeóoó óróeóaólóiózóaódóaó ónóaó ó$ó{ónóoómóeóOófóiócóiónóaó}ó ó—ó óMóoótóoóró ó1ó0ó0ó%ó ólóióbóeóróaódóoó`ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó}ó)ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó}ó)ó.ócóaótócóhó(ó(ó)ó ó=ó>ó ó{ó}ó)ó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó}ó
+ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó/ó/ó ó3ó.ó óRóeógóiósótóróaó ónóoó óHóiósótóóóróiócóoó óOófóiócóióaóló ódóaó óMóoótóoó
+ó ó ó ó ó ó ó ó ó ó ó ó óiófó ó(ó!óAóróróaóyó.óiósóAóróróaóyó(ómóoótóoó.óhóiósótóoóróiócóoóOóóólóeóoó)ó)ó ómóoótóoó.óhóiósótóoóróiócóoóOóóólóeóoó ó=ó ó[ó]ó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó ómóoótóoó.óhóiósótóoóróiócóoóOóóólóeóoó.óuónósóhóiófótó(ó{ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó óiódó:ó ó'óRóEóVó-ó'ó ó+ó óDóaótóeó.ónóoówó(ó)ó,ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ódóaótóaó:ó ódóaótóaóTóróoócóaó,ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ókómó:ó ókómóCóhóeógóaódóaó,ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ópóróoóxóKómó:ó ópóróoóxóKómó,ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó óoóóólóeóoó:ó óoóóólóeóoó,ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó óoófóiócóiónóaóNóoómóeó:ó ónóoómóeóOófóiócóiónóaó,ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ómóeócóaónóiócóoó:ó ómóeócóaónóiócóoó,ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó óoóbósó:ó óoóbósó ó|ó|ó ó'óTóróoócóaó ódóeó óóóóólóeóoó óeó óróeóvóiósóãóoó ópóróeóvóeónótóióvóaó ó1ó.ó0ó0ó0ó ókómó óróeóaólóiózóaódóaó ócóoómó ósóuócóeósósóoó.ó'ó,ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ódóeósóbólóoóqóuóeóaódóaó:ó óeósótóaóvóaóBólóoóqóuóeóaódóaó,ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó óróeógóiósótóróaódóoóEómó:ó ónóeówó óDóaótóeó(ó)ó.ótóoóIóSóOóSótóróiónógó(ó)ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó}ó)ó;ó
+ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó/ó/ó ó4ó.ó óSóaólóvóaó ónóoó óbóaónócóoó ódóeó ódóaódóoósó
+ó ó ó ó ó ó ó ó ó ó ó ó ómóoótóoósó[óiódóxó]ó ó=ó ómóoótóoó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó ósóaóvóeóDóbó(ó'ócórómó_ómóoótóoósó'ó,ó ómóoótóoósó)ó;ó
+ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó/ó/ó ó5ó.ó óEóxóióbóeó óMóoódóaóló ódóeó óSóuócóeósósóoó
+ó ó ó ó ó ó ó ó ó ó ó ó ódóoócóuómóeónótó.ógóeótóEólóeómóeónótóBóyóIódó(ó'ómóoódóaóló-ósóuócóeósósóoó-ómósógó'ó)ó.óiónónóeóróHóTóMóLó ó=ó ó`ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó óAó óróeóvóiósóãóoó ódóaó ómóoótóoó ó<ósótóróoónógó>ó$ó{ómóoótóoó.ópólóaócóaó}ó<ó/ósótóróoónógó>ó ó(ó$ó{ómóoótóoó.ómóoódóeólóoó}ó)ó ófóoóió óróeógóiósótóróaódóaó ópóeólóaó ó<ósótóróoónógó>ó$ó{ónóoómóeóOófóiócóiónóaó}ó<ó/ósótóróoónógó>ó.ó<óbóró>ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó$ó{ómóeónósóaógóeómóDóeósóbólóoóqóuóeóióoó ó?ó ó`ó<ósópóaónó ósótóyólóeó=ó"ócóoólóoóró:ó#ó3ó4ódó3ó9ó9ó;ó ófóoónótó-ówóeóiógóhótó:ó7ó0ó0ó;ó ódóiósópólóaóyó:óbólóoócókó;ó ómóaórógóiónó-ótóoópó:ó8ópóxó;ó"ó>ó$ó{ómóeónósóaógóeómóDóeósóbólóoóqóuóeóióoó}ó<ó/ósópóaónó>ó`ó ó:ó ó'ó'ó}ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó`ó;ó
+ó
+ó ó ó ó ó ó ó ó ó ó ó ó ódóoócóuómóeónótó.ógóeótóEólóeómóeónótóBóyóIódó(ó'ómóoódóaóló-ósóuócóeósósóoó-ódóeósótóaóqóuóeó'ó)ó.óiónónóeóróHóTóMóLó ó=ó ó`ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó•ó ó<ósótóróoónógó>óVóeóíócóuólóoó:ó<ó/ósótóróoónógó>ó ó$ó{ómóoótóoó.ópólóaócóaó}ó ó—ó ó$ó{ómóoótóoó.ómóoódóeólóoó}ó<óbóró>ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó•ó ó<ósótóróoónógó>óKóMó ódóaó óTóróoócóaó:ó<ó/ósótóróoónógó>ó ó$ó{ókómóCóhóeógóaódóaó.ótóoóLóoócóaólóeóSótóróiónógó(ó'ópótó-óBóRó'ó)ó}ó ókómó<óbóró>ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó•ó ó<ósótóróoónógó>óPóróóóxóiómóaó óTóróoócóaó óAógóeónódóaódóaó:ó<ó/ósótóróoónógó>ó ó<ósópóaónó ósótóyólóeó=ó"ócóoólóoóró:ó#ó1ó0óbó9ó8ó1ó;ó ófóoónótó-ówóeóiógóhótó:ó7ó0ó0ó;ó"ó>ó$ó{ópóróoóxóKómó.ótóoóLóoócóaólóeóSótóróiónógó(ó'ópótó-óBóRó'ó)ó}ó ókómó<ó/ósópóaónó>ó<óbóró>ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó•ó ó<ósótóróoónógó>óÓóóólóeóoó óUótóiólóiózóaódóoó:ó<ó/ósótóróoónógó>ó ó$ó{óoóóólóeóoó}ó<óbóró>ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó•ó ó<ósótóróoónógó>óTóéócónóiócóoó óRóeósópóoónósóáóvóeóló:ó<ó/ósótóróoónógó>ó ó$ó{ómóeócóaónóiócóoó}ó<óbóró>ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó•ó ó<ósótóróoónógó>óSótóaótóuósó:ó<ó/ósótóróoónógó>ó ó<ósópóaónó ósótóyólóeó=ó"ócóoólóoóró:ó#ó3ó8óbódófó8ó;ó ófóoónótó-ówóeóiógóhótó:ó7ó0ó0ó;ó"ó>óMóOóTóOó ó1ó0ó0ó%ó óLóIóBóEóRóAóDóAó óPóAóRóAó óRóOóDóAóRó<ó/ósópóaónó>ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó`ó;ó
+ó
+ó ó ó ó ó ó ó ó ó ó ó ó ódóoócóuómóeónótó.ógóeótóEólóeómóeónótóBóyóIódó(ó'ómóoódóaóló-ósóuócóeósósóoó'ó)ó.ócólóaósósóLóiósótó.óaódódó(ó'ósóhóoówó'ó)ó;ó
+ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó/ó/ó óAótóuóaólóiózóaó óaó óvóiósóuóaólóiózóaóçóãóoó
+ó ó ó ó ó ó ó ó ó ó ó ó óaóoóSóeólóeócóióoónóaóróMóoótóoó(ómóoótóoó.óiódó)ó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó ócóaóróróeógóaóróHóiósótóoóróiócóoóOófóiócóiónóaó(ó)ó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó ócóaóróróeógóaóróMóoótóoósóNóoóSóeólóeócótó(ó)ó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó ódóoócóuómóeónótó.ógóeótóEólóeómóeónótóBóyóIódó(ó'ósóeólóeócótó-ómóoótóoó'ó)ó.óvóaólóuóeó ó=ó ómóoótóoó.óiódó;ó
+ó ó ó ó ó ó ó ó ó}ó
+ó
+ó ó ó ó ó ó ó ó ófóuónócótóióoónó ófóeócóhóaóróMóoódóaólóSóuócóeósósóoó(ó)ó ó{ó
+ó ó ó ó ó ó ó ó ó ó ó ó ódóoócóuómóeónótó.ógóeótóEólóeómóeónótóBóyóIódó(ó'ómóoódóaóló-ósóuócóeósósóoó'ó)ó.ócólóaósósóLóiósótó.óróeómóoóvóeó(ó'ósóhóoówó'ó)ó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó ódóoócóuómóeónótó.ógóeótóEólóeómóeónótóBóyóIódó(ó'ófóoórómó-óróeógóiósótóróoó-ótóróoócóaó'ó)ó.óróeósóeótó(ó)ó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó ódóoócóuómóeónótó.ógóeótóEólóeómóeónótóBóyóIódó(ó'ómóoótóoó-ópóróeóvóióeówó'ó)ó.ósótóyólóeó.ódóiósópólóaóyó ó=ó ó'ónóoónóeó'ó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó ódóoócóuómóeónótó.ógóeótóEólóeómóeónótóBóyóIódó(ó'ócóaólócó-ókómó-óaótóuóaóló'ó)ó.óiónónóeóróTóeóxótó ó=ó ó'ó-ó-ó ókómó'ó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó ódóoócóuómóeónótó.ógóeótóEólóeómóeónótóBóyóIódó(ó'ócóaólócó-ókómó-ópóróoóxó'ó)ó.óiónónóeóróTóeóxótó ó=ó ó'ó-ó-ó ókómó'ó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó ódóoócóuómóeónótó.ógóeótóEólóeómóeónótóBóyóIódó(ó'ócóaólócó-ókómó-óbólóoóqó'ó)ó.óiónónóeóróTóeóxótó ó=ó ó'ó-ó-ó ókómó'ó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó ódóoócóuómóeónótó.ógóeótóEólóeómóeónótóBóyóIódó(ó'óiónópóuótó-ódóaótóaó'ó)ó.óvóaólóuóeó ó=ó ónóeówó óDóaótóeó(ó)ó.ótóoóIóSóOóSótóróiónógó(ó)ó.ósópólóiótó(ó'óTó'ó)ó[ó0ó]ó;ó
+ó ó ó ó ó ó ó ó ó}ó
+ó
+ó ó ó ó ó ó ó ó ófóuónócótóióoónó ócóaóróróeógóaóróHóiósótóoóróiócóoóOófóiócóiónóaó(ó)ó ó{ó
+ó ó ó ó ó ó ó ó ó ó ó ó ócóoónósótó ómóoótóoósó ó=ó ógóeótóDóbó(ó'ócórómó_ómóoótóoósó'ó)ó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó ócóoónósótó ótóbóoódóyó ó=ó ódóoócóuómóeónótó.ógóeótóEólóeómóeónótóBóyóIódó(ó'ótóaóbóeólóaó-óhóiósótóoóróiócóoó-óoófóiócóiónóaó'ó)ó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó ócóoónósótó ónóoómóeóOófóiócóiónóaóAótóuóaóló ó=ó ó(ósóeósósóaóoóOófóiócóiónóaó?ó.óoófóiócóiónóaóNóoómóeó ó|ó|ó ósóeósósóaóoóOófóiócóiónóaó?ó.ónóoómóeó ó|ó|ó ó'ó'ó)ó.ótóoóLóoówóeóróCóaósóeó(ó)ó;ó
+ó
+ó ó ó ó ó ó ó ó ó ó ó ó ólóeótó óróeógóiósótóróoósó ó=ó ó[ó]ó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó ómóoótóoósó.ófóoóróEóaócóhó(ómó ó=ó>ó ó{ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó óiófó ó(óAóróróaóyó.óiósóAóróróaóyó(ómó.óhóiósótóoóróiócóoóOóóólóeóoó)ó)ó ó{ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ómó.óhóiósótóoóróiócóoóOóóólóeóoó.ófóoóróEóaócóhó(óhó ó=ó>ó ó{ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó óróeógóiósótóróoósó.ópóuósóhó(óOóbójóeócótó.óaósósóiógónó(ó{ó}ó,ó óhó,ó ó{ó ómóoótóoóPólóaócóaó:ó ómó.ópólóaócóaó,ó ómóoótóoóMóoódóeólóoó:ó ómó.ómóoódóeólóoó ó}ó)ó)ó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó}ó)ó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó}ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó}ó)ó;ó
+ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó/ó/ó óOóródóeónóaó ópóeólóoó ómóaóiósó óróeócóeónótóeó
+ó ó ó ó ó ó ó ó ó ó ó ó óróeógóiósótóróoósó.ósóoórótó(ó(óaó,ó óbó)ó ó=ó>ó ónóeówó óDóaótóeó(óbó.óróeógóiósótóróaódóoóEómó ó|ó|ó óbó.ódóaótóaó)ó ó-ó ónóeówó óDóaótóeó(óaó.óróeógóiósótóróaódóoóEómó ó|ó|ó óaó.ódóaótóaó)ó)ó;ó
+ó
+ó ó ó ó ó ó ó ó ó ó ó ó ódóoócóuómóeónótó.ógóeótóEólóeómóeónótóBóyóIódó(ó'óhóiósótóoóróiócóoó-ótóoótóaóló-ócóoóuónótó'ó)ó.óiónónóeóróTóeóxótó ó=ó ó`ó$ó{óróeógóiósótóróoósó.ólóeónógótóhó}ó óróeóvóiósóõóeósó ócóaódóaósótóróaódóaósó`ó;ó
+ó
+ó ó ó ó ó ó ó ó ó ó ó ó óiófó ó(óróeógóiósótóróoósó.ólóeónógótóhó ó=ó=ó=ó ó0ó)ó ó{ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ótóbóoódóyó.óiónónóeóróHóTóMóLó ó=ó ó`ó<ótóró>ó<ótódó ócóoólósópóaónó=ó"ó8ó"ó ósótóyólóeó=ó"ótóeóxótó-óaólóiógónó:ócóeónótóeóró;ó ócóoólóoóró:óvóaóró(ó-ó-ótóeóxótó-ómóuótóeódó)ó;ó ópóaódódóiónógó:ó2ó4ópóxó;ó"ó>óNóeónóhóuómóaó ótóróoócóaó ódóeó óóóóólóeóoó óróeógóiósótóróaódóaó óaóiónódóaó.ó<ó/ótódó>ó<ó/ótóró>ó`ó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó óróeótóuórónó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó}ó
+ó
+ó ó ó ó ó ó ó ó ó ó ó ó ótóbóoódóyó.óiónónóeóróHóTóMóLó ó=ó ó'ó'ó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó óróeógóiósótóróoósó.ófóoóróEóaócóhó(óró ó=ó>ó ó{ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ócóoónósótó ótóró ó=ó ódóoócóuómóeónótó.ócóróeóaótóeóEólóeómóeónótó(ó'ótóró'ó)ó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ócóoónósótó ódóaótóaóFómótó ó=ó óró.ódóaótóaó ó?ó óró.ódóaótóaó.ósópólóiótó(ó'ó-ó'ó)ó.óróeóvóeórósóeó(ó)ó.ójóoóiónó(ó'ó/ó'ó)ó ó:ó ó'ó-ó-ó/ó-ó-ó/ó-ó-ó-ó-ó'ó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ótóró.óiónónóeóróHóTóMóLó ó=ó ó`ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó<ótódó>ó<ósótóróoónógó>ó$ó{ódóaótóaóFómótó}ó<ó/ósótóróoónógó>ó<ó/ótódó>ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó<ótódó>ó<ósópóaónó ósótóyólóeó=ó"óbóaócókógóróoóuónódó:ó#ó1óeó2ó9ó3óbó;ó ópóaódódóiónógó:ó4ópóxó ó8ópóxó;ó óbóoóródóeóró-óróaódóióuósó:ó6ópóxó;ó ófóoónótó-ówóeóiógóhótó:ó7ó0ó0ó;ó ócóoólóoóró:ó#ófó9ó7ó3ó1ó6ó;ó"ó>ó$ó{óró.ómóoótóoóPólóaócóaó}ó<ó/ósópóaónó>ó<ó/ótódó>ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó<ótódó>ó$ó{óró.ómóoótóoóMóoódóeólóoó}ó<ó/ótódó>ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó<ótódó>ó<ósótóróoónógó>ó$ó{ópóaórósóeóIónótó(óró.ókómó ó|ó|ó ó0ó)ó.ótóoóLóoócóaólóeóSótóróiónógó(ó'ópótó-óBóRó'ó)ó}ó ókómó<ó/ósótóróoónógó>ó<ó/ótódó>ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó<ótódó>ó<ósópóaónó ósótóyólóeó=ó"ócóoólóoóró:ó#ó1ó0óbó9ó8ó1ó;ó ófóoónótó-ówóeóiógóhótó:ó7ó0ó0ó;ó"ó>ó$ó{ópóaórósóeóIónótó(óró.ópóróoóxóKómó ó|ó|ó ó0ó)ó.ótóoóLóoócóaólóeóSótóróiónógó(ó'ópótó-óBóRó'ó)ó}ó ókómó<ó/ósópóaónó>ó<ó/ótódó>ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó<ótódó>ó$ó{óró.óoóóólóeóoó ó|ó|ó óró.óoóbósó ó|ó|ó ó'óMóoóbóióló ó2ó0óWó-ó5ó0ó'ó}ó<ó/ótódó>ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó<ótódó>ó$ó{óró.ómóeócóaónóiócóoó ó|ó|ó óró.óoófóiócóiónóaóNóoómóeó ó|ó|ó ó'óOófóiócóiónóaó óPóaórócóeóióróaó'ó}ó<ó/ótódó>ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó<ótódó>ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó<ósópóaónó ócólóaósósó=ó"ósótóaótóuósó-óbóaódógóeó ósótóaótóuósó-ólóióbóeóróaódóaó"ó>ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó<óió ócólóaósósó=ó"ófóaó-ósóoólóiódó ófóaó-ócóhóeócókó"ó>ó<ó/óió>ó óLóióbóeóróaódóaó
+ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó<ó/ósópóaónó>ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó<ó/ótódó>ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó`ó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ó ótóbóoódóyó.óaópópóeónódóCóhóiólódó(ótóró)ó;ó
+ó ó ó ó ó ó ó ó ó ó ó ó ó}ó)ó;ó
+ó ó ó ó ó ó ó ó ó}ó
+ó ó ó ó ó<ó/ósócóróiópótó>ó
+ó ó ó ó ó<ósócóróiópótó ósórócó=ó"ópówóaó-óhóeólópóeóró.ójósó"ó>ó<ó/ósócóróiópótó>ó
+ó<ó/óbóoódóyó>ó
+ó<ó/óhótómóló>ó
+ó
