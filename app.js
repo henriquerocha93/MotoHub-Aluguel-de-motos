@@ -3474,9 +3474,14 @@ function populateContratoSelects() {
         [...contratos].reverse().forEach(c => {
             const cli = clientes.find(x => x.id === c.clienteId) || { nome: 'Cliente' };
             const m = motos.find(x => x.id === c.motoId) || { placa: '-', modelo: 'Moto' };
-            govSelCont.innerHTML += `<option value="${c.id}">${cli.nome} — ${m.modelo} (${m.placa}) [${c.status.toUpperCase()}]</option>`;
+            const tagAssinado = (c.contratoAssinado && (c.contratoAssinado.temArquivo || c.contratoAssinado.dataUrl)) ? ' 📄 [ASSINADO]' : '';
+            govSelCont.innerHTML += `<option value="${c.id}">${cli.nome} — ${m.modelo} (${m.placa}) [${c.status.toUpperCase()}]${tagAssinado}</option>`;
         });
         govSelCont.value = currentVal;
+        if (typeof renderPainelContratoAssinadoGov === 'function') {
+            const selCont = contratos.find(x => x.id === currentVal);
+            renderPainelContratoAssinadoGov(selCont);
+        }
     }
 
     if (govSelCli) {
@@ -3837,6 +3842,7 @@ function carregarMotoNoEditorGov(motoId) {
 function carregarContratoNoEditorGov(contratoId) {
     if (!contratoId) {
         atualizarPreviewContratoGov();
+        if (typeof renderPainelContratoAssinadoGov === 'function') renderPainelContratoAssinadoGov(null);
         return;
     }
     const cont = getDb('crm_contratos').find(c => c.id === contratoId);
@@ -4333,6 +4339,612 @@ function imprimirContrato(contratoId) {
     carregarContratoNoEditorGov(contratoId);
     imprimirContratoPadraoPreenchido();
 }
+
+// =========================================================================
+// MÓDULO: ARMAZENAMENTO & GESTÃO DE CONTRATOS ASSINADOS (SISTEMA & NUVEM)
+// =========================================================================
+
+const cacheContratosAssinados = {};
+let contratoAssinadoAtivoModal = { id: null, nome: '', tipo: '', dataUrl: '' };
+
+const ContratoStorage = {
+    dbPromise: null,
+    getDb() {
+        if (!this.dbPromise) {
+            this.dbPromise = new Promise((resolve) => {
+                if (!window.indexedDB) {
+                    resolve(null);
+                    return;
+                }
+                const req = window.indexedDB.open('MotoHubContratosDB', 1);
+                req.onupgradeneeded = (e) => {
+                    const db = e.target.result;
+                    if (!db.objectStoreNames.contains('arquivos_assinados')) {
+                        db.createObjectStore('arquivos_assinados', { keyPath: 'contratoId' });
+                    }
+                };
+                req.onsuccess = (e) => resolve(e.target.result);
+                req.onerror = (e) => {
+                    console.warn('IndexedDB error:', e);
+                    resolve(null);
+                };
+            });
+        }
+        return this.dbPromise;
+    },
+    async salvar(contratoId, dataUrl, meta) {
+        try {
+            const db = await this.getDb();
+            if (!db) return false;
+            return new Promise((resolve) => {
+                const tx = db.transaction('arquivos_assinados', 'readwrite');
+                const store = tx.objectStore('arquivos_assinados');
+                store.put({
+                    contratoId: contratoId,
+                    dataUrl: dataUrl,
+                    nome: meta?.nome || 'contrato_assinado.pdf',
+                    tipo: meta?.tipo || 'application/pdf',
+                    tamanho: meta?.tamanho || 0,
+                    dataUpload: meta?.dataUpload || new Date().toISOString()
+                });
+                tx.oncomplete = () => resolve(true);
+                tx.onerror = () => resolve(false);
+            });
+        } catch (e) {
+            console.warn('Erro ao salvar no IndexedDB:', e);
+            return false;
+        }
+    },
+    async buscar(contratoId) {
+        try {
+            const db = await this.getDb();
+            if (!db) return null;
+            return new Promise((resolve) => {
+                const tx = db.transaction('arquivos_assinados', 'readonly');
+                const store = tx.objectStore('arquivos_assinados');
+                const req = store.get(contratoId);
+                req.onsuccess = (e) => resolve(e.target.result || null);
+                req.onerror = () => resolve(null);
+            });
+        } catch (e) {
+            console.warn('Erro ao buscar no IndexedDB:', e);
+            return null;
+        }
+    },
+    async remover(contratoId) {
+        try {
+            const db = await this.getDb();
+            if (!db) return false;
+            return new Promise((resolve) => {
+                const tx = db.transaction('arquivos_assinados', 'readwrite');
+                const store = tx.objectStore('arquivos_assinados');
+                store.delete(contratoId);
+                tx.oncomplete = () => resolve(true);
+                tx.onerror = () => resolve(false);
+            });
+        } catch (e) {
+            console.warn('Erro ao remover do IndexedDB:', e);
+            return false;
+        }
+    }
+};
+
+function formatarTamanhoArquivo(bytes) {
+    if (!bytes || isNaN(bytes)) return '0 KB';
+    if (bytes < 1024) return bytes + ' B';
+    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+    return (bytes / (1024 * 1024)).toFixed(2) + ' MB';
+}
+
+function formatarDataHoraBr(isoString) {
+    if (!isoString) return '';
+    try {
+        const d = new Date(isoString);
+        if (isNaN(d.getTime())) return isoString;
+        const dia = String(d.getDate()).padStart(2, '0');
+        const mes = String(d.getMonth() + 1).padStart(2, '0');
+        const ano = d.getFullYear();
+        const hor = String(d.getHours()).padStart(2, '0');
+        const min = String(d.getMinutes()).padStart(2, '0');
+        return `${dia}/${mes}/${ano} às ${hor}:${min}`;
+    } catch (e) {
+        return isoString;
+    }
+}
+
+function dataURLtoBlob(dataurl) {
+    const arr = dataurl.split(',');
+    const match = arr[0].match(/:(.*?);/);
+    const mime = match ? match[1] : 'application/pdf';
+    const bstr = atob(arr[1]);
+    let n = bstr.length;
+    const u8arr = new Uint8Array(n);
+    while (n--) {
+        u8arr[n] = bstr.charCodeAt(n);
+    }
+    return new Blob([u8arr], { type: mime });
+}
+
+function renderPainelContratoAssinadoGov(cont) {
+    const painel = document.getElementById('painel-status-contrato-assinado');
+    if (!painel) return;
+
+    if (!cont) {
+        painel.innerHTML = `
+            <div style="background:#f8fafc; border:1px dashed #cbd5e1; border-radius:10px; padding:12px 16px; color:#64748b; font-size:0.86rem; display:flex; align-items:center; gap:10px;">
+                <i class="fa-solid fa-arrow-up" style="color:#2563eb; font-size:1.1rem;"></i>
+                <span>Selecione um contrato existente acima para visualizar, baixar ou enviar a via assinada pelas partes.</span>
+            </div>
+        `;
+        return;
+    }
+
+    if (!cont.contratoAssinado || (!cont.contratoAssinado.temArquivo && !cont.contratoAssinado.dataUrl)) {
+        painel.innerHTML = `
+            <div style="background: linear-gradient(90deg, #f8fafc 0%, #f1f5f9 100%); border: 1.5px dashed #cbd5e1; border-radius: 10px; padding: 14px 18px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
+                <div style="display:flex; align-items:center; gap:12px;">
+                    <div style="width:38px; height:38px; border-radius:8px; background:#fef3c7; color:#d97706; display:flex; align-items:center; justify-content:center; font-size:1.2rem;">
+                        <i class="fa-solid fa-file-circle-exclamation"></i>
+                    </div>
+                    <div>
+                        <div style="font-weight:700; color:#334155; font-size:0.92rem;">Nenhum Contrato Assinado Anexado</div>
+                        <div style="font-size:0.8rem; color:#64748b; margin-top:2px;">Após colher a assinatura no Gov.br ou presencialmente, envie o PDF ou foto para ficar salvo na nuvem Firestore e no sistema.</div>
+                    </div>
+                </div>
+                <button type="button" class="btn btn-sm btn-primary" onclick="dispararUploadContratoAssinadoGov()" style="background:#2563eb; font-weight:600;">
+                    <i class="fa-solid fa-cloud-arrow-up"></i> Enviar Contrato Assinado (PDF/Foto)
+                </button>
+            </div>
+        `;
+        return;
+    }
+
+    const docMeta = cont.contratoAssinado;
+    painel.innerHTML = `
+        <div style="background: linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 100%); border: 1.5px solid #10b981; border-radius: 10px; padding: 14px 18px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; box-shadow: 0 2px 6px rgba(16,185,129,0.08);">
+            <div style="display:flex; align-items:center; gap:12px;">
+                <div style="width:42px; height:42px; border-radius:8px; background:#d1fae5; color:#059669; display:flex; align-items:center; justify-content:center; font-size:1.3rem;">
+                    <i class="fa-solid fa-file-circle-check"></i>
+                </div>
+                <div>
+                    <div style="font-weight:700; color:#065f46; font-size:0.95rem; display:flex; align-items:center; gap:8px;">
+                        <span>Contrato Assinado pelas Partes Salvo</span>
+                        <span class="badge" style="background:#059669; color:#fff; font-size:0.7rem; padding:2px 8px; border-radius:12px;">Nuvem & Sistema</span>
+                    </div>
+                    <div style="font-size:0.82rem; color:#047857; margin-top:3px;">
+                        <strong>${docMeta.nome || 'contrato_assinado.pdf'}</strong> • 
+                        <span>${formatarTamanhoArquivo(docMeta.tamanho)}</span> • 
+                        Enviado em <span>${formatarDataHoraBr(docMeta.dataUpload)}</span>
+                    </div>
+                </div>
+            </div>
+            <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                <button type="button" class="btn btn-sm" onclick="visualizarContratoAssinadoAtual()" style="background:#059669; color:#fff; font-weight:600;">
+                    <i class="fa-solid fa-eye"></i> Visualizar
+                </button>
+                <button type="button" class="btn btn-sm" onclick="baixarContratoAssinadoAtual()" style="background:#0284c7; color:#fff; font-weight:600;">
+                    <i class="fa-solid fa-download"></i> Baixar Contrato
+                </button>
+                <button type="button" class="btn btn-sm" onclick="dispararUploadContratoAssinadoGov()" style="background:#f59e0b; color:#fff;" title="Substituir arquivo por uma nova versão assinada">
+                    <i class="fa-solid fa-arrows-rotate"></i> Substituir
+                </button>
+                <button type="button" class="btn btn-sm" onclick="removerContratoAssinadoAtual()" style="background:#ef4444; color:#fff;" title="Excluir contrato assinado">
+                    <i class="fa-solid fa-trash"></i>
+                </button>
+            </div>
+        </div>
+    `;
+}
+
+function dispararUploadContratoAssinadoGov() {
+    const contId = document.getElementById('gov-select-contrato')?.value;
+    if (!contId) {
+        alert('⚠️ Por favor, selecione primeiro um Contrato no campo "Carregar Dados de um Contrato Existente" para vincular o documento assinado.');
+        document.getElementById('gov-select-contrato')?.focus();
+        return;
+    }
+    const input = document.getElementById('input-upload-contrato-assinado');
+    if (input) {
+        input.value = '';
+        input.click();
+    }
+}
+
+async function processarUploadContratoAssinado(event) {
+    const file = event.target.files && event.target.files[0];
+    if (!file) return;
+
+    const contId = document.getElementById('gov-select-contrato')?.value;
+    if (!contId) {
+        alert('⚠️ Selecione um contrato existente para anexar o documento.');
+        return;
+    }
+
+    const painel = document.getElementById('painel-status-contrato-assinado');
+    if (painel) {
+        painel.innerHTML = `
+            <div style="background:#eff6ff; border:1px solid #bfdbfe; border-radius:10px; padding:15px; color:#1e40af; text-align:center;">
+                <i class="fa-solid fa-circle-notch fa-spin" style="font-size:1.5rem; margin-right:8px;"></i>
+                <strong>Processando e enviando contrato assinado para a nuvem...</strong>
+            </div>
+        `;
+    }
+
+    try {
+        let dataUrl = '';
+        const isImage = file.type.startsWith('image/');
+
+        if (isImage) {
+            dataUrl = await comprimirImagemContrato(file);
+        } else {
+            dataUrl = await lerArquivoComoDataUrl(file);
+        }
+
+        await salvarContratoAssinadoNuvem(contId, file.name, file.type || 'application/pdf', file.size, dataUrl);
+    } catch (err) {
+        console.error('Erro ao processar contrato assinado:', err);
+        alert('❌ Erro ao enviar contrato assinado: ' + (err.message || err));
+        const cont = getDb('crm_contratos').find(c => c.id === contId);
+        renderPainelContratoAssinadoGov(cont);
+    }
+}
+
+function lerArquivoComoDataUrl(file) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = () => reject(new Error('Falha ao ler o arquivo selecionado.'));
+        reader.readAsDataURL(file);
+    });
+}
+
+function comprimirImagemContrato(file) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            const img = new Image();
+            img.onload = () => {
+                const maxDim = 1600;
+                let w = img.width;
+                let h = img.height;
+                if (w > maxDim || h > maxDim) {
+                    if (w > h) {
+                        h = Math.round((h * maxDim) / w);
+                        w = maxDim;
+                    } else {
+                        w = Math.round((w * maxDim) / h);
+                        h = maxDim;
+                    }
+                }
+                const canvas = document.createElement('canvas');
+                canvas.width = w;
+                canvas.height = h;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0, w, h);
+                resolve(canvas.toDataURL('image/jpeg', 0.85));
+            };
+            img.onerror = () => reject(new Error('Falha ao decodificar imagem.'));
+            img.src = e.target.result;
+        };
+        reader.onerror = () => reject(new Error('Falha ao carregar imagem.'));
+        reader.readAsDataURL(file);
+    });
+}
+
+async function salvarContratoAssinadoNuvem(contratoId, nome, tipo, tamanho, dataUrl) {
+    const meta = {
+        temArquivo: true,
+        nome: nome || 'contrato_assinado.pdf',
+        tipo: tipo || 'application/pdf',
+        tamanho: tamanho || Math.round(dataUrl.length * 0.75),
+        dataUpload: new Date().toISOString()
+    };
+
+    // 1. Salva no cache em memória
+    cacheContratosAssinados[contratoId] = dataUrl;
+
+    // 2. Salva no IndexedDB local para persistência ilimitada
+    await ContratoStorage.salvar(contratoId, dataUrl, meta);
+
+    // 3. Salva no Cloud Firestore
+    if (window.db) {
+        try {
+            const chunkSize = 500000; // 500 KB por bloco
+            if (dataUrl.length <= chunkSize) {
+                await window.db.collection('crm_contratos_arquivos').doc(contratoId).set({
+                    contratoId: contratoId,
+                    dataUrl: dataUrl,
+                    nome: meta.nome,
+                    tipo: meta.tipo,
+                    tamanho: meta.tamanho,
+                    dataUpload: meta.dataUpload,
+                    chunked: false
+                });
+            } else {
+                const totalChunks = Math.ceil(dataUrl.length / chunkSize);
+                const batch = window.db.batch();
+                for (let i = 0; i < totalChunks; i++) {
+                    const chunkStr = dataUrl.substring(i * chunkSize, (i + 1) * chunkSize);
+                    const chunkRef = window.db.collection('crm_contratos_arquivos').doc(`${contratoId}_chunk_${i}`);
+                    batch.set(chunkRef, { contratoId: contratoId, index: i, chunk: chunkStr });
+                }
+                const indexRef = window.db.collection('crm_contratos_arquivos').doc(contratoId);
+                batch.set(indexRef, {
+                    contratoId: contratoId,
+                    chunked: true,
+                    totalChunks: totalChunks,
+                    nome: meta.nome,
+                    tipo: meta.tipo,
+                    tamanho: meta.tamanho,
+                    dataUpload: meta.dataUpload
+                });
+                await batch.commit();
+            }
+            console.log('☁️ [Firestore]: Contrato assinado salvo com sucesso na nuvem!');
+        } catch (cloudErr) {
+            console.warn('Erro ao salvar no Firestore crm_contratos_arquivos:', cloudErr);
+        }
+    }
+
+    // 4. Atualiza o objeto do contrato no crm_contratos
+    let contratos = getDb('crm_contratos');
+    const cIdx = contratos.findIndex(c => c.id === contratoId);
+    if (cIdx > -1) {
+        // Se for pequeno (< 200KB), mantém inline também para acesso instantâneo em qualquer cliente
+        if (dataUrl.length < 250000) {
+            meta.dataUrl = dataUrl;
+        }
+        contratos[cIdx].contratoAssinado = meta;
+        saveDb('crm_contratos', contratos);
+    }
+
+    renderPainelContratoAssinadoGov(contratos[cIdx]);
+    if (typeof renderContratos === 'function') renderContratos();
+
+    alert('✅ Contrato assinado salvo com sucesso no sistema e na nuvem!');
+}
+
+async function obterDataUrlContratoAssinado(contratoId) {
+    if (!contratoId) return null;
+
+    // 1. Cache em memória
+    if (cacheContratosAssinados[contratoId]) {
+        return cacheContratosAssinados[contratoId];
+    }
+
+    // 2. Objeto do contrato em localStorage
+    const cont = getDb('crm_contratos').find(c => c.id === contratoId);
+    if (cont?.contratoAssinado?.dataUrl) {
+        cacheContratosAssinados[contratoId] = cont.contratoAssinado.dataUrl;
+        return cont.contratoAssinado.dataUrl;
+    }
+
+    // 3. IndexedDB local
+    const idbData = await ContratoStorage.buscar(contratoId);
+    if (idbData && idbData.dataUrl) {
+        cacheContratosAssinados[contratoId] = idbData.dataUrl;
+        return idbData.dataUrl;
+    }
+
+    // 4. Nuvem Firestore
+    if (window.db) {
+        try {
+            const docSnap = await window.db.collection('crm_contratos_arquivos').doc(contratoId).get();
+            if (docSnap.exists) {
+                const data = docSnap.data();
+                let fullDataUrl = '';
+                if (!data.chunked) {
+                    fullDataUrl = data.dataUrl || '';
+                } else {
+                    const total = data.totalChunks || 1;
+                    const chunkPromises = [];
+                    for (let i = 0; i < total; i++) {
+                        chunkPromises.push(window.db.collection('crm_contratos_arquivos').doc(`${contratoId}_chunk_${i}`).get());
+                    }
+                    const snaps = await Promise.all(chunkPromises);
+                    fullDataUrl = snaps.map(s => s.exists ? (s.data().chunk || '') : '').join('');
+                }
+                if (fullDataUrl) {
+                    cacheContratosAssinados[contratoId] = fullDataUrl;
+                    await ContratoStorage.salvar(contratoId, fullDataUrl, data);
+                    return fullDataUrl;
+                }
+            }
+        } catch (e) {
+            console.warn('Erro ao buscar arquivo do contrato no Firestore:', e);
+        }
+    }
+
+    return null;
+}
+
+async function visualizarContratoAssinado(contratoId) {
+    const cont = getDb('crm_contratos').find(c => c.id === contratoId);
+    if (!cont) return;
+
+    const cli = getDb('crm_clientes').find(x => x.id === cont.clienteId) || { nome: 'Cliente' };
+    const moto = getDb('crm_motos').find(x => x.id === cont.motoId) || { placa: '-', modelo: 'Moto' };
+
+    const tituloEl = document.getElementById('modal-assinado-titulo');
+    const subEl = document.getElementById('modal-assinado-subtitulo');
+    const loadingEl = document.getElementById('modal-assinado-loading');
+    const iframeEl = document.getElementById('modal-assinado-iframe');
+    const imgEl = document.getElementById('modal-assinado-img');
+    const infoEl = document.getElementById('modal-assinado-info-rodape');
+
+    if (tituloEl) tituloEl.innerText = `Contrato Assinado — ${cli.nome}`;
+    if (subEl) subEl.innerText = `${moto.modelo} (${moto.placa}) • ${cont.contratoAssinado?.nome || 'PDF'} (${formatarTamanhoArquivo(cont.contratoAssinado?.tamanho)})`;
+    if (infoEl) infoEl.innerHTML = `<i class="fa-solid fa-shield-halved" style="color:#10b981;"></i> Arquivo sincronizado com segurança na nuvem Google Cloud Firestore. Enviado em ${formatarDataHoraBr(cont.contratoAssinado?.dataUpload)}.`;
+
+    if (iframeEl) { iframeEl.style.display = 'none'; iframeEl.src = ''; }
+    if (imgEl) { imgEl.style.display = 'none'; imgEl.src = ''; }
+    if (loadingEl) loadingEl.style.display = 'block';
+
+    openModal('modal-visualizar-contrato-assinado');
+
+    const dataUrl = await obterDataUrlContratoAssinado(contratoId);
+
+    if (loadingEl) loadingEl.style.display = 'none';
+
+    if (!dataUrl) {
+        alert('⚠️ Não foi possível carregar o arquivo assinado da nuvem ou localmente.');
+        closeModal('modal-visualizar-contrato-assinado');
+        return;
+    }
+
+    contratoAssinadoAtivoModal = {
+        id: contratoId,
+        nome: cont.contratoAssinado?.nome || `CONTRATO_ASSINADO_${moto.placa}.pdf`,
+        tipo: cont.contratoAssinado?.tipo || 'application/pdf',
+        dataUrl: dataUrl
+    };
+
+    const isPdf = (cont.contratoAssinado?.tipo || '').includes('pdf') || dataUrl.startsWith('data:application/pdf') || (cont.contratoAssinado?.nome || '').toLowerCase().endsWith('.pdf');
+
+    if (isPdf) {
+        try {
+            const blob = dataURLtoBlob(dataUrl);
+            const blobUrl = URL.createObjectURL(blob);
+            if (iframeEl) {
+                iframeEl.src = blobUrl;
+                iframeEl.style.display = 'block';
+            }
+        } catch (e) {
+            if (iframeEl) {
+                iframeEl.src = dataUrl;
+                iframeEl.style.display = 'block';
+            }
+        }
+    } else {
+        if (imgEl) {
+            imgEl.src = dataUrl;
+            imgEl.style.display = 'block';
+        }
+    }
+}
+
+function visualizarContratoAssinadoAtual() {
+    const contId = document.getElementById('gov-select-contrato')?.value;
+    if (!contId) return;
+    visualizarContratoAssinado(contId);
+}
+
+function visualizarContratoAssinadoPorId(contratoId) {
+    visualizarContratoAssinado(contratoId);
+}
+
+async function baixarContratoAssinado(contratoId) {
+    const cont = getDb('crm_contratos').find(c => c.id === contratoId);
+    if (!cont) return;
+
+    const dataUrl = await obterDataUrlContratoAssinado(contratoId);
+    if (!dataUrl) {
+        alert('⚠️ O arquivo assinado não foi encontrado na nuvem para este contrato.');
+        return;
+    }
+
+    const nome = cont.contratoAssinado?.nome || 'contrato_assinado.pdf';
+    try {
+        const blob = dataURLtoBlob(dataUrl);
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = nome;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        setTimeout(() => URL.revokeObjectURL(url), 10000);
+    } catch (e) {
+        const a = document.createElement('a');
+        a.href = dataUrl;
+        a.download = nome;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+    }
+}
+
+function baixarContratoAssinadoAtual() {
+    const contId = document.getElementById('gov-select-contrato')?.value;
+    if (!contId) return;
+    baixarContratoAssinado(contId);
+}
+
+function baixarArquivoContratoModal() {
+    if (!contratoAssinadoAtivoModal.dataUrl) return;
+    try {
+        const blob = dataURLtoBlob(contratoAssinadoAtivoModal.dataUrl);
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = contratoAssinadoAtivoModal.nome || 'contrato_assinado.pdf';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        setTimeout(() => URL.revokeObjectURL(url), 10000);
+    } catch (e) {
+        const a = document.createElement('a');
+        a.href = contratoAssinadoAtivoModal.dataUrl;
+        a.download = contratoAssinadoAtivoModal.nome || 'contrato_assinado.pdf';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+    }
+}
+
+function abrirArquivoContratoNovaAbaModal() {
+    if (!contratoAssinadoAtivoModal.dataUrl) return;
+    try {
+        const blob = dataURLtoBlob(contratoAssinadoAtivoModal.dataUrl);
+        const url = URL.createObjectURL(blob);
+        window.open(url, '_blank');
+    } catch (e) {
+        window.open(contratoAssinadoAtivoModal.dataUrl, '_blank');
+    }
+}
+
+async function removerContratoAssinado(contratoId) {
+    const cont = getDb('crm_contratos').find(c => c.id === contratoId);
+    if (!cont) return;
+
+    if (!confirm('Deseja realmente remover o contrato assinado deste registro? O documento será excluído do sistema e da nuvem.')) {
+        return;
+    }
+
+    delete cacheContratosAssinados[contratoId];
+    await ContratoStorage.remover(contratoId);
+
+    if (window.db) {
+        try {
+            await window.db.collection('crm_contratos_arquivos').doc(contratoId).delete();
+            // Também tenta limpar chunks se houver
+            for (let i = 0; i < 20; i++) {
+                window.db.collection('crm_contratos_arquivos').doc(`${contratoId}_chunk_${i}`).delete().catch(() => {});
+            }
+        } catch (e) {
+            console.warn('Erro ao excluir do Firestore:', e);
+        }
+    }
+
+    let contratos = getDb('crm_contratos');
+    const cIdx = contratos.findIndex(c => c.id === contratoId);
+    if (cIdx > -1) {
+        delete contratos[cIdx].contratoAssinado;
+        saveDb('crm_contratos', contratos);
+    }
+
+    renderPainelContratoAssinadoGov(contratos[cIdx]);
+    if (typeof renderContratos === 'function') renderContratos();
+
+    alert('🗑️ Contrato assinado removido com sucesso.');
+}
+
+function removerContratoAssinadoAtual() {
+    const contId = document.getElementById('gov-select-contrato')?.value;
+    if (!contId) return;
+    removerContratoAssinado(contId);
+}
+
 
 // ==========================================
 // SEARCH LISTENERS & PERFIL ADMIN

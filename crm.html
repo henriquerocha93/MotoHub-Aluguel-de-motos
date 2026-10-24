@@ -797,6 +797,10 @@
                                 <a href="https://assinador.iti.br/" target="_blank" class="btn btn-secondary btn-sm" style="text-decoration:none; background:#059669; color:#fff;">
                                     <i class="fa-solid fa-stamp"></i> Abrir Assinador Gov.br
                                 </a>
+                                <button type="button" class="btn btn-sm" onclick="dispararUploadContratoAssinadoGov()" style="background:#0284c7; color:#fff;" title="Enviar contrato assinado (PDF ou Foto) para ficar salvo no sistema e na nuvem">
+                                    <i class="fa-solid fa-cloud-arrow-up"></i> Enviar Contrato Assinado
+                                </button>
+                                <input type="file" id="input-upload-contrato-assinado" accept="application/pdf,image/png,image/jpeg,image/webp" style="display:none;" onchange="processarUploadContratoAssinado(event)">
                             </div>
                         </div>
 
@@ -828,6 +832,11 @@
                                         </button>
                                     </div>
                                 </div>
+                            </div>
+
+                            <!-- Barra / Painel do Contrato Assinado Salvo na Nuvem -->
+                            <div id="painel-status-contrato-assinado" style="margin-bottom:20px;">
+                                <!-- Preenchido dinamicamente via JS -->
                             </div>
 
                             <!-- Abas de Preenchimento dos Dados do Contrato -->
@@ -1128,6 +1137,45 @@
     </div>
 
     <!-- ===== MODALS ===== -->
+
+    <!-- Modal Visualizador de Contrato Assinado -->
+    <div class="modal" id="modal-visualizar-contrato-assinado">
+        <div class="modal-content" style="max-width:960px; width:95%; max-height:92vh; display:flex; flex-direction:column; padding:0; overflow:hidden; border-radius:12px; box-shadow:0 20px 40px rgba(0,0,0,0.4);">
+            <div class="modal-header" style="padding:15px 20px; background:#1e293b; color:#fff; display:flex; justify-content:space-between; align-items:center;">
+                <div style="display:flex; align-items:center; gap:12px;">
+                    <div style="width:38px; height:38px; border-radius:8px; background:rgba(16,185,129,0.15); color:#10b981; display:flex; align-items:center; justify-content:center; font-size:1.2rem;">
+                        <i class="fa-solid fa-file-circle-check"></i>
+                    </div>
+                    <div>
+                        <h3 id="modal-assinado-titulo" style="font-size:1.05rem; margin:0; color:#fff; font-weight:700;">Contrato Assinado pelas Partes</h3>
+                        <span id="modal-assinado-subtitulo" style="font-size:0.78rem; color:#94a3b8;">Documento oficial sincronizado na nuvem Firestore e no sistema</span>
+                    </div>
+                </div>
+                <div style="display:flex; align-items:center; gap:8px;">
+                    <button type="button" class="btn btn-sm" onclick="baixarArquivoContratoModal()" style="background:#0284c7; color:#fff; font-weight:600;">
+                        <i class="fa-solid fa-download"></i> Baixar Arquivo
+                    </button>
+                    <button type="button" class="btn btn-sm" onclick="abrirArquivoContratoNovaAbaModal()" style="background:#334155; color:#fff;">
+                        <i class="fa-solid fa-arrow-up-right-from-square"></i> Nova Aba
+                    </button>
+                    <span class="close-btn" style="color:#fff; font-size:1.6rem; line-height:1; cursor:pointer; margin-left:8px;" onclick="closeModal('modal-visualizar-contrato-assinado')">&times;</span>
+                </div>
+            </div>
+            <div class="modal-body" style="padding:0; flex:1; overflow:auto; background:#0f172a; display:flex; justify-content:center; align-items:center; min-height:500px; position:relative;">
+                <div id="modal-assinado-loading" style="display:none; color:#fff; text-align:center; padding:40px;">
+                    <i class="fa-solid fa-circle-notch fa-spin" style="font-size:2.5rem; color:#38bdf8; margin-bottom:12px;"></i>
+                    <div style="font-size:1rem; font-weight:600;">Carregando documento da nuvem...</div>
+                    <div style="font-size:0.8rem; color:#94a3b8; margin-top:4px;">Buscando arquivo original seguro</div>
+                </div>
+                <iframe id="modal-assinado-iframe" style="width:100%; height:75vh; border:none; display:none; background:#fff;"></iframe>
+                <img id="modal-assinado-img" style="max-width:100%; max-height:75vh; object-fit:contain; display:none; padding:15px; border-radius:8px;">
+            </div>
+            <div style="padding:12px 20px; background:#f8fafc; border-top:1px solid #e2e8f0; display:flex; justify-content:space-between; align-items:center; font-size:0.82rem; color:#64748b;">
+                <span id="modal-assinado-info-rodape"><i class="fa-solid fa-shield-halved" style="color:#10b981;"></i> Arquivo seguro salvo na nuvem Google Cloud Firestore e no armazenamento local.</span>
+                <button type="button" class="btn btn-sm btn-secondary" onclick="closeModal('modal-visualizar-contrato-assinado')">Fechar</button>
+            </div>
+        </div>
+    </div>
 
     <!-- Modal Cliente -->
     <div class="modal" id="modal-cliente">
