@@ -6659,6 +6659,12 @@ function silenciarSireneEmergencia(alertaId) {
     if (modal) modal.remove();
 
     try {
+        if (window.db && alertaId) {
+            window.db.collection('alertas_emergencia').doc(alertaId).update({ status: 'ATENDIDO' }).catch(() => {});
+        }
+    } catch(e) {}
+
+    try {
         fetch('https://facilita-whatsapp-bot.onrender.com/api/emergencies/dismiss', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -6730,6 +6736,7 @@ function exibirModalEmergenciaRoubo(alertData) {
 }
 
 function iniciarMonitoramentoEmergenciasWhatsApp() {
+    // 1. Polling contínuo via servidor do bot no Render
     setInterval(async () => {
         try {
             const res = await fetch('https://facilita-whatsapp-bot.onrender.com/api/emergencies');
@@ -6746,6 +6753,26 @@ function iniciarMonitoramentoEmergenciasWhatsApp() {
             }
         } catch (e) {}
     }, 3000);
+
+    // 2. Escuta em tempo real no Firestore (dispara simultaneamente em todos os celulares e computadores)
+    try {
+        const checkDb = setInterval(() => {
+            if (window.db) {
+                clearInterval(checkDb);
+                window.db.collection('alertas_emergencia').onSnapshot((snapshot) => {
+                    snapshot.docChanges().forEach((change) => {
+                        if (change.type === 'added') {
+                            const alertData = change.doc.data();
+                            if (alertData && alertData.status === 'PENDENTE' && !_alertasProcessadosIds.has(alertData.id)) {
+                                _alertasProcessadosIds.add(alertData.id);
+                                iniciarSireneEmergencia(alertData);
+                            }
+                        }
+                    });
+                }, (err) => console.warn('Firestore emergências listener aviso:', err));
+            }
+        }, 1000);
+    } catch (e) {}
 }
 
 iniciarMonitoramentoEmergenciasWhatsApp();
