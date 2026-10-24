@@ -6840,10 +6840,7 @@ document.getElementById('form-oficina')?.addEventListener('submit', function(e) 
             }).catch(err => {
                 console.error('⚠️ [Oficina Cloud Sync Error]:', err);
                 if (err.code === 'permission-denied' || String(err).includes('permission')) {
-                    alert('⚠️ ATENÇÃO - SINCRONIZAÇÃO EM NUVEM:
-A oficina parceira foi salva neste computador, mas a nuvem Firebase recusou a gravação porque as Regras de Segurança expiraram no Console Firebase.
-
-Para que a oficina sincronize automaticamente em celulares e outros computadores de vez, acesse console.firebase.google.com > motohub-9e839 > Firestore Database > Regras e clique em "Publicar" com "allow read, write: if true;".');
+                    alert(`⚠️ ATENÇÃO - SINCRONIZAÇÃO EM NUVEM:\nA oficina parceira foi salva neste computador, mas a nuvem Firebase recusou a gravação porque as Regras de Segurança expiraram no Console Firebase.\n\nPara que a oficina sincronize automaticamente em celulares e outros computadores de vez, acesse console.firebase.google.com > motohub-9e839 > Firestore Database > Regras e clique em "Publicar" com "allow read, write: if true;".`);
                 }
             });
         }
