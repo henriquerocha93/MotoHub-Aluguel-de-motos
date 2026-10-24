@@ -1,4 +1,4 @@
-const CACHE_NAME = 'facilitamoto-pwa-v20261023-10';
+const CACHE_NAME = 'facilitamoto-pwa-v20261024-11';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
@@ -60,5 +60,22 @@ self.addEventListener('fetch', (event) => {
       .catch(() => {
         return caches.match(event.request);
       })
+  );
+});
+
+// Manipula o clique nas notificações nativas em Mobile e Desktop
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  event.waitUntil(
+    clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
+      for (const client of clientList) {
+        if (client.url && 'focus' in client) {
+          return client.focus();
+        }
+      }
+      if (clients.openWindow) {
+        return clients.openWindow('./crm.html');
+      }
+    })
   );
 });

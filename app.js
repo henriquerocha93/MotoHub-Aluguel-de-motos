@@ -6344,24 +6344,74 @@ function mostrarToastNotificacao({ titulo, mensagem, cor = '#0284c7', icone = 'f
     }, duracao);
 }
 
-function ativarNotificacoesNavegador() {
+
+// =====================================================================
+// DISPARADOR UNIVERSAL DE NOTIFICAÇÕES NATIVAS (MOBILE PWA + DESKTOP)
+// Suporta Service Worker showNotification (obrigatório p/ Android/iOS) e desktop
+// =====================================================================
+async function dispararNotificacaoNativa(titulo, opcoes = {}) {
+    const opts = Object.assign({
+        icon: 'icon-192.png',
+        badge: 'favicon.png',
+        vibrate: [300, 100, 300, 100, 400],
+        tag: 'facilita-alerta-' + Date.now(),
+        renotify: true,
+        requireInteraction: true
+    }, opcoes);
+
+    // 1. Tenta via ServiceWorkerRegistration (Obrigatório para Android Chrome, PWA Mobile e Samsung Internet)
+    if ('serviceWorker' in navigator) {
+        try {
+            const reg = await navigator.serviceWorker.ready;
+            if (reg && typeof reg.showNotification === 'function') {
+                await reg.showNotification(titulo, opts);
+                console.log('📱 [Notificação Nativa]: Disparada com sucesso via Service Worker!');
+                return true;
+            }
+        } catch (e) {
+            console.warn('[SW Notification Warning]:', e);
+        }
+    }
+
+    // 2. Fallback para new Notification (Desktop Chrome / Edge / Firefox)
+    if ('Notification' in window && Notification.permission === 'granted') {
+        try {
+            new Notification(titulo, opts);
+            console.log('💻 [Notificação Nativa]: Disparada com sucesso via Window Notification!');
+            return true;
+        } catch (e) {
+            console.warn('[Window Notification Warning]:', e);
+        }
+    }
+    return false;
+}
+
+async function ativarNotificacoesNavegador() {
+    desbloquearAudioNavegador();
+
     if (!('Notification' in window)) {
-        alert('Este navegador não suporta notificações nativas, mas os alertas visuais no painel já estão ativos!');
+        alert('Este aparelho suporta os alertas sonoros e visuais diretamente no painel!');
         return;
     }
-    Notification.requestPermission().then(perm => {
+
+    try {
+        const perm = await Notification.requestPermission();
         if (perm === 'granted') {
-            new Notification('🔔 FACILITA MOTO — Automação 08h / 18h Ativada!', {
-                body: 'Notificações de cobrança semanal PIX Mercado Pago (08:00h), bloqueio automático (18:00h) e troca de óleo (1.000/1.100 km) ativas!'
+            await dispararNotificacaoNativa('🔔 FACILITA MOTO - Alertas Ativados!', {
+                body: 'Notificações de cobrança, bloqueio de motor e sirene de roubo 100% ativas neste aparelho!'
             });
             mostrarToastNotificacao({
-                titulo: '🔔 Alertas Ativados no Aparelho',
-                mensagem: 'As notificações automáticas de pagamentos PIX (08:00h/18:00h), óleo (1.000 km) e bloqueio (1.100 km) estão ativas.',
+                titulo: '🔔 Notificações Ativadas com Sucesso!',
+                mensagem: 'Seu aparelho receberá alertas nativos e sonoros de pagamentos e emergências.',
                 cor: '#10b981',
                 icone: 'fa-bell'
             });
+        } else {
+            alert('Para receber alertas e sirene no celular ou computador, por favor permita as notificações no ícone de cadeado do seu navegador!');
         }
-    });
+    } catch (e) {
+        console.warn('Erro ao ativar notificações:', e);
+    }
 }
 
 function dispararAlertasAutomaticosSessao() {
@@ -6559,22 +6609,37 @@ function iniciarSireneEmergencia(alertData) {
         document.title = document.title === '🚨🚨 ROUBO / FURTO! 🚨🚨' ? '⚠️ ATENÇÃO CONDUTOR! ⚠️' : '🚨🚨 ROUBO / FURTO! 🚨🚨';
     }, 600);
 
-    if ('Notification' in window && Notification.permission === 'granted') {
-        try {
-            new Notification('🚨 ALERTA CRÍTICO: ROUBO / FURTO!', {
-                body: 'Condutor: ' + (alertData.clienteNome || 'Cliente') + ' - ' + (alertData.clienteTelefone || '') + '\nMensagem: ' + (alertData.mensagem || ''),
-                requireInteraction: true
-            });
-        } catch(e) {}
-    } else if ('Notification' in window && Notification.permission !== 'denied') {
-        Notification.requestPermission();
+    // Vibração contínua de alarme no Mobile
+    if (navigator.vibrate) {
+        navigator.vibrate([800, 200, 800, 200, 800, 200, 1000]);
+        if (window._vibrateAlarmInterval) clearInterval(window._vibrateAlarmInterval);
+        window._vibrateAlarmInterval = setInterval(() => {
+            if (_alarmeEmergenciaAtivo && navigator.vibrate) {
+                navigator.vibrate([800, 200, 800, 200, 800, 200, 1000]);
+            } else {
+                clearInterval(window._vibrateAlarmInterval);
+            }
+        }, 3400);
     }
+
+    // Notificação nativa via Service Worker (Mobile PWA) e Desktop
+    dispararNotificacaoNativa('🚨 ALERTA CRÍTICO: ROUBO / FURTO!', {
+        body: 'Condutor: ' + (alertData.clienteNome || 'Cliente') + ' - ' + (alertData.clienteTelefone || '') + '\n' + (alertData.mensagem || 'Canal de Roubo acionado!'),
+        requireInteraction: true,
+        tag: 'alerta-roubo-furto',
+        renotify: true
+    });
 
     exibirModalEmergenciaRoubo(alertData);
 }
 
 function silenciarSireneEmergencia(alertaId) {
     _alarmeEmergenciaAtivo = false;
+    if (window._vibrateAlarmInterval) {
+        clearInterval(window._vibrateAlarmInterval);
+        window._vibrateAlarmInterval = null;
+    }
+    if (navigator.vibrate) navigator.vibrate(0);
     if (_alarmeEmergenciaInterval) {
         clearInterval(_alarmeEmergenciaInterval);
         _alarmeEmergenciaInterval = null;
