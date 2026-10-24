@@ -784,13 +784,38 @@
 
         function verificarAutenticacao() {
             try {
-                const s = JSON.parse(localStorage.getItem('crm_session_oficina')) || JSON.parse(localStorage.getItem('crm_session'));
+                let s = JSON.parse(localStorage.getItem('crm_session_oficina')) || JSON.parse(localStorage.getItem('crm_session'));
+                if (!s) {
+                    const manter = localStorage.getItem('crm_manter_conectado_oficina') === 'true' || localStorage.getItem('crm_manter_conectado') === 'true';
+                    const saved = JSON.parse(localStorage.getItem('crm_saved_login_oficina') || localStorage.getItem('crm_saved_login') || 'null');
+                    if (manter && saved && saved.login) {
+                        const admins = getDb('crm_admins');
+                        const user = admins.find(u => (u.email || '').toLowerCase() === (saved.login || '').toLowerCase() && (u.role === 'oficina' || u.role === 'admin'));
+                        if (user) {
+                            s = {
+                                id: user.id,
+                                nome: user.nome,
+                                oficinaNome: user.nome,
+                                email: user.email,
+                                role: user.role
+                            };
+                            localStorage.setItem('crm_session_oficina', JSON.stringify(s));
+                        }
+                    }
+                }
                 if (s && (s.role === 'oficina' || s.role === 'admin')) {
                     sessaoOficina = s;
                     exibirPainelOficina();
                     return;
                 }
             } catch(e) {}
+            const saved = JSON.parse(localStorage.getItem('crm_saved_login_oficina') || localStorage.getItem('crm_saved_login') || 'null');
+            if (saved && saved.login) {
+                const emInput = document.getElementById('login-email');
+                const pwInput = document.getElementById('login-senha');
+                if (emInput) emInput.value = saved.login;
+                if (pwInput && saved.senha) pwInput.value = saved.senha;
+            }
             exibirTelaLogin();
         }
 
@@ -870,6 +895,14 @@
                     role: user.role
                 };
                 localStorage.setItem('crm_session_oficina', JSON.stringify(sessaoOficina));
+                const lembrar = document.getElementById('login-lembrar')?.checked;
+                if (lembrar) {
+                    localStorage.setItem('crm_saved_login_oficina', JSON.stringify({ login: email, senha: senha }));
+                    localStorage.setItem('crm_manter_conectado_oficina', 'true');
+                } else {
+                    localStorage.removeItem('crm_saved_login_oficina');
+                    localStorage.removeItem('crm_manter_conectado_oficina');
+                }
                 document.getElementById('login-error').style.display = 'none';
                 exibirPainelOficina();
             } else {
@@ -879,6 +912,7 @@
 
         function fazerLogoutOficina() {
             localStorage.removeItem('crm_session_oficina');
+            localStorage.removeItem('crm_manter_conectado_oficina');
             sessaoOficina = null;
             exibirTelaLogin();
         }
@@ -1202,6 +1236,6 @@
             });
         }
     </script>
-    <script src="pwa-helper.js?v=20261023_mobile_sync_v9"></script>
+    <script src="pwa-helper.js?v=20261023_mobile_sync_v10"></script>
 </body>
 </html>

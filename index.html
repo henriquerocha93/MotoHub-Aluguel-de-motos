@@ -2226,8 +2226,16 @@
         // SISTEMA DE LOGIN
         // =======================
         function abrirLoginAdmin() {
-            document.getElementById('form-login').reset();
             document.getElementById('login-error').style.display = 'none';
+            const saved = JSON.parse(localStorage.getItem('crm_saved_login') || 'null');
+            const chk = document.getElementById('login-lembrar');
+            if (chk) chk.checked = true;
+            if (saved && saved.login) {
+                const emailInp = document.getElementById('login-email');
+                const senhaInp = document.getElementById('login-senha');
+                if (emailInp) emailInp.value = saved.login;
+                if (senhaInp && saved.senha) senhaInp.value = saved.senha;
+            }
             document.getElementById('modal-login').classList.add('show');
         }
 
@@ -2282,7 +2290,30 @@
 
         // Iniciar
         carregarVitrine();
+
+        // Auto-login persistente se "Manter conectado" estiver ativo
+        (function verificarLoginPersistente() {
+            if (window.location.search.includes('logout=true')) {
+                localStorage.removeItem('crm_session');
+                localStorage.removeItem('crm_manter_conectado');
+                return;
+            }
+            const manter = localStorage.getItem('crm_manter_conectado') === 'true';
+            let session = null;
+            try {
+                session = JSON.parse(localStorage.getItem('crm_session'));
+            } catch(e) {}
+
+            if (manter && session && session.email) {
+                console.log('🔓 Sessão persistente ativa! Redirecionando para o painel...');
+                if (session.role === 'oficina') {
+                    window.location.replace('oficina.html');
+                } else {
+                    window.location.replace('crm.html');
+                }
+            }
+        })();
     </script>
-    <script src="pwa-helper.js?v=20261023_mobile_sync_v9"></script>
+    <script src="pwa-helper.js?v=20261023_mobile_sync_v10"></script>
 </body>
 </html>

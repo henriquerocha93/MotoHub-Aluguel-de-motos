@@ -290,7 +290,28 @@ if (!temHenrique) {
 // AUTH GUARD
 // ==========================================
 if (window.location.href.includes('crm.html') || window.location.pathname.endsWith('crm.html')) {
-    const sessionUrl = localStorage.getItem('crm_session');
+    let sessionUrl = localStorage.getItem('crm_session');
+
+    // Se a sessão expirou ou não está no localStorage mas o usuário marcou "Manter conectado"
+    if (!sessionUrl) {
+        const manter = localStorage.getItem('crm_manter_conectado') === 'true';
+        const saved = JSON.parse(localStorage.getItem('crm_saved_login') || 'null');
+        if (manter && saved && saved.login) {
+            const admins = JSON.parse(localStorage.getItem('crm_admins') || '[]');
+            const user = admins.find(a => (a.email || '').toLowerCase() === (saved.login || '').toLowerCase())
+                         || { id: '7l5tkc3i0', nome: 'Henrique Rocha', email: saved.login, role: 'admin' };
+            const restored = {
+                id: user.id,
+                nome: user.nome || 'Henrique Rocha',
+                email: user.email,
+                role: user.role || 'admin',
+                foto: user.foto || ''
+            };
+            sessionUrl = JSON.stringify(restored);
+            localStorage.setItem('crm_session', sessionUrl);
+        }
+    }
+
     if (!sessionUrl) {
         window.location.href = 'index.html';
     } else {
@@ -316,7 +337,8 @@ if (window.location.href.includes('crm.html') || window.location.pathname.endsWi
 
 function fazerLogout() {
     localStorage.removeItem('crm_session');
-    window.location.href = 'index.html';
+    localStorage.removeItem('crm_manter_conectado');
+    window.location.href = 'index.html?logout=true';
 }
 
 // ==========================================
