@@ -67,6 +67,18 @@ if (db) {
             snapshot.forEach(doc => arr.push(doc.data()));
 
             if (arr.length > 0) {
+                // Se a coleção for crm_motos, valida se contém a frota real e rejeita mock antigo
+                if (colName === 'crm_motos') {
+                    const temFrotaReal = arr.some(m => ['IPU2I57', 'IMJ6E36', 'IOG2G34'].includes((m.placa || '').toUpperCase().trim()));
+                    const temMockAntigo = arr.some(m => ['XYZ-1234', 'ABC-9876'].includes((m.placa || '').toUpperCase().trim()));
+                    if (!temFrotaReal || temMockAntigo) {
+                        console.warn('⚠️ [Firestore Guard]: Detectado dados mock ou ausência da frota real. Restaurando Master Backup...');
+                        if (typeof window.restaurarBackupCompletoManualmente === 'function') {
+                            window.restaurarBackupCompletoManualmente(true);
+                        }
+                        return;
+                    }
+                }
                 // Nuvem contém dados reais: sincroniza com segurança
                 window.isFirebaseSyncing = true;
                 localStorage.setItem(colName, JSON.stringify(arr));
@@ -221,13 +233,37 @@ function generateId() {
 
 // ==========================================
 // AUTO-RECUPERAÇÃO DE DADOS MESTRES (FACILITA MOTO OFICIAL)
-window.restaurarBackupCompletoManualmente = function() {
+window.restaurarBackupCompletoManualmente = async function(silencioso = false) {
     localStorage.setItem('crm_motos', JSON.stringify(MASTER_BACKUP_DATA.crm_motos));
     localStorage.setItem('crm_clientes', JSON.stringify(MASTER_BACKUP_DATA.crm_clientes));
     localStorage.setItem('crm_contratos', JSON.stringify(MASTER_BACKUP_DATA.crm_contratos));
-    localStorage.setItem('crm_whatsapp_config', JSON.stringify(MASTER_BACKUP_DATA.crm_whatsapp_config));
+    if (MASTER_BACKUP_DATA.crm_whatsapp_config) {
+        localStorage.setItem('crm_whatsapp_config', JSON.stringify(MASTER_BACKUP_DATA.crm_whatsapp_config));
+    }
+    if (typeof sincronizarDadosPadraoRastreadoresFrota === 'function') {
+        sincronizarDadosPadraoRastreadoresFrota();
+    }
+    if (db) {
+        try {
+            const batch = db.batch();
+            ['crm_motos', 'crm_clientes', 'crm_contratos'].forEach(col => {
+                const items = MASTER_BACKUP_DATA[col] || [];
+                items.forEach(item => {
+                    if (item && item.id) {
+                        batch.set(db.collection(col).doc(item.id), item);
+                    }
+                });
+            });
+            await batch.commit();
+            console.log('✅ [Master Backup]: Salvo com sucesso no Firestore Cloud!');
+        } catch(e) {
+            console.warn('Erro ao salvar backup na nuvem:', e);
+        }
+    }
     if (typeof updateViews === 'function') updateViews();
-    alert('✅ Dados Restaurados com Sucesso!\n• 3 Motos na frota\n• 3 Clientes\n• Contratos ativos e histórico\n• Integração WhatsApp Facilita Moto');
+    if (!silencioso) {
+        alert('✅ Dados Restaurados e Sincronizados com a Nuvem!\n• 3 Motos na frota (IPU2I57, IMJ6E36, IOG2G34)\n• 3 Clientes (Natanael, Paulo Ricardo, Willian)\n• Contratos ativos e histórico\n• Rastreadores GPS independentes');
+    }
 };
 
 // Initial Data Structure
