@@ -228,6 +228,13 @@
         "statusDetail": "pending_waiting_transfer",
         "provider": "mercadopago_official",
         "createdAt": "2026-10-23T00:35:19.756Z"
+      },
+      "contratoAssinado": {
+        "temArquivo": true,
+        "nome": "CONTRATO_LOCACAO_MOTOCICLETA_Paulo_Ricardo_IPU2I57_assinado.pdf",
+        "tipo": "application/pdf",
+        "tamanho": 6468507,
+        "dataUpload": "2026-10-24T22:47:14.314Z"
       }
     },
     {
@@ -258,6 +265,13 @@
         "statusDetail": "pending_waiting_transfer",
         "provider": "mercadopago_official",
         "createdAt": "2026-10-23T00:35:19.372Z"
+      },
+      "contratoAssinado": {
+        "temArquivo": true,
+        "nome": "natanael assinado.pdf",
+        "tipo": "application/pdf",
+        "tamanho": 6446376,
+        "dataUpload": "2026-10-24T22:59:06.423Z"
       }
     }
   ],

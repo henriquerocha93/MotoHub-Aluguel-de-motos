@@ -3806,7 +3806,7 @@ function abrirContratoNoEditorGov(contratoId) {
     }, 120);
 }
 
-function carregarClienteNoEditorGov(clienteId) {
+function carregarClienteNoEditorGov(clienteId, evitarLoopContrato) {
     const cli = getDb('crm_clientes').find(c => c.id === clienteId);
     if (!cli) return;
     document.getElementById('gov-locatario-nome').value = cli.nome || '';
@@ -3818,6 +3818,27 @@ function carregarClienteNoEditorGov(clienteId) {
     document.getElementById('gov-locatario-cnh-cat').value = cli.cnhCat || 'A';
     document.getElementById('gov-locatario-cnh-val').value = cli.cnhValidade ? formatarDataBr(cli.cnhValidade) : '';
     atualizarPreviewContratoGov();
+
+    // Sincroniza imediatamente o contrato do cliente selecionado e seu contrato assinado
+    if (!evitarLoopContrato) {
+        const contratos = getDb('crm_contratos');
+        const cont = contratos.find(c => c.clienteId === clienteId && c.status === 'ativo') 
+                  || [...contratos].reverse().find(c => c.clienteId === clienteId);
+        if (cont) {
+            const selCont = document.getElementById('gov-select-contrato');
+            if (selCont) selCont.value = cont.id;
+            const selMoto = document.getElementById('gov-select-moto');
+            if (selMoto && cont.motoId) selMoto.value = cont.motoId;
+            carregarMotoNoEditorGov(cont.motoId);
+            if (typeof renderPainelContratoAssinadoGov === 'function') {
+                renderPainelContratoAssinadoGov(cont);
+            }
+        } else {
+            if (typeof renderPainelContratoAssinadoGov === 'function') {
+                renderPainelContratoAssinadoGov(null);
+            }
+        }
+    }
 }
 
 function carregarMotoNoEditorGov(motoId) {
@@ -3851,7 +3872,7 @@ function carregarContratoNoEditorGov(contratoId) {
     if (document.getElementById('gov-select-cliente')) document.getElementById('gov-select-cliente').value = cont.clienteId || '';
     if (document.getElementById('gov-select-moto')) document.getElementById('gov-select-moto').value = cont.motoId || '';
 
-    carregarClienteNoEditorGov(cont.clienteId);
+    carregarClienteNoEditorGov(cont.clienteId, true);
     carregarMotoNoEditorGov(cont.motoId);
 
     const moto = getDb('crm_motos').find(x => x.id === cont.motoId);
@@ -3894,6 +3915,7 @@ function carregarContratoNoEditorGov(contratoId) {
     }
 
     atualizarPreviewContratoGov();
+    if (typeof renderPainelContratoAssinadoGov === "function") renderPainelContratoAssinadoGov(cont);
 }
 
 function coletarCamposEditorGov() {
