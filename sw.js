@@ -1,4 +1,4 @@
-const CACHE_NAME = 'facilitamoto-pwa-v20261025-01';
+const CACHE_NAME = 'facilitamoto-pwa-v20261025-02';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',

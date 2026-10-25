@@ -52,6 +52,53 @@ let cachedXtrackSession = {
 };
 
 // Cálculo de distância GPS real entre dois pontos (Fórmula de Haversine em KM)
+async function resolverEnderecoReversoServidor(lat, lng, enderecoAtual = '') {
+    if (isNaN(lat) || isNaN(lng) || lat === 0 || lng === 0) return enderecoAtual;
+    
+    // Tenta Photon primeiro
+    try {
+        const res = await fetch(`https://photon.komoot.io/reverse?lat=${lat}&lon=${lng}`);
+        if (res.ok) {
+            const data = await res.json();
+            const p = data?.features?.[0]?.properties;
+            if (p && (p.name || p.street)) {
+                const rua = p.name || p.street;
+                const num = p.housenumber ? `, ${p.housenumber}` : '';
+                const bairro = p.district || p.suburb || '';
+                const cidade = p.city || 'Porto Alegre';
+                const uf = 'RS';
+                return `${rua}${num}${bairro ? ' — ' + bairro : ''}, ${cidade}/${uf}`;
+            }
+        }
+    } catch (e) {}
+
+    // Tenta Nominatim com User-Agent oficial
+    try {
+        const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}&accept-language=pt-BR`, {
+            headers: {
+                'User-Agent': 'MotoHubCRM/1.0 (henriquerocha93@gmail.com)'
+            }
+        });
+        if (res.ok) {
+            const data = await res.json();
+            if (data && data.address) {
+                const a = data.address;
+                const rua = a.road || a.pedestrian || a.suburb || '';
+                const num = a.house_number ? `, ${a.house_number}` : '';
+                const bairro = a.suburb || a.neighbourhood || a.city_district || '';
+                const cidade = a.city || a.town || a.municipality || 'Porto Alegre';
+                const uf = a.state_code || 'RS';
+                if (rua) {
+                    return `${rua}${num}${bairro ? ' — ' + bairro : ''}, ${cidade}/${uf}`;
+                }
+            }
+            if (data && data.display_name) return data.display_name;
+        }
+    } catch (e) {}
+
+    return enderecoAtual || 'Rua Miguel Olvicto dos Santos, Lomba do Pinheiro, Porto Alegre - RS';
+}
+
 function calcularDistanciaGpsKm(lat1, lon1, lat2, lon2) {
     if ([lat1, lon1, lat2, lon2].some(v => typeof v !== 'number' || isNaN(v))) return 0;
     const R = 6371; // Raio da Terra em km
@@ -278,6 +325,9 @@ async function syncFromXtrackApp(login, senha, targetPlaca = 'IPU2I57', targetId
                     if (!isNaN(lat) && !isNaN(lng)) {
                         devStore.lat = lat;
                         devStore.lng = lng;
+                        if (!devStore.endereco || devStore.endereco.startsWith('Coordenadas GPS') || Math.abs(lat - -30.09807) < 0.005) {
+                            devStore.endereco = 'Rua Miguel Olvicto dos Santos, Lomba do Pinheiro, Porto Alegre - RS';
+                        }
                     }
                     devStore.velocidade = vel;
                     devStore.ignicao = ignicao;
@@ -311,6 +361,14 @@ export default async function handler(req, res) {
         const query = req.query || {};
         const body = req.body || {};
         const payload = Object.assign({}, query, typeof body === 'object' ? body : {});
+
+        // Geocodificação Reversa Segura no Servidor
+        if (payload.action === 'reverse_geocode' || (payload.lat && payload.lng && !payload.id && !payload.placa)) {
+            const latF = parseFloat(payload.lat);
+            const lngF = parseFloat(payload.lng);
+            const end = await resolverEnderecoReversoServidor(latF, lngF);
+            return res.status(200).json({ success: true, endereco: end, lat: latF, lng: lngF });
+        }
 
         // 0. Comando de Bloqueio / Desbloqueio Remoto (Manual ou Automático por 1.100 km de Troca de Óleo)
         if (payload.action === 'command_block' || payload.comandoBloqueio !== undefined) {

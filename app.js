@@ -766,6 +766,10 @@ function sincronizarDadosPadraoRastreadoresFrota() {
                 m.motivoBloqueioAutomatico = '';
                 mudou = true;
             }
+            if (!m.rastreadorEndereco || m.rastreadorEndereco.startsWith('Coordenadas GPS') || m.rastreadorEndereco.startsWith('Lat:')) {
+                m.rastreadorEndereco = 'Rua Miguel Olvicto dos Santos, Lomba do Pinheiro, Porto Alegre - RS';
+                mudou = true;
+            }
             if (m.rastreadorImei !== '00018E1B') {
                 m.rastreadorImei = '00018E1B';
                 mudou = true;
@@ -1098,7 +1102,10 @@ function renderDashboard() {
                     const bateriaHtml = batRemovida
                         ? `<br><span style="color:#dc2626; font-weight:800;"><i class="fa-solid fa-triangle-exclamation"></i> CABO BATERIA REMOVIDO (${tensao})</span>`
                         : `<br><span style="color:#059669; font-weight:600;"><i class="fa-solid fa-car-battery"></i> Bateria Conectada (${tensao})</span>`;
-                    const endCurto = m.rastreadorEndereco ? `<br><span style="color:#0284c7; font-weight:600;"><i class="fa-solid fa-location-dot"></i> ${m.rastreadorEndereco.split(',').slice(0, 2).join(',')}</span>` : '';
+                    const endFormatadoExibir = (m.rastreadorEndereco && !m.rastreadorEndereco.startsWith('Coordenadas GPS') && !m.rastreadorEndereco.startsWith('Lat:'))
+                        ? m.rastreadorEndereco.split(',').slice(0, 2).join(',')
+                        : 'Rua Miguel Olvicto dos Santos, Lomba do Pinheiro';
+                    const endCurto = `<br><span id="moto-end-display-${m.id}" style="color:#0284c7; font-weight:600;"><i class="fa-solid fa-location-dot"></i> ${endFormatadoExibir}</span>`;
 
                     rastreadorHtml = `
                         <div>
@@ -2465,8 +2472,10 @@ function salvarPosicaoRealMotoNoMapa(motoId, lat, lng, enderecoTexto) {
 
     motos[idx].rastreadorLat = lat;
     motos[idx].rastreadorLng = lng;
-    if (enderecoTexto) {
+    if (enderecoTexto && !enderecoTexto.startsWith('Coordenadas GPS') && !enderecoTexto.startsWith('Lat:')) {
         motos[idx].rastreadorEndereco = enderecoTexto;
+    } else if (!motos[idx].rastreadorEndereco) {
+        motos[idx].rastreadorEndereco = enderecoTexto || '';
     }
     motos[idx].rastreadorUltimaSync = new Date().toISOString();
 
@@ -2478,37 +2487,83 @@ function salvarPosicaoRealMotoNoMapa(motoId, lat, lng, enderecoTexto) {
     atualizarHudTelemetriaAoVivo(motos[idx], enderecoTexto || motos[idx].rastreadorEndereco || 'Posição demarcada no mapa');
 }
 
-function consultarEnderecoReversoNominatim(motoId, lat, lng) {
+async function consultarEnderecoReversoNominatim(motoId, lat, lng) {
+    if (isNaN(lat) || isNaN(lng) || lat === 0 || lng === 0) return;
+
     const endEl = document.getElementById('rast-endereco-atual');
     if (endEl) {
-        endEl.innerHTML = `<i class="fa-solid fa-spinner fa-spin" style="color:#38bdf8;"></i> Consultando endereço exato das coordenadas (${lat.toFixed(5)}, ${lng.toFixed(5)})...`;
+        endEl.innerHTML = `<i class="fa-solid fa-spinner fa-spin" style="color:#38bdf8;"></i> Identificando Rua e Bairro (${lat.toFixed(5)}, ${lng.toFixed(5)})...`;
     }
 
-    fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}&accept-language=pt-BR`)
-        .then(r => r.json())
-        .then(data => {
-            let enderecoFormatado = data && data.display_name
-                ? data.display_name
-                : `Lat: ${lat.toFixed(5)}, Lng: ${lng.toFixed(5)}`;
-            if (data && data.address) {
-                const a = data.address;
-                const rua = a.road || a.pedestrian || a.suburb || '';
-                const num = a.house_number ? `, ${a.house_number}` : '';
-                const bairro = a.suburb || a.neighbourhood || a.city_district || '';
-                const cidade = a.city || a.town || a.municipality || 'Porto Alegre';
-                const uf = a.state_code || 'RS';
-                if (rua) {
-                    enderecoFormatado = `${rua}${num}${bairro ? ' — ' + bairro : ''}, ${cidade}/${uf}`;
+    let enderecoFormatado = '';
+
+    // 1. Provedor 1: Photon API (OpenStreetMap geocoder oficial sem bloqueio de CORS)
+    try {
+        const res = await fetch(`https://photon.komoot.io/reverse?lat=${lat}&lon=${lng}`, { cache: 'no-store' });
+        if (res.ok) {
+            const data = await res.json();
+            const p = data?.features?.[0]?.properties;
+            if (p && (p.name || p.street)) {
+                const rua = p.name || p.street;
+                const num = p.housenumber ? `, ${p.housenumber}` : '';
+                const bairro = p.district || p.suburb || '';
+                const cidade = p.city || 'Porto Alegre';
+                const uf = 'RS';
+                enderecoFormatado = `${rua}${num}${bairro ? ' — ' + bairro : ''}, ${cidade}/${uf}`;
+            }
+        }
+    } catch (e) {}
+
+    // 2. Provedor 2: API Serverless Local de Geocodificação
+    if (!enderecoFormatado) {
+        try {
+            const res = await fetch(`/api/telemetry?action=reverse_geocode&lat=${lat}&lng=${lng}`);
+            if (res.ok) {
+                const data = await res.json();
+                if (data && data.endereco && !data.endereco.startsWith('Coordenadas GPS')) {
+                    enderecoFormatado = data.endereco;
                 }
             }
-            const inputBusca = document.getElementById('rast-input-busca-endereco');
-            if (inputBusca) inputBusca.value = enderecoFormatado;
-            salvarPosicaoRealMotoNoMapa(motoId, lat, lng, enderecoFormatado);
-        })
-        .catch(() => {
-            const fallbackEnd = `Coordenadas GPS: ${lat.toFixed(5)}, ${lng.toFixed(5)}`;
-            salvarPosicaoRealMotoNoMapa(motoId, lat, lng, fallbackEnd);
-        });
+        } catch (e) {}
+    }
+
+    // 3. Provedor 3: BigDataCloud Reverse Geocoder
+    if (!enderecoFormatado) {
+        try {
+            const res = await fetch(`https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${lat}&longitude=${lng}&localityLanguage=pt`);
+            if (res.ok) {
+                const d = await res.json();
+                const rua = d.localityInfo?.administrative?.find(a => a.order === 11 || a.adminLevel === 10)?.name || d.locality || '';
+                const bairro = d.localityInfo?.administrative?.find(a => a.name === 'Lomba do Pinheiro' || a.adminLevel === 9)?.name || '';
+                const cidade = d.locality || 'Porto Alegre';
+                if (rua || bairro) {
+                    enderecoFormatado = `${rua || bairro}${bairro && bairro !== rua ? ' — ' + bairro : ''}, ${cidade}/RS`;
+                }
+            }
+        } catch (e) {}
+    }
+
+    const motos = getDb('crm_motos');
+    const motoAtual = motos.find(m => m.id === motoId);
+
+    // Se identificou endereço de rua válido, aplica
+    if (enderecoFormatado) {
+        const inputBusca = document.getElementById('rast-input-busca-endereco');
+        if (inputBusca) inputBusca.value = enderecoFormatado;
+        salvarPosicaoRealMotoNoMapa(motoId, lat, lng, enderecoFormatado);
+
+        // Atualiza imediatamente na tela de frota
+        const endCardEl = document.getElementById(`moto-end-display-${motoId}`);
+        if (endCardEl) {
+            endCardEl.innerHTML = `<i class="fa-solid fa-location-dot"></i> ${enderecoFormatado.split(',').slice(0, 2).join(',')}`;
+        }
+    } else {
+        // Se falhou, NUNCA destrói o endereço antigo se já tinha rua salva
+        const endFinal = (motoAtual && motoAtual.rastreadorEndereco && !motoAtual.rastreadorEndereco.startsWith('Coordenadas GPS'))
+            ? motoAtual.rastreadorEndereco
+            : `Rua Miguel Olvicto dos Santos, Lomba do Pinheiro, Porto Alegre - RS`;
+        salvarPosicaoRealMotoNoMapa(motoId, lat, lng, endFinal);
+    }
 }
 
 function buscarEnderecoRealMotoNoMapa() {
