@@ -138,9 +138,23 @@
                                     <strong style="font-size:0.92rem; display:block;"><i class="fa-solid fa-bell" style="color:#fbbf24;"></i> Central de Notificações</strong>
                                     <span style="font-size:0.73rem; color:#94a3b8;">Avisos automáticos de Pagamentos, Troca de Óleo (1.000 km) e Frota</span>
                                 </div>
-                                <button type="button" class="btn btn-secondary btn-sm" style="padding:3px 8px; font-size:0.7rem; background:#1e293b; color:#38bdf8; border:1px solid #334155;" onclick="ativarNotificacoesNavegador()">
+                                <button type="button" class="btn btn-secondary btn-sm" style="padding:3px 8px; font-size:0.7rem; background:#1e293b; color:#38bdf8; border:1px solid #334155;" onclick="ativarNotificacoesNavegador(true)">
                                     <i class="fa-solid fa-volume-high"></i> Ativar Alerta
                                 </button>
+                            </div>
+                            <!-- Barra de Status Push Notificações -->
+                            <div style="padding:8px 14px; background:#f1f5f9; border-bottom:1px solid var(--border); display:flex; justify-content:space-between; align-items:center; font-size:0.75rem;">
+                                <div id="push-status-label">
+                                    <span style="color:#64748b;"><i class="fa-solid fa-bell"></i> Verificando Push...</span>
+                                </div>
+                                <div style="display:flex; gap:6px;">
+                                    <button type="button" id="btn-dropdown-ativar-push" class="btn btn-primary btn-sm" style="padding:2px 7px; font-size:0.68rem; display:none;" onclick="ativarNotificacoesNavegador(true)">
+                                        <i class="fa-solid fa-bell"></i> Ativar Push
+                                    </button>
+                                    <button type="button" class="btn btn-secondary btn-sm" style="padding:2px 7px; font-size:0.68rem;" onclick="dispararNotificacaoNativa('🔔 FACILITA MOTO - Teste de Notificação', { body: 'Notificações push funcionando 100% no seu celular e computador!' })" title="Testar disparo de notificação push">
+                                        <i class="fa-solid fa-paper-plane"></i> Testar
+                                    </button>
+                                </div>
                             </div>
                             <div id="lista-notificacoes-container" style="max-height:390px; overflow-y:auto; padding:10px; display:flex; flex-direction:column; gap:8px; background:#f8fafc;">
                                 <!-- Populado dinamicamente pelo JS -->
@@ -164,6 +178,9 @@
                     </div>
                 </div>
             </header>
+
+            <!-- Banner Global de Ativação de Notificações Push (Mobile & Desktop) -->
+            <div id="push-notification-banner-container" style="padding: 10px 24px 0 24px;"></div>
 
             <div class="views-container">
                 <!-- VIEW: DASHBOARD -->

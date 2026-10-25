@@ -31,7 +31,7 @@ let memoryTelemetryStore = {
         bloqueado: false,
         motivoBloqueio: null,
         kmGpsAcumulado: 4,
-        kmAtual: 270185,
+        kmAtual: 26094,
         lat: -30.018797,
         lng: -51.206461,
         endereco: "Rua Câncio Gomes, 664, Floresta, Porto Alegre - RS, 90220-060, Brasil",
@@ -281,7 +281,9 @@ async function syncFromXtrackApp(login, senha, targetPlaca = 'IPU2I57', targetId
                     }
                     devStore.velocidade = vel;
                     devStore.ignicao = ignicao;
-                    devStore.kmAtual = odo;
+                    if (odo > 0 && Math.abs(odo - (devStore.kmAtual || 26094)) < 25000) {
+                        devStore.kmAtual = odo;
+                    }
                     devStore.updatedAt = new Date().toISOString();
                     devStore.provedor = "App Xtrack Oficial (Tempo Real)";
                 }

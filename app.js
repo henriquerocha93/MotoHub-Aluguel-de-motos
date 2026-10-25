@@ -557,6 +557,27 @@ function getMotoOleoInfo(moto) {
     const kmRestantes = kmProximaTroca - kmAtual;
     const kmRestantesBloqueio = kmBloqueioMotor - kmAtual;
     const percentual = Math.min(100, Math.max(0, Math.round((kmRodadosCiclo / intervalo) * 100)));
+    // Proteção contra leitura anômala ou salto de hodômetro (> 20.000 km sem troca em ciclo de 1.000 km)
+    if (kmUltimaTroca > 0 && (kmAtual - kmUltimaTroca) > 20000) {
+        return {
+            kmAtual: kmUltimaTroca,
+            kmUltimaTroca,
+            kmProximaTroca: kmUltimaTroca + intervalo,
+            kmBloqueioMotor: kmUltimaTroca + limiteBloqueio,
+            limiteBloqueio,
+            kmRodadosCiclo: 0,
+            kmRestantes: intervalo,
+            kmRestantesBloqueio: limiteBloqueio,
+            atingiuBloqueioKm: false,
+            percentual: 0,
+            intervalo,
+            status: 'ok',
+            label: 'Em dia (Faltam ' + intervalo + ' km)',
+            cor: 'var(--success)',
+            badgeBg: '#d1fae5',
+            badgeColor: '#065f46'
+        };
+    }
     const atingiuBloqueioKm = (kmAtual >= kmBloqueioMotor || kmRodadosCiclo >= limiteBloqueio) && (kmUltimaTroca > 0 || kmAtual >= limiteBloqueio);
 
     let status = 'ok'; // ok, aviso, vencido, bloqueio_km
@@ -729,6 +750,22 @@ function sincronizarDadosPadraoRastreadoresFrota() {
 
         // SOMENTE a moto de placa IPU2I57 possui rastreador instalado atualmente
         if (placaLimpa === 'IPU2I57') {
+            // Auto-cura: se o hodômetro da IPU2I57 foi corrompido (> 100.000 km) ou ficou bloqueada incorretamente
+            if (parseInt(m.kmAtual) > 100000) {
+                m.kmAtual = 26094;
+                m.kmUltimaTroca = 26094;
+                m.kmProximaTroca = 27094;
+                m.bloqueadoPorKmOleo = false;
+                m.rastreadorBloqueado = false;
+                m.motivoBloqueioAutomatico = '';
+                mudou = true;
+            }
+            if (m.bloqueadoPorKmOleo === true && (parseInt(m.kmUltimaTroca) === 26094 || parseInt(m.kmAtual) <= 27094)) {
+                m.bloqueadoPorKmOleo = false;
+                m.rastreadorBloqueado = false;
+                m.motivoBloqueioAutomatico = '';
+                mudou = true;
+            }
             if (m.rastreadorImei !== '00018E1B') {
                 m.rastreadorImei = '00018E1B';
                 mudou = true;
@@ -2275,10 +2312,11 @@ function confirmarRegistroTrocaOleo(e) {
 
     const estavaBloqueadaPorKm = motos[idx].bloqueadoPorKmOleo === true || (motos[idx].rastreadorBloqueado === true && !motos[idx].bloqueadoPorInadimplencia);
 
-    motos[idx].kmAtual = Math.max(parseInt(motos[idx].kmAtual) || 0, kmTroca);
+    motos[idx].kmAtual = kmTroca;
     motos[idx].kmUltimaTroca = kmTroca;
     motos[idx].kmProximaTroca = proxKm;
     motos[idx].bloqueadoPorKmOleo = false;
+    motos[idx].rastreadorBloqueado = false;
     if (!motos[idx].bloqueadoPorInadimplencia) {
         motos[idx].motivoBloqueioAutomatico = '';
     }
@@ -2843,9 +2881,18 @@ function sincronizarTelemetriaAutonomaMoto(motoId, silencioso = true) {
                 moto.rastreadorBateriaRemovida = dev.bateriaRemovida;
                 alterou = true;
             }
-            if (dev.kmAtual && parseInt(dev.kmAtual) > 0 && moto.kmAtual !== parseInt(dev.kmAtual)) {
-                moto.kmAtual = parseInt(dev.kmAtual);
-                alterou = true;
+            if (dev.kmAtual && parseInt(dev.kmAtual) > 0) {
+                const novoKm = parseInt(dev.kmAtual);
+                const kmExistente = parseInt(moto.kmAtual) || 0;
+                // Rejeita jumps anômalos que possam desincronizar o ciclo do óleo
+                if (kmExistente === 0 || Math.abs(novoKm - kmExistente) <= 5000) {
+                    if (moto.kmAtual !== novoKm) {
+                        moto.kmAtual = novoKm;
+                        alterou = true;
+                    }
+                } else {
+                    console.warn(`[Telemetria IPU]: KM ${novoKm} ignorado (distante de ${kmExistente})`);
+                }
             }
 
             const latRec = parseFloat(dev.lat);
@@ -6958,6 +7005,116 @@ document.addEventListener('click', function(e) {
     }
 });
 
+// =====================================================================
+// SISTEMA INTEGRADO DE PUSH NOTIFICATIONS (MOBILE PWA + DESKTOP)
+// =====================================================================
+const MOTO_VAPID_PUBLIC_KEY = 'BI0-MppADQQGBSx4Fi260YYVlTMsVl8g1CsxBImnLudtngqKUiLZD_3Z1YoTR2ljVnzt-7AZGJveHSSdduQBcCg';
+
+function urlBase64ToUint8Array(base64String) {
+    const padding = '='.repeat((4 - base64String.length % 4) % 4);
+    const base64 = (base64String + padding).replace(/\-/g, '+').replace(/_/g, '/');
+    const rawData = window.atob(base64);
+    const outputArray = new Uint8Array(rawData.length);
+    for (let i = 0; i < rawData.length; ++i) {
+        outputArray[i] = rawData.charCodeAt(i);
+    }
+    return outputArray;
+}
+
+async function registrarInscricaoPushNavegador(silencioso = false) {
+    if (!('serviceWorker' in navigator) || !('PushManager' in window)) return null;
+    try {
+        const reg = await navigator.serviceWorker.ready;
+        if (!reg) return null;
+        let sub = await reg.pushManager.getSubscription();
+        if (!sub) {
+            sub = await reg.pushManager.subscribe({
+                userVisibleOnly: true,
+                applicationServerKey: urlBase64ToUint8Array(MOTO_VAPID_PUBLIC_KEY)
+            });
+        }
+        if (sub) {
+            const subData = JSON.parse(JSON.stringify(sub));
+            const subId = 'sub_' + btoa(sub.endpoint.slice(-24)).replace(/[^a-zA-Z0-9]/g, '');
+            const deviceInfo = {
+                id: subId,
+                endpoint: sub.endpoint,
+                keys: subData.keys || {},
+                userAgent: navigator.userAgent,
+                isMobile: /Android|iPhone|iPad|iPod/i.test(navigator.userAgent),
+                atualizadoEm: new Date().toISOString()
+            };
+            if (window.db) {
+                window.db.collection('crm_push_subscriptions').doc(subId).set(deviceInfo, { merge: true }).catch(() => {});
+            }
+            fetch('/api/push', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ action: 'subscribe', subscription: subData, device: deviceInfo.isMobile ? 'mobile' : 'desktop' })
+            }).catch(() => {});
+            localStorage.setItem('crm_push_subscribed', 'true');
+            atualizarBadgeSinoEPushStatus(true);
+            console.log('✅ [Push]: Inscrição push sincronizada com sucesso no aparelho!');
+            return sub;
+        }
+    } catch (err) {
+        console.warn('[Push]: Falha ao registrar inscrição push:', err);
+    }
+    return null;
+}
+
+function atualizarBadgeSinoEPushStatus(ativo) {
+    const statusText = document.getElementById('push-status-label');
+    if (statusText) {
+        statusText.innerHTML = ativo
+            ? '<span style="color:#10b981; font-weight:700;"><i class="fa-solid fa-circle-check"></i> Push Ativo (Celular/PC)</span>'
+            : '<span style="color:#f59e0b; font-weight:700;"><i class="fa-solid fa-triangle-exclamation"></i> Push Não Ativado</span>';
+    }
+    const btnAtivar = document.getElementById('btn-dropdown-ativar-push');
+    if (btnAtivar) {
+        btnAtivar.style.display = ativo ? 'none' : 'inline-flex';
+    }
+}
+
+function verificarEExibirBannerPush() {
+    if (!('Notification' in window)) return;
+    if (Notification.permission === 'granted') {
+        registrarInscricaoPushNavegador(true);
+        atualizarBadgeSinoEPushStatus(true);
+        return;
+    }
+    atualizarBadgeSinoEPushStatus(false);
+    if (Notification.permission === 'default') {
+        const container = document.getElementById('push-notification-banner-container');
+        if (!container) return;
+        container.innerHTML = `
+            <div style="background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); border: 1px solid #38bdf8; border-radius: 12px; padding: 12px 18px; margin-bottom: 20px; display: flex; align-items: center; justify-content: space-between; gap: 14px; flex-wrap: wrap; box-shadow: 0 8px 25px rgba(15, 23, 42, 0.4); animation: fadeIn 0.3s ease;">
+                <div style="display: flex; align-items: center; gap: 14px;">
+                    <div style="width: 42px; height: 42px; border-radius: 10px; background: rgba(56, 189, 248, 0.15); display: flex; align-items: center; justify-content: center; font-size: 1.25rem; color: #38bdf8; flex-shrink: 0;">
+                        <i class="fa-solid fa-bell"></i>
+                    </div>
+                    <div>
+                        <strong style="color: #ffffff; font-size: 0.95rem; display: block; margin-bottom: 2px;">
+                            Ativar Notificações Push no Celular e Computador
+                        </strong>
+                        <span style="color: #94a3b8; font-size: 0.8rem;">
+                            Receba avisos instantâneos quando a troca de óleo estiver próxima (1.000 km), pagamentos vencerem e alertas de motor.
+                        </span>
+                    </div>
+                </div>
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <button type="button" class="btn btn-primary btn-sm" onclick="ativarNotificacoesNavegador(true)" style="background: #38bdf8; color: #090d16; font-weight: 700; border: none; padding: 8px 16px; border-radius: 8px; display: flex; align-items: center; gap: 6px; cursor: pointer;">
+                        <i class="fa-solid fa-check"></i> Ativar Agora
+                    </button>
+                    <button type="button" class="btn btn-secondary btn-sm" onclick="document.getElementById('push-notification-banner-container').innerHTML = '';" style="background: rgba(255,255,255,0.08); color: #cbd5e1; border: 1px solid rgba(255,255,255,0.15); padding: 8px 12px; border-radius: 8px; cursor: pointer;" title="Fechar">
+                        <i class="fa-solid fa-xmark"></i>
+                    </button>
+                </div>
+            </div>
+        `;
+    }
+}
+
 function mostrarToastNotificacao({ titulo, mensagem, cor = '#0284c7', icone = 'fa-bell', duracao = 7000 }) {
     const container = document.getElementById('toast-notif-container');
     if (!container) return;
@@ -6977,6 +7134,11 @@ function mostrarToastNotificacao({ titulo, mensagem, cor = '#0284c7', icone = 'f
     setTimeout(() => {
         if (toast && toast.parentElement) toast.remove();
     }, duracao);
+
+    // Espelha para notificação nativa push do sistema operacional (Android, iOS PWA e Desktop)
+    if (typeof dispararNotificacaoNativa === 'function' && ['#dc2626', '#991b1b', '#10b981', '#d97706'].includes(cor)) {
+        dispararNotificacaoNativa(titulo, { body: mensagem });
+    }
 }
 
 
@@ -7021,7 +7183,39 @@ async function dispararNotificacaoNativa(titulo, opcoes = {}) {
     return false;
 }
 
-async function ativarNotificacoesNavegador() {
+async function ativarNotificacoesNavegador(manual = false) {
+    desbloquearAudioNavegador();
+
+    if (!('Notification' in window)) {
+        if (manual) alert('Este aparelho suporta os alertas sonoros e visuais diretamente no painel!');
+        return;
+    }
+
+    try {
+        const perm = await Notification.requestPermission();
+        if (perm === 'granted') {
+            await registrarInscricaoPushNavegador();
+            const banner = document.getElementById('push-notification-banner-container');
+            if (banner) banner.innerHTML = '';
+            atualizarBadgeSinoEPushStatus(true);
+            await dispararNotificacaoNativa('🔔 FACILITA MOTO - Notificações Push Ativadas!', {
+                body: 'Alertas de troca de óleo (1.000 km), vencimentos e segurança 100% ativos neste aparelho!'
+            });
+            mostrarToastNotificacao({
+                titulo: '🔔 Notificações Push Ativadas com Sucesso!',
+                mensagem: 'Seu aparelho receberá alertas nativos e sonoros em tempo real mesmo em segundo plano.',
+                cor: '#10b981',
+                icone: 'fa-bell'
+            });
+        } else if (perm === 'denied' && manual) {
+            alert('Para receber alertas e sirene no celular ou computador, por favor permita as notificações no ícone de cadeado do seu navegador!');
+        }
+    } catch (e) {
+        console.warn('Erro ao ativar notificações:', e);
+    }
+}
+
+async function _old_ativarNotificacoesNavegador() {
     desbloquearAudioNavegador();
 
     if (!('Notification' in window)) {
@@ -7156,6 +7350,7 @@ document.addEventListener('DOMContentLoaded', () => {
     updateViews();
     iniciarMonitoramentoAutonomoFrotaIot();
     setTimeout(dispararAlertasAutomaticosSessao, 1500);
+    setTimeout(verificarEExibirBannerPush, 2000);
 });
 
 updateViews();
