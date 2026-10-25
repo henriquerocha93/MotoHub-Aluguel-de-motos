@@ -375,7 +375,8 @@ document.querySelectorAll('.nav-item').forEach(item => {
         if (viewEl) viewEl.classList.add('active');
 
         // Update Page Title
-        const cleanTitle = item.innerText.replace(/\d+$/, '').trim();
+        const textEl = item.querySelector('.nav-text');
+        const cleanTitle = textEl ? textEl.innerText.trim() : item.innerText.replace(/\d+$/, '').trim();
         document.getElementById('page-title').innerText = cleanTitle;
 
         // Re-render specific view data
