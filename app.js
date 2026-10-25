@@ -1299,10 +1299,54 @@ document.getElementById('form-cliente')?.addEventListener('submit', function(e) 
     updateViews();
 });
 
+let abaClientesAtiva = 'leads'; // padrão: 'leads', 'fechados', 'todos'
+
+function setAbaClientes(aba) {
+    abaClientesAtiva = aba;
+    const btnLeads = document.getElementById('tab-btn-leads');
+    const btnFechados = document.getElementById('tab-btn-fechados');
+    const btnTodos = document.getElementById('tab-btn-todos');
+
+    if (btnLeads) {
+        btnLeads.className = aba === 'leads' ? 'btn btn-primary btn-sm' : 'btn btn-secondary btn-sm';
+    }
+    if (btnFechados) {
+        btnFechados.className = aba === 'fechados' ? 'btn btn-primary btn-sm' : 'btn btn-secondary btn-sm';
+    }
+    if (btnTodos) {
+        btnTodos.className = aba === 'todos' ? 'btn btn-primary btn-sm' : 'btn btn-secondary btn-sm';
+    }
+    renderClientes();
+}
+
 function renderClientes() {
     const clientes = getDb('crm_clientes');
+    const contratos = getDb('crm_contratos');
+    const motos = getDb('crm_motos');
     const query = document.getElementById('search-cliente') ? document.getElementById('search-cliente').value.toLowerCase() : '';
-    const filtered = clientes.filter(c => (c.nome || '').toLowerCase().includes(query) || (c.telefone || '').includes(query) || (c.cpf || '').includes(query));
+
+    // Contadores para as abas
+    const countLeads = clientes.filter(c => c.status !== 'fechado').length;
+    const countFechados = clientes.filter(c => c.status === 'fechado').length;
+    const countTodos = clientes.length;
+
+    if (document.getElementById('badge-count-leads')) document.getElementById('badge-count-leads').innerText = countLeads;
+    if (document.getElementById('badge-count-fechados')) document.getElementById('badge-count-fechados').innerText = countFechados;
+    if (document.getElementById('badge-count-todos')) document.getElementById('badge-count-todos').innerText = countTodos;
+
+    let base = clientes;
+    if (abaClientesAtiva === 'leads') {
+        base = clientes.filter(c => c.status !== 'fechado');
+    } else if (abaClientesAtiva === 'fechados') {
+        base = clientes.filter(c => c.status === 'fechado');
+    }
+
+    const filtered = base.filter(c => 
+        (c.nome || '').toLowerCase().includes(query) || 
+        (c.telefone || '').includes(query) || 
+        (c.cpf || '').includes(query) ||
+        (c.endereco || '').toLowerCase().includes(query)
+    );
 
     const tbody = document.getElementById('table-clientes');
     if (!tbody) return;
@@ -1312,20 +1356,57 @@ function renderClientes() {
         'novo': 'Novo Lead',
         'contato': 'Contato Feito',
         'proposta': 'Proposta Enviada',
-        'fechado': 'Fechado'
+        'fechado': 'Contrato Fechado'
     };
+
+    if (filtered.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5" class="empty-state" style="padding:26px; text-align:center; color:#64748b;">Nenhum registro encontrado nesta aba.</td></tr>';
+        return;
+    }
 
     filtered.forEach(c => {
         const tr = document.createElement('tr');
+        const numLimpo = (c.telefone || '').replace(/\D/g, '');
+        const waLink = numLimpo ? ('https://wa.me/' + (numLimpo.startsWith('55') ? numLimpo : '55' + numLimpo)) : '';
+
+        // Procura contrato ativo e moto
+        const contratoAtivo = contratos.find(ct => ct.clienteId === c.id && ct.status === 'ativo');
+        let motoInfo = '';
+        if (contratoAtivo) {
+            const moto = motos.find(m => m.id === contratoAtivo.motoId);
+            motoInfo = moto ? ('<br><small style="color:#0284c7; font-weight:700;"><i class="fa-solid fa-motorcycle"></i> Moto: ' + moto.placa + ' (' + moto.modelo + ')</small>') : '';
+        }
+
+        const isLead = c.status !== 'fechado';
+        const origemBadge = c.origem ? ('<span class="badge" style="background:#f1f5f9; color:#475569; font-size:0.7rem; margin-top:3px; display:inline-block;"><i class="' + (c.origem.includes('WhatsApp') ? 'fa-brands fa-whatsapp' : 'fa-solid fa-globe') + '"></i> ' + c.origem + '</span>') : '';
+
+        const statusBadgeColor = c.status === 'fechado' ? 'background:#dcfce7; color:#15803d;' : (c.status === 'novo' ? 'background:#e0f2fe; color:#0369a1;' : 'background:#fef3c7; color:#92400e;');
+
         tr.innerHTML = `
-            <td><strong>${c.nome}</strong><br><small style="color:var(--text-muted);">${c.email || ''}</small></td>
-            <td>${c.telefone}</td>
-            <td>CPF: ${c.cpf || '-'}<br><small style="color:var(--text-muted);">CNH: ${c.cnh || '-'} (${c.cnhCat || 'A'})</small></td>
-            <td><span class="badge badge-primary" style="background:#e0e7ff; color:#4f46e5">${labelStatusMap[c.status] || c.status}</span></td>
             <td>
-                <button class="btn btn-secondary btn-sm" onclick="abrirPerfilCliente('${c.id}')" title="Ver Perfil"><i class="fa-solid fa-eye"></i></button>
-                <button class="btn btn-primary btn-sm" onclick="abrirEdicaoCliente('${c.id}')" title="Editar Cliente"><i class="fa-solid fa-pen"></i></button>
-                <button class="btn btn-danger btn-sm" onclick="deletarCliente('${c.id}')" title="Deletar"><i class="fa-solid fa-trash"></i></button>
+                <strong>${c.nome || 'Sem Nome'}</strong><br>
+                <small style="color:var(--text-muted);">${c.email || ''}</small>
+                ${origemBadge}
+            </td>
+            <td>
+                <strong>${c.telefone || '-'}</strong>
+                ${waLink ? `<br><a href="${waLink}" target="_blank" class="btn btn-secondary btn-sm" style="background:#25d366; color:#fff; border:none; padding:2px 8px; font-size:0.72rem; margin-top:4px; display:inline-flex; align-items:center; gap:4px;"><i class="fa-brands fa-whatsapp"></i> Conversar</a>` : ''}
+            </td>
+            <td>
+                CPF: <strong>${c.cpf || '-'}</strong><br>
+                <small style="color:var(--text-muted);">CNH: ${c.cnh || '-'} (${c.cnhCat || 'A'})</small>
+                ${c.endereco ? `<br><small style="color:#64748b;"><i class="fa-solid fa-location-dot"></i> ${c.endereco}</small>` : ''}
+            </td>
+            <td>
+                <span class="badge" style="${statusBadgeColor}; font-weight:700;">${labelStatusMap[c.status] || c.status}</span>
+                ${motoInfo}
+            </td>
+            <td>
+                <div style="display:flex; gap:5px; flex-wrap:wrap;">
+                    <button class="btn btn-secondary btn-sm" onclick="abrirPerfilCliente('${c.id}')" title="Ver Perfil"><i class="fa-solid fa-eye"></i></button>
+                    <button class="btn btn-primary btn-sm" onclick="abrirEdicaoCliente('${c.id}')" title="Editar"><i class="fa-solid fa-pen"></i></button>
+                    <button class="btn btn-danger btn-sm" onclick="deletarCliente('${c.id}')" title="Deletar"><i class="fa-solid fa-trash"></i></button>
+                </div>
             </td>
         `;
         tbody.appendChild(tr);
