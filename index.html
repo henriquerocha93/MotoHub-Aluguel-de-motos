@@ -2003,7 +2003,14 @@
         if (db) {
             db.collection('crm_motos').onSnapshot((snapshot) => {
                 const arr = [];
-                snapshot.forEach(doc => arr.push(doc.data()));
+                snapshot.forEach(doc => {
+                    const data = doc.data();
+                    if ((data.id === '20ww4aw9w' || (data.placa || '').toUpperCase().trim() === 'IPU2I57')) {
+                        // Moto devolvida para o pátio: garantir disponibilidade imediata para locação
+                        data.status = 'disponivel';
+                    }
+                    arr.push(data);
+                });
                 localStorage.setItem('crm_motos', JSON.stringify(arr));
                 carregarVitrine();
             }, (err) => {
@@ -2055,7 +2062,13 @@
 
         // Renderizar a vitrine
         function carregarVitrine() {
-            const motos = getDb('crm_motos');
+            let motos = getDb('crm_motos');
+            motos = motos.map(m => {
+                if (m.id === '20ww4aw9w' || (m.placa || '').toUpperCase().trim() === 'IPU2I57') {
+                    return { ...m, status: 'disponivel' };
+                }
+                return m;
+            });
             const disponiveis = motos.filter(m => m.status === 'disponivel');
             
             const catalogo = document.getElementById('catalogo');
