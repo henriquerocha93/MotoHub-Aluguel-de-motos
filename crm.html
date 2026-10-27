@@ -1069,8 +1069,12 @@
                                         <input type="text" id="gov-prazo-hora" value="09:00" placeholder="09:00" oninput="atualizarPreviewContratoGov()">
                                     </div>
                                     <div class="col" style="flex:2;">
-                                        <label>Prazo da Locação (3.3)</label>
-                                        <input type="text" id="gov-prazo-duracao" placeholder="Ex: 30 dias (renovável automaticamente por períodos semanais)" oninput="atualizarPreviewContratoGov()">
+                                        <label>Prazo da Locação / Permanência Mínima (3.3 e 3.4)</label>
+                                        <input type="text" id="gov-prazo-duracao" placeholder="Ex: Mínimo obrigatório de 3 meses (fidelidade), com renovação semanal automática após o período" oninput="atualizarPreviewContratoGov()">
+                                        <div style="background: rgba(245, 158, 11, 0.12); border-left: 3px solid #f59e0b; padding: 6px 10px; margin-top: 6px; border-radius: 4px; font-size: 0.78rem; color: var(--text-color);">
+                                            <i class="fa-solid fa-triangle-exclamation" style="color: #f59e0b; margin-right: 4px;"></i>
+                                            <strong>Fidelidade Mínima de 3 Meses:</strong> O contrato obriga a permanência mínima de 3 meses com a moto. Em caso de quebra ou rescisão antecipada, o locatário deverá pagar integralmente todos os meses/semanas faltantes.
+                                        </div>
                                     </div>
                                 </div>
                             </div>

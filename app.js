@@ -4069,8 +4069,8 @@ function carregarContratoNoEditorGov(contratoId) {
 
     document.getElementById('gov-prazo-inicio').value = formatarDataBr(cont.inicio);
     document.getElementById('gov-prazo-duracao').value = cont.fim
-        ? `De ${formatarDataBr(cont.inicio)} até ${formatarDataBr(cont.fim)}`
-        : 'Prazo indeterminado com renovação semanal automática';
+        ? `Mínimo de 3 meses (de ${formatarDataBr(cont.inicio)} até ${formatarDataBr(cont.fim)})`
+        : 'Mínimo obrigatório de 3 meses (fidelidade), com renovação semanal automática após o período';
 
     const valSemanal = cont.valorSemanal
         ? parseFloat(cont.valorSemanal).toFixed(2).replace('.', ',')
@@ -4183,7 +4183,7 @@ function gerarHtmlContratoPadraoCompleto(d) {
 
     return `
         <h2>CONTRATO PARTICULAR DE LOCAÇÃO DE MOTOCICLETA</h2>
-        <div class="sub-header">LOCAÇÃO SEMANAL — CAUÇÃO — RESPONSABILIDADE POR DANOS, MULTAS, FURTO, ROUBO E PERDA TOTAL</div>
+        <div class="sub-header">LOCAÇÃO SEMANAL — CAUÇÃO — PERMANÊNCIA MÍNIMA DE 3 MESES — RESPONSABILIDADE POR DANOS, MULTAS, FURTO, ROUBO E PERDA TOTAL</div>
         <p>Pelo presente instrumento particular, as partes abaixo identificadas celebram o presente Contrato de Locação de Motocicleta, mediante as cláusulas e condições seguintes.</p>
 
         <h4>CLÁUSULA 1ª — IDENTIFICAÇÃO DAS PARTES</h4>
@@ -4211,13 +4211,15 @@ function gerarHtmlContratoPadraoCompleto(d) {
         Cor: ${v('gov-moto-cor', '__________________________________________________________')}<br>
         Quilometragem na entrega: ${v('gov-moto-km', '______________________________________')}</p>
 
-        <h4>CLÁUSULA 3ª — OBJETO E PRAZO DA LOCAÇÃO</h4>
+        <h4>CLÁUSULA 3ª — OBJETO, PRAZO E PERMANÊNCIA MÍNIMA OBRIGATÓRIA (3 MESES)</h4>
         <p>3.1. O LOCADOR entrega ao LOCATÁRIO a motocicleta identificada neste contrato para utilização durante o período contratado, mediante pagamento de aluguel semanal.</p>
         <p>3.2. Data e horário de início da locação: ${v('gov-prazo-inicio', '____/____/________')}, às ${v('gov-prazo-hora', '______')} horas.</p>
         <p>3.3. Prazo da locação: ${v('gov-prazo-duracao', '__________________________________________')}.</p>
-        <p>3.4. A renovação poderá ocorrer mediante concordância entre as partes, inclusive por escrito ou por meio eletrônico que permita comprovar a manifestação de vontade.</p>
-        <p>3.5. A motocicleta deverá ser utilizada de acordo com a legislação vigente, as condições deste contrato e a finalidade autorizada pelo LOCADOR.</p>
-        <p>3.6. O LOCATÁRIO declara possuir habilitação válida e categoria compatível com a motocicleta.</p>
+        <p>3.4. <strong>PERMANÊNCIA MÍNIMA OBRIGATÓRIA (FIDELIDADE DE 3 MESES):</strong> O presente contrato possui <strong>vigência mínima obrigatória de 3 (três) meses (90 dias corridos)</strong> contados a partir da data de entrega da motocicleta, período no qual o LOCATÁRIO se obriga irrevogavelmente a permanecer com a locação do veículo e manter a pontualidade dos pagamentos semanais.</p>
+        <p>3.5. <strong>QUEBRA CONTRATUAL E COBRANÇA DOS MESES FALTANTES:</strong> Na hipótese de o LOCATÁRIO solicitar a rescisão antecipada, devolver a motocicleta antes de completados os 3 (três) meses, ou dar causa à rescisão contratual por inadimplemento (incluindo atraso de pagamento) ou descumprimento de qualquer cláusula deste contrato, <strong>fica obrigado a pagar integralmente ao LOCADOR o valor de todos os meses e semanas restantes para atingir o término do período mínimo de 3 (três) meses estipulado</strong>, calculado com base no valor semanal do aluguel vigente, sem prejuízo da retenção da caução, cobrança de multas de trânsito e ressarcimento de eventuais danos causados à motocicleta.</p>
+        <p>3.6. A renovação poderá ocorrer mediante concordância entre as partes, inclusive por escrito ou por meio eletrônico que permita comprovar a manifestação de vontade, findo o prazo mínimo contratual.</p>
+        <p>3.7. A motocicleta deverá ser utilizada de acordo com a legislação vigente, as condições deste contrato e a finalidade autorizada pelo LOCADOR.</p>
+        <p>3.8. O LOCATÁRIO declara possuir habilitação válida e categoria compatível com a motocicleta.</p>
 
         <h4>CLÁUSULA 4ª — VALOR DO ALUGUEL, VENCIMENTO E CAUÇÃO</h4>
         <p>4.1. O valor do aluguel será de R$ ${v('gov-fin-semanal', '__________')} (${v('gov-fin-semanal-extenso', '________________________________')}), por semana.</p>
@@ -4326,7 +4328,7 @@ function gerarHtmlContratoPadraoCompleto(d) {
         <p>14.5. Caso os prejuízos comprovados ultrapassem o valor da caução, o LOCATÁRIO deverá pagar a diferença na medida de sua responsabilidade legal e contratual.</p>
         <p>14.6. A caução não será automaticamente perdida em sua totalidade por qualquer irregularidade. A compensação deverá corresponder aos valores efetivamente devidos, observados os limites legais.</p>
 
-        <h4>CLÁUSULA 15ª — RESCISÃO CONTRATUAL</h4>
+        <h4>CLÁUSULA 15ª — RESCISÃO CONTRATUAL E COBRANÇA DOS MESES FALTANTES</h4>
         <p>15.1. O contrato poderá ser encerrado pelo término do prazo, por acordo entre as partes ou por descumprimento contratual que justifique a rescisão.</p>
         <p>15.2. Constituem hipóteses de rescisão, entre outras:<br>
         a) Atraso no aluguel conforme as condições da Cláusula 10ª;<br>
@@ -4337,8 +4339,9 @@ function gerarHtmlContratoPadraoCompleto(d) {
         f) Descumprimento grave das obrigações de conservação e utilização;<br>
         g) Falsidade de informações ou documentos relevantes para a contratação.</p>
         <p>15.3. Rescindido o contrato, o LOCATÁRIO deverá devolver a motocicleta, sem prejuízo da cobrança de aluguéis vencidos, danos comprovados e demais valores legalmente exigíveis.</p>
-        <p>15.4. A retomada da motocicleta, quando não houver entrega voluntária, deverá ocorrer pelos meios legalmente permitidos, sem violência, ameaça, constrangimento ou exercício arbitrário das próprias razões.</p>
-        <p>15.5. A rescisão não autoriza a apropriação automática de valores da caução além dos débitos e prejuízos efetivamente devidos.</p>
+        <p>15.4. <strong>Cobrança dos Meses Faltantes por Quebra Contratual:</strong> Conforme estipulado nos itens 3.4 e 3.5 deste contrato, ocorrendo quebra contratual, inadimplemento ou devolução voluntária da motocicleta antes do término do prazo mínimo obrigatório de 3 (três) meses, o LOCATÁRIO pagará a título de indenização rescisória o valor integral correspondente a todas as semanas e meses remanescentes até a conclusão do 3º mês, sendo facultado ao LOCADOR reter a caução para amortização dos débitos e promover a cobrança do saldo devedor por vias extrajudiciais ou judiciais.</p>
+        <p>15.5. A retomada da motocicleta, quando não houver entrega voluntária, deverá ocorrer pelos meios legalmente permitidos, sem violência, ameaça, constrangimento ou exercício arbitrário das próprias razões.</p>
+        <p>15.6. A rescisão não autoriza a apropriação automática de valores da caução além dos débitos e prejuízos efetivamente devidos.</p>
 
         <h4>CLÁUSULA 16ª — DECLARAÇÕES DO LOCATÁRIO</h4>
         <p>O LOCATÁRIO declara que:<br>
@@ -4351,7 +4354,8 @@ function gerarHtmlContratoPadraoCompleto(d) {
         g) Devolverá a motocicleta conforme as condições deste instrumento;<br>
         h) Está ciente das regras de verificação de multas e retenção preventiva da caução por até 40 dias, nos termos da Cláusula 9ª;<br>
         i) Está ciente de que a responsabilidade por furto, roubo, acidentes e perda total será apurada conforme a Cláusula 6ª e a legislação aplicável;<br>
-        j) Está ciente de que o bloqueio remoto somente poderá ocorrer em condições seguras e conforme a legislação aplicável.</p>
+        j) Está ciente de que o bloqueio remoto somente poderá ocorrer em condições seguras e conforme a legislação aplicável;<br>
+        k) <strong>Declara expressa ciência e concordância de que a locação possui prazo mínimo obrigatório de permanência de 3 (três) meses com a motocicleta, obrigando-se ao pagamento integral e imediato de todos os meses faltantes em caso de rescisão antecipada ou quebra de contrato.</strong></p>
 
         <h4>CLÁUSULA 17ª — DISPOSIÇÕES GERAIS</h4>
         <p>17.1. Qualquer alteração deste contrato deverá ser formalizada por escrito e aceita por ambas as partes.</p>
